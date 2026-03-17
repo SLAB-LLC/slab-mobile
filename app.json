@@ -1,30 +1,56 @@
 {
   "expo": {
-    "name": "SLAB-mobile",
-    "slug": "SLAB-mobile",
+    "name": "SLAB Voice",
+    "slug": "slab-voice",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/slab-logo.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#D4AF37"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.slabvoice.mobile",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "This app needs access to your microphone to record and transcribe audio.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload audio files."
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/slab-logo.png",
+        "backgroundColor": "#D4AF37"
       },
+      "package": "com.slabvoice.mobile",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/slab-logo.png",
+          "color": "#f39c12",
+          "sounds": []
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "a08565c5-4ff9-4648-9eba-ef3cf346bf0c"
+      }
+    },
+    "owner": "slab_training"
   }
 }
