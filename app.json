@@ -17,7 +17,8 @@
       "bundleIdentifier": "com.slabvoice.mobile",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "This app needs access to your microphone to record and transcribe audio.",
-        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload audio files."
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload audio files.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
