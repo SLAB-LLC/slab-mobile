@@ -11,6 +11,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient'
 import { useNavigation } from '@react-navigation/native'
 import { useAuth } from '../context/AuthContext'
+import { useCompanyColors } from '../hooks/useCompanyColors'
 import {
   getBigFiveMembers,
   getUserSubscriptions,
@@ -20,7 +21,8 @@ import BigFiveCircle from '../components/audio/BigFiveCircle'
 import { colors } from '../theme/tokens'
 
 export default function AudioHomeScreen() {
-  const { user, company } = useAuth()
+  const { user } = useAuth()
+  const { bgGradient } = useCompanyColors()
   const navigation = useNavigation<any>()
 
   const [members, setMembers] = useState<BigFiveMember[]>([])
@@ -58,11 +60,9 @@ export default function AudioHomeScreen() {
     navigation.navigate('MemberProfile', { memberId: member.id })
   }
 
-  const primaryColor = company?.primary_color || '#001199'
-
   if (loading) {
     return (
-      <LinearGradient colors={['#000033', primaryColor, '#0a1a5f']} style={styles.loadingContainer}>
+      <LinearGradient colors={bgGradient} style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.successGold} />
       </LinearGradient>
     )
@@ -74,7 +74,7 @@ export default function AudioHomeScreen() {
 
   return (
     <LinearGradient
-      colors={['#000033', primaryColor, '#0a1a5f']}
+      colors={bgGradient}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.container}

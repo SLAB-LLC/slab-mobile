@@ -12,12 +12,14 @@ import {
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useAuth } from '../context/AuthContext'
+import { useCompanyColors } from '../hooks/useCompanyColors'
 import * as trainingService from '../services/training.service'
 import { TrainingVideo } from '../types'
 import { colors } from '../theme/tokens'
 
 export default function TrainingVideosScreen() {
   const { user, profile } = useAuth()
+  const { bgGradient } = useCompanyColors()
   const [videos, setVideos] = useState<TrainingVideo[]>([])
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
@@ -128,14 +130,14 @@ export default function TrainingVideosScreen() {
 
   if (loading) {
     return (
-      <LinearGradient colors={['#000033', '#001155', '#0a1a5f']} style={styles.centered}>
+      <LinearGradient colors={bgGradient} style={styles.centered}>
         <ActivityIndicator size="large" color={colors.successGold} />
       </LinearGradient>
     )
   }
 
   return (
-    <LinearGradient colors={['#000033', '#001155', '#0a1a5f']} style={styles.container}>
+    <LinearGradient colors={bgGradient} style={styles.container}>
       <FlatList
         data={videos}
         keyExtractor={(item) => item.id}

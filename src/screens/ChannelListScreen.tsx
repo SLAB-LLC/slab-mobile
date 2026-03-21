@@ -16,6 +16,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient'
 import { useNavigation } from '@react-navigation/native'
 import { useAuth } from '../context/AuthContext'
+import { useCompanyColors } from '../hooks/useCompanyColors'
 import * as chatService from '../services/chat.service'
 import { ChannelWithMembers, CompanyUser } from '../services/chat.service'
 import { colors } from '../theme/tokens'
@@ -24,6 +25,7 @@ type ComposeMode = 'dm' | 'group'
 
 export default function ChannelListScreen() {
   const { user, profile } = useAuth()
+  const { bgGradient } = useCompanyColors()
   const navigation = useNavigation<any>()
 
   const [channels, setChannels] = useState<ChannelWithMembers[]>([])
@@ -207,14 +209,14 @@ export default function ChannelListScreen() {
 
   if (loading) {
     return (
-      <LinearGradient colors={['#000033', '#001155', '#0a1a5f']} style={styles.centered}>
+      <LinearGradient colors={bgGradient} style={styles.centered}>
         <ActivityIndicator size="large" color={colors.successGold} />
       </LinearGradient>
     )
   }
 
   return (
-    <LinearGradient colors={['#000033', '#001155', '#0a1a5f']} style={styles.container}>
+    <LinearGradient colors={bgGradient} style={styles.container}>
       <FlatList
         data={channels}
         keyExtractor={(item) => item.id}

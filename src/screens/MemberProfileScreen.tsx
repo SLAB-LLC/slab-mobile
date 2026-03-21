@@ -11,15 +11,22 @@ import {
   Dimensions,
   Linking,
   RefreshControl,
+  Modal,
+  FlatList,
+  Alert,
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRoute, useNavigation } from '@react-navigation/native'
+import * as ImagePicker from 'expo-image-picker'
+import * as FileSystem from 'expo-file-system/legacy'
 import { useAuth } from '../context/AuthContext'
+import { useCompanyColors } from '../hooks/useCompanyColors'
 import {
   getBigFiveMemberById,
   getMemberAwards,
   getMemberSalespersonNames,
   getUserSubscriptions,
+  updateMemberFieldLogo,
   BigFiveMember,
   BigFiveAward,
 } from '../services/bigfive.service'
@@ -77,7 +84,10 @@ export default function MemberProfileScreen() {
   const navigation = useNavigation<any>()
   const { memberId } = route.params
 
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
+  const { bgColor, bgGradient } = useCompanyColors()
+  const isSuperAdmin = profile?.role === 'super_admin'
+
   const [member, setMember] = useState<BigFiveMember | null>(null)
   const [awards, setAwards] = useState<BigFiveAward[]>([])
   const [recordings, setRecordings] = useState<MemberRecording[]>([])
@@ -85,6 +95,10 @@ export default function MemberProfileScreen() {
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+
+  // Modal for multiple recordings on same day
+  const [dayRecordingsModal, setDayRecordingsModal] = useState<MemberRecording[] | null>(null)
 
   const scrollY = useRef(new Animated.Value(0)).current
   const now = new Date()
@@ -105,7 +119,6 @@ export default function MemberProfileScreen() {
       setRecordings(recordingsData)
       setIsSubscribed(subs.includes(memberId))
 
-      // Fetch calendar data — get conversations linked to this member
       if (memberData) {
         await fetchCalendarData(memberId, calYear, calMonth)
       }
@@ -119,14 +132,12 @@ export default function MemberProfileScreen() {
 
   const fetchCalendarData = async (mId: string, year: number, month: number) => {
     try {
-      // Get salesperson names linked to this member
       const names = await getMemberSalespersonNames(mId)
       if (names.length === 0) {
         setCalendarData([])
         return
       }
 
-      // Get transcripts for these salespeople in this month
       const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`
       const endDate = `${year}-${String(month + 2 > 12 ? 1 : month + 2).padStart(2, '0')}-01`
 
@@ -143,7 +154,6 @@ export default function MemberProfileScreen() {
         return
       }
 
-      // Get conversation counts per transcript
       const transcriptIds = (transcripts || []).map((t) => t.id)
       let convoCounts: Record<string, number> = {}
 
@@ -202,24 +212,70 @@ export default function MemberProfileScreen() {
   }
 
   const prevMonth = () => {
-    if (calMonth === 0) {
-      setCalMonth(11)
-      setCalYear(calYear - 1)
-    } else {
-      setCalMonth(calMonth - 1)
-    }
+    if (calMonth === 0) { setCalMonth(11); setCalYear(calYear - 1) }
+    else setCalMonth(calMonth - 1)
   }
 
   const nextMonth = () => {
-    if (calMonth === 11) {
-      setCalMonth(0)
-      setCalYear(calYear + 1)
+    if (calMonth === 11) { setCalMonth(0); setCalYear(calYear + 1) }
+    else setCalMonth(calMonth + 1)
+  }
+
+  // Navigate to recording(s) for a selected calendar day
+  const handleDayPress = (day: DayData) => {
+    const dayRecs = recordings.filter((r) => r.created_at.startsWith(day.date))
+    if (dayRecs.length === 0) return
+    if (dayRecs.length === 1) {
+      navigation.navigate('TranscriptDetail', { id: dayRecs[0].id })
     } else {
-      setCalMonth(calMonth + 1)
+      setDayRecordingsModal(dayRecs)
     }
   }
 
-  // Parallax effect for the profile image
+  // Upload a new field company logo (super admin)
+  const handlePickFieldLogo = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    })
+
+    if (result.canceled || !result.assets[0]) return
+
+    setUploadingLogo(true)
+    try {
+      const asset = result.assets[0]
+      const ext = asset.uri.split('.').pop() ?? 'jpg'
+      const fileName = `field-logos/${memberId}-${Date.now()}.${ext}`
+      const base64 = await FileSystem.readAsStringAsync(asset.uri, {
+        encoding: 'base64',
+      })
+
+      const byteArray = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
+      const { error: uploadError } = await supabase.storage
+        .from('profile-pictures')
+        .upload(fileName, byteArray, { contentType: `image/${ext}`, upsert: true })
+
+      if (uploadError) throw uploadError
+
+      const { data: urlData } = supabase.storage
+        .from('profile-pictures')
+        .getPublicUrl(fileName)
+
+      const success = await updateMemberFieldLogo(memberId, urlData.publicUrl)
+      if (success && member) {
+        setMember({ ...member, field_company_logo_url: urlData.publicUrl })
+      }
+    } catch (err) {
+      console.error('Error uploading field company logo:', err)
+      Alert.alert('Upload failed', 'Could not upload the logo. Please try again.')
+    } finally {
+      setUploadingLogo(false)
+    }
+  }
+
+  // Parallax effect
   const imageTranslateY = scrollY.interpolate({
     inputRange: [0, HEADER_HEIGHT],
     outputRange: [0, HEADER_HEIGHT * 0.4],
@@ -233,7 +289,7 @@ export default function MemberProfileScreen() {
 
   if (loading) {
     return (
-      <LinearGradient colors={['#000033', '#001199', '#0a1a5f']} style={styles.loadingContainer}>
+      <LinearGradient colors={bgGradient} style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.successGold} />
       </LinearGradient>
     )
@@ -241,14 +297,14 @@ export default function MemberProfileScreen() {
 
   if (!member) {
     return (
-      <LinearGradient colors={['#000033', '#001199', '#0a1a5f']} style={styles.loadingContainer}>
+      <LinearGradient colors={bgGradient} style={styles.loadingContainer}>
         <Text style={{ color: '#fff', fontSize: 16 }}>Member not found</Text>
       </LinearGradient>
     )
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: bgColor }]}>
       {/* Fixed background profile image */}
       <Animated.View
         style={[
@@ -264,7 +320,7 @@ export default function MemberProfileScreen() {
           />
         ) : (
           <LinearGradient
-            colors={['#000033', '#001199']}
+            colors={bgGradient}
             style={styles.profileImage}
           >
             <Text style={styles.profileInitial}>
@@ -274,7 +330,7 @@ export default function MemberProfileScreen() {
         )}
         {/* Gradient fade at bottom of image */}
         <LinearGradient
-          colors={['transparent', '#000033']}
+          colors={['transparent', bgColor]}
           style={styles.headerFade}
         />
       </Animated.View>
@@ -292,13 +348,39 @@ export default function MemberProfileScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.successGold} />
         }
       >
-        {/* Spacer to push content below image */}
         <View style={{ height: HEADER_HEIGHT - 60 }} />
 
-        {/* Card content */}
-        <View style={styles.cardContent}>
-          {/* Name */}
-          <Text style={styles.memberName}>{member.name}</Text>
+        <View style={[styles.cardContent, { backgroundColor: bgColor }]}>
+          {/* Name row with field company logo */}
+          <View style={styles.nameRow}>
+            <Text style={styles.memberName}>{member.name}</Text>
+            <View style={styles.fieldLogoWrap}>
+              {member.field_company_logo_url ? (
+                <Image
+                  source={{ uri: member.field_company_logo_url }}
+                  style={styles.fieldLogo}
+                  resizeMode="cover"
+                />
+              ) : isSuperAdmin ? (
+                <View style={styles.fieldLogoPlaceholder}>
+                  <Text style={styles.fieldLogoPlaceholderText}>+</Text>
+                </View>
+              ) : null}
+              {isSuperAdmin && (
+                <TouchableOpacity
+                  style={styles.fieldLogoEditBtn}
+                  onPress={handlePickFieldLogo}
+                  disabled={uploadingLogo}
+                >
+                  {uploadingLogo ? (
+                    <ActivityIndicator size="small" color={colors.successGold} />
+                  ) : (
+                    <Text style={styles.fieldLogoEditIcon}>{'\u270E'}</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
 
           {/* Instagram */}
           {member.instagram_handle && (
@@ -365,6 +447,7 @@ export default function MemberProfileScreen() {
               year={calYear}
               month={calMonth}
               dayData={calendarData}
+              onDayPress={isSubscribed ? handleDayPress : undefined}
             />
           </View>
 
@@ -395,6 +478,55 @@ export default function MemberProfileScreen() {
       >
         <Text style={styles.backText}>{'\u2190'}</Text>
       </TouchableOpacity>
+
+      {/* Day recordings modal (multiple transcripts on same day) */}
+      <Modal
+        visible={dayRecordingsModal !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setDayRecordingsModal(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Recordings</Text>
+              <TouchableOpacity onPress={() => setDayRecordingsModal(null)}>
+                <Text style={styles.modalClose}>{'\u00D7'}</Text>
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={dayRecordingsModal ?? []}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.modalItem}
+                  onPress={() => {
+                    setDayRecordingsModal(null)
+                    navigation.navigate('TranscriptDetail', { id: item.id })
+                  }}
+                >
+                  <View style={styles.modalItemLeft}>
+                    <Text style={styles.modalItemDate}>
+                      {new Date(item.created_at).toLocaleTimeString('en-US', {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                      })}
+                    </Text>
+                    {item.area_type && (
+                      <Text style={styles.modalItemArea}>{item.area_type}</Text>
+                    )}
+                  </View>
+                  <View style={styles.modalItemRight}>
+                    <Text style={styles.modalItemSales}>{item.actual_sales_count}</Text>
+                    <Text style={styles.modalItemSalesLabel}>sales</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+              ItemSeparatorComponent={() => <View style={styles.modalSep} />}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
@@ -402,7 +534,6 @@ export default function MemberProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000033',
   },
   loadingContainer: {
     flex: 1,
@@ -439,21 +570,67 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   cardContent: {
-    backgroundColor: '#000033',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 24,
     minHeight: 600,
   },
+
+  // ─── Name row with field logo ──────────────────
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   memberName: {
     color: '#fff',
     fontSize: 30,
     fontWeight: '900',
+    flex: 1,
     textShadowColor: 'rgba(243, 156, 18, 0.4)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 10,
   },
+  fieldLogoWrap: {
+    marginLeft: 12,
+    alignItems: 'center',
+  },
+  fieldLogo: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: 'rgba(243, 156, 18, 0.5)',
+  },
+  fieldLogoPlaceholder: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: 'rgba(243, 156, 18, 0.3)',
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(243, 156, 18, 0.05)',
+  },
+  fieldLogoPlaceholderText: {
+    color: 'rgba(243, 156, 18, 0.5)',
+    fontSize: 20,
+    fontWeight: '300',
+  },
+  fieldLogoEditBtn: {
+    marginTop: 4,
+    backgroundColor: 'rgba(243, 156, 18, 0.15)',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  fieldLogoEditIcon: {
+    color: '#f39c12',
+    fontSize: 12,
+  },
+
   instaRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -565,5 +742,74 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 22,
     fontWeight: '700',
+  },
+
+  // ─── Day recordings modal ─────────────────────
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: '#1a1a2e',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '60%',
+    paddingBottom: 32,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
+  },
+  modalTitle: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  modalClose: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 24,
+    lineHeight: 26,
+  },
+  modalItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
+  modalItemLeft: {
+    flex: 1,
+  },
+  modalItemDate: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  modalItemArea: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  modalItemRight: {
+    alignItems: 'center',
+  },
+  modalItemSales: {
+    color: '#f39c12',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  modalItemSalesLabel: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 11,
+  },
+  modalSep: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    marginHorizontal: 20,
   },
 })

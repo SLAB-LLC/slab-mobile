@@ -61,8 +61,8 @@ export default function SalesHeatMap({ year, month, dayData, onDayPress }: Sales
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
     const data = dataMap.get(dateStr)
     if (data) {
+      // Toggle the preview panel; navigation happens via the "View Recordings" button
       setSelectedDay(selectedDay?.date === dateStr ? null : data)
-      onDayPress?.(data)
     }
   }
 
@@ -136,6 +136,15 @@ export default function SalesHeatMap({ year, month, dayData, onDayPress }: Sales
               </View>
             )}
           </View>
+          {onDayPress && (
+            <TouchableOpacity
+              style={styles.viewRecordingsBtn}
+              onPress={() => onDayPress(selectedDay)}
+              activeOpacity={0.75}
+            >
+              <Text style={styles.viewRecordingsBtnText}>View Recordings</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
@@ -232,6 +241,21 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.5)',
     fontSize: 11,
     marginTop: 2,
+  },
+  viewRecordingsBtn: {
+    marginTop: 12,
+    backgroundColor: 'rgba(243, 156, 18, 0.15)',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(243, 156, 18, 0.4)',
+  },
+  viewRecordingsBtnText: {
+    color: '#f39c12',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   legend: {
     flexDirection: 'row',

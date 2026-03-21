@@ -13,6 +13,8 @@ export interface BigFiveMember {
   bio: string | null
   is_active: boolean
   display_order: number
+  /** Logo of the field company the member is currently knocking for */
+  field_company_logo_url: string | null
 }
 
 export interface BigFiveAward {
@@ -199,6 +201,30 @@ export async function getMemberAllRecordings(memberId: string): Promise<MemberRe
   } catch (err) {
     console.error('Error in getMemberAllRecordings:', err)
     return []
+  }
+}
+
+/**
+ * Update a Big Five member's field company logo URL (super admins only)
+ */
+export async function updateMemberFieldLogo(
+  memberId: string,
+  fieldCompanyLogoUrl: string | null
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('big_five_members')
+      .update({ field_company_logo_url: fieldCompanyLogoUrl })
+      .eq('id', memberId)
+
+    if (error) {
+      console.error('Error updating field company logo:', error)
+      return false
+    }
+    return true
+  } catch (err) {
+    console.error('Error in updateMemberFieldLogo:', err)
+    return false
   }
 }
 

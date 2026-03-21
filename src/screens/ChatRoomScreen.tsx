@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
 import { useRoute, useNavigation } from '@react-navigation/native'
 import { useAuth } from '../context/AuthContext'
+import { useCompanyColors } from '../hooks/useCompanyColors'
 import * as chatService from '../services/chat.service'
 import { ChatMessage } from '../services/chat.service'
 import { colors } from '../theme/tokens'
@@ -23,6 +24,7 @@ export default function ChatRoomScreen() {
   const route = useRoute<any>()
   const navigation = useNavigation<any>()
   const { user } = useAuth()
+  const { bgGradient } = useCompanyColors()
   const { channelId } = route.params
 
   const tabBarHeight = useBottomTabBarHeight()
@@ -204,7 +206,7 @@ export default function ChatRoomScreen() {
 
   if (loading) {
     return (
-      <LinearGradient colors={['#000033', '#001155', '#0a1a5f']} style={styles.centered}>
+      <LinearGradient colors={bgGradient} style={styles.centered}>
         <ActivityIndicator size="large" color={colors.successGold} />
       </LinearGradient>
     )
@@ -212,7 +214,7 @@ export default function ChatRoomScreen() {
 
   return (
     <LinearGradient
-      colors={['#000033', '#001155', '#0a1a5f']}
+      colors={bgGradient}
       style={[styles.container, { paddingBottom: keyboardPad }]}
     >
       <FlatList
