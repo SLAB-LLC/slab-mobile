@@ -66,18 +66,15 @@ export async function getUserChannels(userId: string): Promise<ChannelWithMember
     let displayName = channel.name || 'Unnamed Channel'
 
     if (channel.channel_type === 'dm') {
-      const { data: members } = await supabase
-        .from('channel_members')
-        .select('user_id')
-        .eq('channel_id', channel.id)
-        .eq('is_active', true)
-        .neq('user_id', userId)
+      // Use RPC to bypass channel_members RLS and find the other user
+      const { data: partnerId } = await supabase
+        .rpc('get_dm_partner', { p_channel_id: channel.id, p_my_user_id: userId })
 
-      if (members?.length) {
+      if (partnerId) {
         const { data: profile } = await supabase
           .from('user_profiles')
           .select('display_name, email')
-          .eq('id', members[0].user_id)
+          .eq('id', partnerId)
           .single()
 
         displayName = resolveDisplayName(profile)
