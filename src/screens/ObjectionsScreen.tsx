@@ -222,12 +222,6 @@ export default function ObjectionsScreen() {
 
   return (
     <LinearGradient colors={['#000033', '#001155', '#0a1a5f']} style={styles.container}>
-      <View style={styles.screenHeader}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Text style={styles.backArrow}>{'\u2039'}</Text>
-          <Text style={styles.backLabel}>Back</Text>
-        </TouchableOpacity>
-      </View>
       <Text style={styles.title}>{'\u274C'} Objections</Text>
       <Text style={styles.subtitle}>
         {filtered.length} conversation{filtered.length !== 1 ? 's' : ''} · tap any to listen
