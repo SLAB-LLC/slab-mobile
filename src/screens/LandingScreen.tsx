@@ -198,11 +198,10 @@ export default function LandingScreen() {
     const isExpanded = expandedIndex === index
     const isDimmed = expandedIndex !== null && expandedIndex !== index
     return (
-      <TouchableOpacity
+      <Pressable
         key={letter.letter}
         onPress={() => handleLetterPress(index)}
-        activeOpacity={0.7}
-        style={styles.letterTouchable}
+        style={({ pressed }) => [styles.letterTouchable, pressed && { opacity: 0.7 }]}
       >
         <View
           style={[
@@ -220,7 +219,7 @@ export default function LandingScreen() {
             {isExpanded ? letter.word : letter.letter}
           </Text>
         </View>
-      </TouchableOpacity>
+      </Pressable>
     )
   }
 
@@ -238,15 +237,14 @@ export default function LandingScreen() {
       <Animated.View style={[styles.expandedContent, { maxHeight: height, opacity }]}>
         <Text style={styles.expandedDescription}>{letter.description}</Text>
         {(letter.action === 'login' || letter.action === 'admin') && (
-          <TouchableOpacity
-            style={styles.actionButton}
+          <Pressable
+            style={({ pressed }) => [styles.actionButton, pressed && { opacity: 0.7 }]}
             onPress={() => handleLetterAction(letter)}
-            activeOpacity={0.7}
           >
             <Text style={styles.actionButtonText}>
               {letter.action === 'login' ? 'Sign In' : 'Admin Login'}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         )}
         {letter.action === 'story' && (
           <View style={styles.comingSoonBadge}>
@@ -384,8 +382,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   letterTouchable: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minWidth: 60,
+    minHeight: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   // Rounded View wrapper — borderRadius makes iOS draw a soft oval shadow (no square halo)
   letterGlowView: {
