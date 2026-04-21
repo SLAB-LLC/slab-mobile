@@ -62,6 +62,14 @@ module.exports = function withScreenRecordingDetection(config) {
     const fileName = 'ScreenRecordingDetectorModule.swift';
     const filePath = path.join(targetDir, fileName);
 
+    // Pre-create .expo/web so the icon processing step (withIosIcons) can write
+    // its cache there. On EAS, the fingerprinting step creates .expo/ before
+    // prebuild runs but with permissions that block subdirectory creation.
+    // Creating the subdirectory here (in a normal mod that runs first) fixes it.
+    try {
+      fs.mkdirSync(path.join(projectRoot, '.expo', 'web'), { recursive: true });
+    } catch (_) {}
+
     // Write the Swift file into the app target directory.
     // ExpoModulesProvider.swift auto-discovers all Module subclasses in the
     // main app target, so no manual registration is needed.

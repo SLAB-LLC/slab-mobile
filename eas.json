@@ -8,18 +8,15 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "prebuildCommand": "rm -rf .expo && npx expo prebuild --no-install",
       "cache": {
         "key": "v2"
       }
     },
     "preview": {
-      "distribution": "internal",
-      "prebuildCommand": "rm -rf .expo && npx expo prebuild --no-install"
+      "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true,
-      "prebuildCommand": "rm -rf .expo && npx expo prebuild --no-install"
+      "autoIncrement": true
     }
   },
   "submit": {
