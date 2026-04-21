@@ -17,8 +17,6 @@ export function useStreakTracker(transcriptId?: string) {
   const lastTickRef = useRef<number | null>(null)
   const streakLoggedRef = useRef(false)
   const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  // Stable session ID for this tracker instance
-  const sessionIdRef = useRef(`mobile-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`)
 
   const userId = user?.id
   const companyId = profile?.company_id
@@ -34,7 +32,7 @@ export function useStreakTracker(transcriptId?: string) {
     // No-op if already running or no auth
     if (heartbeatIntervalRef.current || !userId || !companyId) return
     heartbeatIntervalRef.current = setInterval(() => {
-      streakService.recordHeartbeat(userId, companyId, sessionIdRef.current)
+      streakService.recordHeartbeat(userId, companyId, 'audio_playing', '/mobile/audio')
     }, HEARTBEAT_INTERVAL_MS)
   }, [userId, companyId])
 

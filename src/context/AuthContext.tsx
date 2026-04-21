@@ -1,8 +1,13 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { AppState, AppStateStatus } from 'react-native'
 import { User } from '@supabase/supabase-js'
 import { supabase } from '../utils/supabase'
 import { UserProfile, Company } from '../types'
 import { registerPushTokenSilently, deactivatePushToken } from '../services/notifications.service'
+import { startSession, endSession } from '../services/activitySession.service'
+import { recordHeartbeat } from '../services/streak.service'
+
+const HEARTBEAT_INTERVAL_MS = 60_000
 
 interface AuthContextType {
   user: User | null
@@ -95,6 +100,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       deactivatePushToken(user.id).catch(() => {})
     }
 
+    // End the activity session so usage stats aggregate correctly
+    await endSession().catch(() => {})
+
     const { error } = await supabase.auth.signOut()
     if (error) throw error
 
@@ -103,6 +111,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null)
     setCompany(null)
   }
+
+  // App-wide activity session: start on login, heartbeat while foregrounded, end on logout.
+  const heartbeatTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const userIdRef = useRef<string | null>(null)
+  const companyIdRef = useRef<string | null>(null)
+  userIdRef.current = user?.id ?? null
+  companyIdRef.current = profile?.company_id ?? null
+
+  useEffect(() => {
+    const clearHeartbeat = () => {
+      if (heartbeatTimerRef.current) {
+        clearInterval(heartbeatTimerRef.current)
+        heartbeatTimerRef.current = null
+      }
+    }
+
+    const startHeartbeat = () => {
+      if (heartbeatTimerRef.current) return
+      heartbeatTimerRef.current = setInterval(() => {
+        const uid = userIdRef.current
+        const cid = companyIdRef.current
+        if (uid && cid) recordHeartbeat(uid, cid, 'page_active', '/mobile')
+      }, HEARTBEAT_INTERVAL_MS)
+    }
+
+    if (!user?.id) {
+      clearHeartbeat()
+      return
+    }
+
+    let cancelled = false
+    startSession(user.id).then((sessionId) => {
+      if (cancelled || !sessionId) return
+      // Fire an immediate heartbeat so even a short session counts as activity
+      if (userIdRef.current && companyIdRef.current) {
+        recordHeartbeat(userIdRef.current, companyIdRef.current, 'page_active', '/mobile')
+      }
+      if (AppState.currentState === 'active') startHeartbeat()
+    })
+
+    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state === 'active') startHeartbeat()
+      else clearHeartbeat()
+    })
+
+    return () => {
+      cancelled = true
+      clearHeartbeat()
+      sub.remove()
+    }
+  }, [user?.id])
 
   useEffect(() => {
     // Get initial session
@@ -124,6 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session?.user) {
         fetchProfile(session.user.id)
       } else {
+        endSession().catch(() => {})
         setProfile(null)
         setCompany(null)
       }

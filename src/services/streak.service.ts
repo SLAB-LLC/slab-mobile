@@ -1,4 +1,5 @@
 import { supabase } from '../utils/supabase'
+import { getSessionId } from './activitySession.service'
 
 export interface StreakData {
   current_streak: number
@@ -89,20 +90,27 @@ export async function getStreak(userId: string): Promise<StreakData | null> {
 
 /**
  * Fire a heartbeat ping and update daily_usage_stats — mirrors the web /api/activity/heartbeat.
- * Called every 60s while audio is actively playing.
+ * Requires a real user_sessions UUID (set up by activitySession.startSession).
  */
 export async function recordHeartbeat(
   userId: string,
-  companyId: string,
-  sessionId: string
+  _companyId: string,
+  activityType: 'page_active' | 'audio_playing' = 'page_active',
+  pagePath: string = '/mobile'
 ): Promise<void> {
+  const sessionId = getSessionId()
+  if (!sessionId) return
   try {
-    await supabase.rpc('record_activity_heartbeat', {
+    const { error: hbError } = await supabase.rpc('record_activity_heartbeat', {
       p_session_id: sessionId,
-      p_page_path: '/mobile/audio',
-      p_activity_type: 'audio_playing',
+      p_page_path: pagePath,
+      p_activity_type: activityType,
       p_metadata: {},
     })
+    if (hbError) {
+      console.warn('record_activity_heartbeat failed:', hbError.message)
+      return
+    }
     // update_daily_usage_stats may be security-definer and callable by users;
     // if not, the error is swallowed gracefully.
     supabase
