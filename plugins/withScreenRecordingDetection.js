@@ -7,12 +7,9 @@
  *
  * Android: FLAG_SECURE (applied by expo-screen-capture) blanks the screen in
  * MediaProjection-based recorders and provides the primary protection.
- *
- * Uses withXcodeProject (a safe mod) instead of withDangerousMod to avoid
- * permissions issues in the EAS build environment.
  */
 
-const { withXcodeProject } = require('@expo/config-plugins');
+const { withDangerousMod } = require('@expo/config-plugins');
 const path = require('path');
 const fs = require('fs');
 
@@ -54,34 +51,40 @@ public class ScreenRecordingDetectorModule: Module {
 `;
 
 module.exports = function withScreenRecordingDetection(config) {
-  return withXcodeProject(config, (config) => {
-    const projectRoot = config.modRequest.projectRoot;
-    const projectName = config.modRequest.projectName;
-    const iosDir = path.join(projectRoot, 'ios');
-    const targetDir = path.join(iosDir, projectName);
-    const fileName = 'ScreenRecordingDetectorModule.swift';
-    const filePath = path.join(targetDir, fileName);
+  return withDangerousMod(config, [
+    'ios',
+    async (config) => {
+      const projectRoot = config.modRequest.projectRoot;
+      const projectName = config.modRequest.projectName;
+      const iosDir = path.join(projectRoot, 'ios');
+      const targetDir = path.join(iosDir, projectName);
+      const fileName = 'ScreenRecordingDetectorModule.swift';
+      const filePath = path.join(targetDir, fileName);
 
-    // Pre-create .expo/web so the icon processing step (withIosIcons) can write
-    // its cache there. On EAS, the fingerprinting step creates .expo/ before
-    // prebuild runs but with permissions that block subdirectory creation.
-    // Creating the subdirectory here (in a normal mod that runs first) fixes it.
-    try {
-      fs.mkdirSync(path.join(projectRoot, '.expo', 'web'), { recursive: true });
-    } catch (_) {}
+      fs.writeFileSync(filePath, SWIFT_MODULE);
 
-    // Write the Swift file into the app target directory.
-    // ExpoModulesProvider.swift auto-discovers all Module subclasses in the
-    // main app target, so no manual registration is needed.
-    fs.mkdirSync(targetDir, { recursive: true });
-    fs.writeFileSync(filePath, SWIFT_MODULE);
+      const pbxprojPath = path.join(
+        iosDir,
+        `${projectName}.xcodeproj`,
+        'project.pbxproj'
+      );
+      const pbxContents = fs.readFileSync(pbxprojPath, 'utf8');
 
-    // Add the file to the Xcode project if it isn't there already.
-    const xcodeProject = config.modResults;
-    if (!xcodeProject.hasFile(`${projectName}/${fileName}`)) {
-      xcodeProject.addSourceFile(`${projectName}/${fileName}`);
-    }
+      if (!pbxContents.includes(fileName)) {
+        const xcode = require('xcode');
+        const project = xcode.project(pbxprojPath);
+        project.parseSync();
 
-    return config;
-  });
+        const target = project.getFirstTarget();
+        project.addSourceFile(
+          `${projectName}/${fileName}`,
+          { target: target.uuid }
+        );
+
+        fs.writeFileSync(pbxprojPath, project.writeSync());
+      }
+
+      return config;
+    },
+  ]);
 };
