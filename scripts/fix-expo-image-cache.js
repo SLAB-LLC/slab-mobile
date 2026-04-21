@@ -22,8 +22,9 @@ const cachePath = path.join(
 
 try {
   let content = fs.readFileSync(cachePath, 'utf8');
-  if (content.includes("'.expo'")) {
-    content = content.replace(/['"]\.expo['"]/g, "'/tmp/.expo-image-cache'");
+  const oldLocation = '.expo/web/cache/production/images';
+  if (content.includes(oldLocation)) {
+    content = content.replace(oldLocation, '/tmp/.expo-image-cache');
     fs.writeFileSync(cachePath, content);
     console.log('Patched @expo/image-utils cache path to /tmp/.expo-image-cache');
   }
