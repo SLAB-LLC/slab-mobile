@@ -79,12 +79,7 @@ module.exports = function withScreenRecordingDetection(config) {
     // Add the file to the Xcode project if it isn't there already.
     const xcodeProject = config.modResults;
     if (!xcodeProject.hasFile(`${projectName}/${fileName}`)) {
-      const target = xcodeProject.getFirstTarget();
-      xcodeProject.addSourceFile(
-        `${projectName}/${fileName}`,
-        { target: target.uuid },
-        xcodeProject.getFirstTarget().uuid
-      );
+      xcodeProject.addSourceFile(`${projectName}/${fileName}`);
     }
 
     return config;
