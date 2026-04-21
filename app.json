@@ -36,7 +36,6 @@
       "predictiveBackGestureEnabled": false
     },
     "plugins": [
-      "./plugins/withScreenRecordingDetection",
       [
         "expo-notifications",
         {
