@@ -18,6 +18,7 @@ import { colors, objectionColors } from '../../theme/tokens'
 import { BigFiveMember } from '../../services/bigfive.service'
 import { Conversation } from '../../types'
 import { useStreakTracker } from '../../hooks/useStreakTracker'
+import { useScreenCaptureProtection } from '../../hooks/useScreenCaptureProtection'
 
 type EnrichedConversation = Conversation & {
   salesperson_name: string
@@ -78,6 +79,7 @@ export default function ConversationPlayerModal({
   onClose,
 }: ConversationPlayerModalProps) {
   const { trackAudioTime, onPause } = useStreakTracker()
+  useScreenCaptureProtection(visible, () => playerRef.current?.pause())
 
   const playerRef = useRef<AudioPlayer | null>(null)
   const [playerReady, setPlayerReady] = useState(false)

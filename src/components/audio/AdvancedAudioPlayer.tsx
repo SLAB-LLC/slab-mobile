@@ -19,6 +19,7 @@ interface AdvancedAudioPlayerProps {
 export interface AdvancedAudioPlayerRef {
   seekToTime: (timeInSeconds: number) => Promise<void>
   seekToConversation: (conversationIndex: number) => Promise<void>
+  pause: () => void
 }
 
 const PLAYBACK_SPEEDS = [0.75, 1, 1.25, 1.5, 2]
@@ -191,6 +192,9 @@ const AdvancedAudioPlayer = forwardRef<AdvancedAudioPlayerRef, AdvancedAudioPlay
           }
           setCurrentConversation(conversationIndex)
         }
+      },
+      pause: () => {
+        playerRef.current?.pause()
       },
     }))
 

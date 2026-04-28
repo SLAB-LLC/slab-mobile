@@ -1,7 +1,10 @@
 import { useEffect, useRef } from 'react'
 import { Alert, Platform } from 'react-native'
 import * as ScreenCapture from 'expo-screen-capture'
-import { addCapturedChangeListener } from '../modules/screenRecordingDetector'
+import {
+  addCapturedChangeListener,
+  isCurrentlyCapturing,
+} from '../modules/screenRecordingDetector'
 
 /**
  * Protects content from screen capture and pauses audio when recording is detected.
@@ -50,16 +53,28 @@ export function useScreenCaptureProtection(
       })
     }
 
-    // iOS: pause audio the moment screen recording starts
+    // iOS: pause audio the moment screen recording starts (fast path via native event)
     const recordingSub = addCapturedChangeListener((event) => {
       if (event.isCaptured) {
         onRecordingStartRef.current?.()
       }
     })
 
+    // iOS polling fallback — runs in case the native event isn't delivered.
+    // 500 ms is fast enough that almost no audio leaks before pause.
+    let pollInterval: ReturnType<typeof setInterval> | null = null
+    if (Platform.OS === 'ios') {
+      pollInterval = setInterval(async () => {
+        if (await isCurrentlyCapturing()) {
+          onRecordingStartRef.current?.()
+        }
+      }, 500)
+    }
+
     return () => {
       screenshotSub?.remove()
       recordingSub?.remove()
+      if (pollInterval) clearInterval(pollInterval)
       ScreenCapture.allowScreenCaptureAsync().catch(() => {})
     }
   }, [isActive])

@@ -26,6 +26,7 @@ import ConversationCard from '../components/transcripts/ConversationCard'
 import ConversationFilters from '../components/transcripts/ConversationFilters'
 import { colors, spacing, borderRadius } from '../theme/tokens'
 import { useStreakTracker } from '../hooks/useStreakTracker'
+import { useScreenCaptureProtection } from '../hooks/useScreenCaptureProtection'
 import ShareToChatModal from '../components/chat/ShareToChatModal'
 
 type TranscriptDetailRouteProp = RouteProp<RootStackParamList, 'TranscriptDetail'>
@@ -44,6 +45,7 @@ export default function TranscriptDetailScreen() {
 
   const audioPlayerRef = useRef<AdvancedAudioPlayerRef>(null)
   const { trackAudioTime, onPause, logTranscriptView } = useStreakTracker(id)
+  useScreenCaptureProtection(true, () => audioPlayerRef.current?.pause())
 
   const [transcript, setTranscript] = useState<any>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])

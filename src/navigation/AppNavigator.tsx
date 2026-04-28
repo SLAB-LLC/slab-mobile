@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
 import {
   View,
   Text,
@@ -7,11 +7,21 @@ import {
   TouchableOpacity,
   Platform,
 } from 'react-native'
-import { NavigationContainer, useNavigation } from '@react-navigation/native'
+import {
+  NavigationContainer,
+  useNavigation,
+  createNavigationContainerRef,
+} from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs'
+import * as Notifications from 'expo-notifications'
 import { useAuth } from '../context/AuthContext'
 import type { RootStackParamList, MainTabParamList } from '../types'
+import { hasAcceptedCurrentTos } from '../services/tos.service'
+import TosAcceptanceModal from '../components/onboarding/TosAcceptanceModal'
+import NotificationPromptModal from '../components/onboarding/NotificationPromptModal'
+import { useNotificationPrompt } from '../hooks/useNotificationPrompt'
+import BroadcastDetailScreen from '../screens/BroadcastDetailScreen'
 
 // Screens
 import LandingScreen from '../screens/LandingScreen'
@@ -47,6 +57,21 @@ const InnerStack = createNativeStackNavigator()
 const HomeStack = createNativeStackNavigator()
 const AudioStack = createNativeStackNavigator()
 const ChatStack = createNativeStackNavigator()
+
+// Used to navigate from notification tap handlers (which run outside React tree)
+const navigationRef = createNavigationContainerRef<RootStackParamList>()
+
+/**
+ * If the notification payload contains a broadcast id, navigate to it.
+ * Falls back gracefully when nav is not yet ready or the payload is unrelated.
+ */
+function handleNotificationResponse(response: Notifications.NotificationResponse) {
+  const data = response.notification.request.content.data as Record<string, unknown> | undefined
+  const broadcastId = data?.broadcast_id
+  if (typeof broadcastId !== 'string' || !broadcastId) return
+  if (!navigationRef.isReady()) return
+  navigationRef.navigate('BroadcastDetail', { id: broadcastId })
+}
 
 // Shared back-header style — dark bg matching the gradient, no title, "Back" label
 const BACK_HEADER = {
@@ -235,6 +260,46 @@ function AuthenticatedShell() {
 export default function AppNavigator() {
   const { user, loading } = useAuth()
 
+  // TOS acceptance gate — blocks app once user is authenticated.
+  // null = checking, true = already accepted, false = needs to accept
+  const [tosAccepted, setTosAccepted] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    if (!user?.id) {
+      setTosAccepted(null)
+      return
+    }
+    let cancelled = false
+    hasAcceptedCurrentTos(user.id)
+      .then((accepted) => {
+        if (!cancelled) setTosAccepted(accepted)
+      })
+      .catch(() => {
+        // If the check fails (e.g., offline), default to NOT accepted so we re-prompt
+        if (!cancelled) setTosAccepted(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user?.id])
+
+  // Notification permission prompt — runs only after TOS is accepted
+  const promptReady = !!user && tosAccepted === true
+  const { shouldShow: showNotifPrompt, dismissForToday, markAccepted: markNotifShown } =
+    useNotificationPrompt(promptReady)
+
+  // Notification tap handlers — both for foreground taps and cold-start tap
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener(handleNotificationResponse)
+
+    // Cold start: app was launched by tapping a notification
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) handleNotificationResponse(response)
+    })
+
+    return () => sub.remove()
+  }, [])
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -243,8 +308,17 @@ export default function AppNavigator() {
     )
   }
 
+  // Authenticated but still checking TOS — show spinner to avoid flash
+  if (user && tosAccepted === null) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.successGold} />
+      </View>
+    )
+  }
+
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
         {user ? (
           <>
@@ -259,6 +333,7 @@ export default function AppNavigator() {
             />
             <RootStack.Screen name="RecordAudio" component={RecordAudioScreen} options={BACK_HEADER} />
             <RootStack.Screen name="TermsOfService" component={TermsOfServiceScreen} options={{ ...BACK_HEADER, headerBackTitle: 'Back' }} />
+            <RootStack.Screen name="BroadcastDetail" component={BroadcastDetailScreen} options={{ headerShown: false }} />
           </>
         ) : (
           <>
@@ -267,6 +342,23 @@ export default function AppNavigator() {
           </>
         )}
       </RootStack.Navigator>
+
+      {/* TOS acceptance gate — blocks app rendering until accepted */}
+      {user && tosAccepted === false && (
+        <TosAcceptanceModal
+          visible
+          onAccepted={() => setTosAccepted(true)}
+        />
+      )}
+
+      {/* Notification permission prompt — only after TOS, only if not granted */}
+      {user && tosAccepted === true && showNotifPrompt && (
+        <NotificationPromptModal
+          visible
+          onDismiss={dismissForToday}
+          onDone={markNotifShown}
+        />
+      )}
     </NavigationContainer>
   )
 }

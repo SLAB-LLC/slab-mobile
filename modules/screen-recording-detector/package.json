@@ -1,0 +1,7 @@
+{
+  "name": "screen-recording-detector",
+  "version": "1.0.0",
+  "description": "Local Expo module: detects iOS screen recording via UIScreen.capturedDidChangeNotification.",
+  "main": "index.ts",
+  "private": true
+}

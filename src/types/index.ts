@@ -6,6 +6,7 @@ export type RootStackParamList = {
   TranscriptDetail: { id: string }
   RecordAudio: undefined
   TermsOfService: undefined
+  BroadcastDetail: { id: string }
 }
 
 export type DrawerParamList = {
