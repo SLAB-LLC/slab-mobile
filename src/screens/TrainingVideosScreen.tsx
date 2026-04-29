@@ -9,6 +9,7 @@ import {
   Image,
   Linking,
   RefreshControl,
+  Alert,
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useAuth } from '../context/AuthContext'
@@ -16,6 +17,7 @@ import { useCompanyColors } from '../hooks/useCompanyColors'
 import * as trainingService from '../services/training.service'
 import { TrainingVideo } from '../types'
 import { colors } from '../theme/tokens'
+import { supabase } from '../utils/supabase'
 
 export default function TrainingVideosScreen() {
   const { user, profile } = useAuth()
@@ -52,17 +54,31 @@ export default function TrainingVideosScreen() {
   }
 
   const handleVideoPress = async (video: TrainingVideo) => {
-    if (video.video_type === 'youtube' && video.youtube_url) {
-      await Linking.openURL(video.youtube_url)
+    let url: string | null = null
 
-      // Mark as completed after opening
-      if (user?.id && !completedIds.has(video.id)) {
-        try {
-          await trainingService.markVideoComplete(video.id, user.id)
-          setCompletedIds((prev) => new Set([...prev, video.id]))
-        } catch (err) {
-          console.error('Error marking complete:', err)
-        }
+    if (video.video_type === 'youtube' && video.youtube_url) {
+      url = video.youtube_url
+    } else if (video.video_type === 'upload' && video.storage_path) {
+      const { data, error } = await supabase.storage
+        .from('training-videos')
+        .createSignedUrl(video.storage_path, 3600)
+      if (error || !data?.signedUrl) {
+        Alert.alert('Error', 'Could not load video. Please try again.')
+        return
+      }
+      url = data.signedUrl
+    }
+
+    if (!url) return
+
+    await Linking.openURL(url)
+
+    if (user?.id && !completedIds.has(video.id)) {
+      try {
+        await trainingService.markVideoComplete(video.id, user.id)
+        setCompletedIds((prev) => new Set([...prev, video.id]))
+      } catch (err) {
+        console.error('Error marking complete:', err)
       }
     }
   }
