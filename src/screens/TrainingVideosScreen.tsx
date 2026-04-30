@@ -10,7 +10,10 @@ import {
   Linking,
   RefreshControl,
   Alert,
+  Modal,
+  SafeAreaView,
 } from 'react-native'
+import { Video, ResizeMode } from 'expo-av'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useAuth } from '../context/AuthContext'
 import { useCompanyColors } from '../hooks/useCompanyColors'
@@ -26,6 +29,8 @@ export default function TrainingVideosScreen() {
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [loadingVideoId, setLoadingVideoId] = useState<string | null>(null)
+  const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null)
 
   useEffect(() => {
     if (profile?.company_id) fetchData()
@@ -54,33 +59,45 @@ export default function TrainingVideosScreen() {
   }
 
   const handleVideoPress = async (video: TrainingVideo) => {
-    let url: string | null = null
+    if (loadingVideoId) return
 
     if (video.video_type === 'youtube' && video.youtube_url) {
-      url = video.youtube_url
-    } else if (video.video_type === 'upload' && video.storage_path) {
-      const { data, error } = await supabase.storage
-        .from('training-videos')
-        .createSignedUrl(video.storage_path, 3600)
-      if (error || !data?.signedUrl) {
-        Alert.alert('Error', 'Could not load video. Please try again.')
-        return
-      }
-      url = data.signedUrl
-    }
-
-    if (!url) return
-
-    await Linking.openURL(url)
-
-    if (user?.id && !completedIds.has(video.id)) {
       try {
-        await trainingService.markVideoComplete(video.id, user.id)
-        setCompletedIds((prev) => new Set([...prev, video.id]))
-      } catch (err) {
-        console.error('Error marking complete:', err)
+        await Linking.openURL(video.youtube_url)
+        if (user?.id && !completedIds.has(video.id)) {
+          await trainingService.markVideoComplete(video.id, user.id)
+          setCompletedIds((prev) => new Set([...prev, video.id]))
+        }
+      } catch {
+        Alert.alert('Error', 'Could not open YouTube video.')
       }
+      return
     }
+
+    if (video.video_type === 'upload' && video.storage_path) {
+      setLoadingVideoId(video.id)
+      try {
+        const { data, error } = await supabase.storage
+          .from('training-videos')
+          .createSignedUrl(video.storage_path, 3600)
+        if (error || !data?.signedUrl) {
+          Alert.alert('Error', 'Could not load video. Please try again.')
+          return
+        }
+        setActiveVideoUrl(data.signedUrl)
+        if (user?.id && !completedIds.has(video.id)) {
+          await trainingService.markVideoComplete(video.id, user.id)
+          setCompletedIds((prev) => new Set([...prev, video.id]))
+        }
+      } catch {
+        Alert.alert('Error', 'Could not load video. Please try again.')
+      } finally {
+        setLoadingVideoId(null)
+      }
+      return
+    }
+
+    Alert.alert('Video Unavailable', 'This video cannot be played at this time.')
   }
 
   const formatDuration = (seconds: number | undefined) => {
@@ -92,14 +109,15 @@ export default function TrainingVideosScreen() {
 
   const renderVideo = ({ item }: { item: TrainingVideo }) => {
     const isCompleted = completedIds.has(item.id)
+    const isLoading = loadingVideoId === item.id
 
     return (
       <TouchableOpacity
         style={styles.card}
         onPress={() => handleVideoPress(item)}
         activeOpacity={0.7}
+        disabled={loadingVideoId !== null}
       >
-        {/* Thumbnail */}
         {item.thumbnail_url ? (
           <Image
             source={{ uri: item.thumbnail_url }}
@@ -112,21 +130,24 @@ export default function TrainingVideosScreen() {
           </View>
         )}
 
-        {/* Duration badge */}
-        {item.duration != null && (
+        {isLoading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#fff" />
+          </View>
+        )}
+
+        {item.duration != null && !isLoading && (
           <View style={styles.durationBadge}>
             <Text style={styles.durationText}>{formatDuration(item.duration)}</Text>
           </View>
         )}
 
-        {/* Completed badge */}
         {isCompleted && (
           <View style={styles.completedBadge}>
-            <Text style={styles.completedText}>{'\u2713'}</Text>
+            <Text style={styles.completedText}>{'✓'}</Text>
           </View>
         )}
 
-        {/* Content */}
         <View style={styles.cardContent}>
           <Text style={styles.videoTitle} numberOfLines={2}>{item.title}</Text>
           {item.description ? (
@@ -135,7 +156,7 @@ export default function TrainingVideosScreen() {
           <View style={styles.cardFooter}>
             <View style={styles.typeBadge}>
               <Text style={styles.typeText}>
-                {item.video_type === 'youtube' ? '\u25B6 YouTube' : '\u{1F4F9} Uploaded'}
+                {item.video_type === 'youtube' ? '▶ YouTube' : '\u{1F4F9} Uploaded'}
               </Text>
             </View>
           </View>
@@ -176,6 +197,30 @@ export default function TrainingVideosScreen() {
           </View>
         }
       />
+
+      <Modal
+        visible={activeVideoUrl !== null}
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={() => setActiveVideoUrl(null)}
+      >
+        <SafeAreaView style={styles.videoModal}>
+          <View style={styles.videoModalHeader}>
+            <TouchableOpacity onPress={() => setActiveVideoUrl(null)} style={styles.closeButton}>
+              <Text style={styles.closeText}>✕  Close</Text>
+            </TouchableOpacity>
+          </View>
+          {activeVideoUrl && (
+            <Video
+              source={{ uri: activeVideoUrl }}
+              style={styles.videoPlayer}
+              useNativeControls
+              resizeMode={ResizeMode.CONTAIN}
+              shouldPlay
+            />
+          )}
+        </SafeAreaView>
+      </Modal>
     </LinearGradient>
   )
 }
@@ -186,7 +231,6 @@ const styles = StyleSheet.create({
   list: { padding: 16, paddingBottom: 40 },
   emptyList: { flexGrow: 1 },
 
-  // ─── Video card ───────────────────────────────
   card: {
     backgroundColor: 'rgba(0, 17, 85, 0.6)',
     borderRadius: 12,
@@ -209,6 +253,16 @@ const styles = StyleSheet.create({
   },
   thumbnailIcon: {
     fontSize: 48,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 180,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   durationBadge: {
     position: 'absolute',
@@ -271,7 +325,28 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // ─── Empty ────────────────────────────────────
+  videoModal: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  videoModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: 16,
+  },
+  closeButton: {
+    padding: 8,
+  },
+  closeText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  videoPlayer: {
+    width: '100%',
+    flex: 1,
+  },
+
   empty: {
     alignItems: 'center',
     paddingVertical: 80,
