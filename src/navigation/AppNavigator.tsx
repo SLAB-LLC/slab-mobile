@@ -62,15 +62,33 @@ const ChatStack = createNativeStackNavigator()
 const navigationRef = createNavigationContainerRef<RootStackParamList>()
 
 /**
- * If the notification payload contains a broadcast id, navigate to it.
- * Falls back gracefully when nav is not yet ready or the payload is unrelated.
+ * Route a tapped notification to the appropriate screen based on its data
+ * payload. Currently handles broadcast and chat notifications. No-op when
+ * navigation is not yet ready or the payload is unrelated.
  */
 function handleNotificationResponse(response: Notifications.NotificationResponse) {
   const data = response.notification.request.content.data as Record<string, unknown> | undefined
-  const broadcastId = data?.broadcast_id
-  if (typeof broadcastId !== 'string' || !broadcastId) return
-  if (!navigationRef.isReady()) return
-  navigationRef.navigate('BroadcastDetail', { id: broadcastId })
+  if (!data || !navigationRef.isReady()) return
+
+  const broadcastId = data.broadcast_id
+  if (typeof broadcastId === 'string' && broadcastId) {
+    navigationRef.navigate('BroadcastDetail', { id: broadcastId })
+    return
+  }
+
+  if (data.type === 'chat' && typeof data.channelId === 'string' && data.channelId) {
+    const channelName = typeof data.channelName === 'string' ? data.channelName : 'Chat'
+    navigationRef.navigate('MainDrawer' as any, {
+      screen: 'HomeTabs',
+      params: {
+        screen: 'Chat',
+        params: {
+          screen: 'ChatRoom',
+          params: { channelId: data.channelId, channelName },
+        },
+      },
+    })
+  }
 }
 
 // Shared back-header style — dark bg matching the gradient, no title, "Back" label

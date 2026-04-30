@@ -11,6 +11,7 @@ export interface Channel {
 
 export interface ChannelWithMembers extends Channel {
   displayName: string
+  displayPictureUrl: string | null
 }
 
 export interface ChatMessage {
@@ -64,6 +65,7 @@ export async function getUserChannels(userId: string): Promise<ChannelWithMember
 
   for (const channel of channels) {
     let displayName = channel.name || 'Unnamed Channel'
+    let displayPictureUrl: string | null = channel.picture_url ?? null
 
     if (channel.channel_type === 'dm') {
       // Use RPC to bypass channel_members RLS and find the other user
@@ -73,15 +75,16 @@ export async function getUserChannels(userId: string): Promise<ChannelWithMember
       if (partnerId) {
         const { data: profile } = await supabase
           .from('user_profiles')
-          .select('display_name, email')
+          .select('display_name, email, profile_picture_url')
           .eq('id', partnerId)
           .single()
 
         displayName = resolveDisplayName(profile)
+        displayPictureUrl = profile?.profile_picture_url ?? null
       }
     }
 
-    result.push({ ...channel, displayName })
+    result.push({ ...channel, displayName, displayPictureUrl })
   }
 
   return result
@@ -111,28 +114,25 @@ export async function findOrCreateDMChannel(
   otherUserId: string,
   companyId: string
 ): Promise<string | null> {
-  // Get all channels the current user is in
+  // Look across active AND inactive memberships so we can revive a DM
+  // the user previously deleted from their list.
   const { data: myMemberships } = await supabase
     .from('channel_members')
-    .select('channel_id')
+    .select('channel_id, is_active')
     .eq('user_id', userId)
-    .eq('is_active', true)
 
   if (myMemberships?.length) {
     const myChannelIds = myMemberships.map((m) => m.channel_id)
 
-    // See if the other user is in any of those same channels
     const { data: sharedMemberships } = await supabase
       .from('channel_members')
       .select('channel_id')
       .eq('user_id', otherUserId)
-      .eq('is_active', true)
       .in('channel_id', myChannelIds)
 
     if (sharedMemberships?.length) {
       const sharedIds = sharedMemberships.map((m) => m.channel_id)
 
-      // Among shared channels, find one that is a DM
       const { data: dmChannels } = await supabase
         .from('channels')
         .select('id')
@@ -140,7 +140,16 @@ export async function findOrCreateDMChannel(
         .in('id', sharedIds)
         .limit(1)
 
-      if (dmChannels?.length) return dmChannels[0].id
+      if (dmChannels?.length) {
+        const channelId = dmChannels[0].id
+        // Reactivate either side's membership if it was previously deleted
+        await supabase
+          .from('channel_members')
+          .update({ is_active: true })
+          .eq('channel_id', channelId)
+          .in('user_id', [userId, otherUserId])
+        return channelId
+      }
     }
   }
 
@@ -339,9 +348,30 @@ export async function sendMessage(
         sendPushNotifications(tokens, senderName, preview, {
           type: 'chat',
           channelId,
+          channelName: senderName,
         })
       })
   })
 
+  return true
+}
+
+/**
+ * Soft-delete a channel from the current user's list by deactivating their
+ * membership. Other members keep their view of the conversation. If the user
+ * later starts a DM with the same person, findOrCreateDMChannel reactivates
+ * this membership so message history is preserved.
+ */
+export async function leaveChannel(channelId: string, userId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('channel_members')
+    .update({ is_active: false })
+    .eq('channel_id', channelId)
+    .eq('user_id', userId)
+
+  if (error) {
+    console.error('Error leaving channel:', error)
+    return false
+  }
   return true
 }

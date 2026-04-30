@@ -12,6 +12,7 @@ import {
   Image,
   SafeAreaView,
   ScrollView,
+  Alert,
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useNavigation } from '@react-navigation/native'
@@ -136,12 +137,41 @@ export default function ChannelListScreen() {
     }
   }
 
+  const handleDeleteChannel = (channel: ChannelWithMembers) => {
+    if (!user?.id) return
+    const isDM = channel.channel_type === 'dm'
+    Alert.alert(
+      isDM ? 'Delete Conversation' : 'Leave Group',
+      isDM
+        ? `Remove your conversation with ${channel.displayName}? Messaging them again will restore the history.`
+        : `Leave "${channel.displayName}"? Other members will keep the group.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: isDM ? 'Delete' : 'Leave',
+          style: 'destructive',
+          onPress: async () => {
+            const ok = await chatService.leaveChannel(channel.id, user.id)
+            if (ok) {
+              setChannels((prev) => prev.filter((c) => c.id !== channel.id))
+            } else {
+              Alert.alert('Error', 'Could not remove this conversation. Please try again.')
+            }
+          },
+        },
+      ]
+    )
+  }
+
   // ── Helpers ────────────────────────────────────
   const getUserName = (u: CompanyUser) =>
     u.display_name || u.email || 'Unknown User'
 
   const getInitials = (u: CompanyUser) =>
     getUserName(u).split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
+
+  const getChannelInitials = (name: string) =>
+    name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase() || '?'
 
   const filteredUsers = companyUsers.filter((u) => {
     if (!search.trim()) return true
@@ -157,13 +187,21 @@ export default function ChannelListScreen() {
     <TouchableOpacity
       style={styles.channelCard}
       onPress={() => navigation.navigate('ChatRoom', { channelId: item.id, channelName: item.displayName })}
+      onLongPress={() => handleDeleteChannel(item)}
+      delayLongPress={350}
       activeOpacity={0.7}
     >
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>
-          {item.channel_type === 'dm' ? '\u{1F464}' : '\u{1F465}'}
-        </Text>
-      </View>
+      {item.displayPictureUrl ? (
+        <Image source={{ uri: item.displayPictureUrl }} style={styles.avatarImage} />
+      ) : (
+        <View style={styles.avatar}>
+          <Text style={item.channel_type === 'dm' ? styles.avatarInitials : styles.avatarText}>
+            {item.channel_type === 'dm'
+              ? getChannelInitials(item.displayName)
+              : '\u{1F465}'}
+          </Text>
+        </View>
+      )}
       <View style={styles.channelInfo}>
         <Text style={styles.channelName} numberOfLines={1}>{item.displayName}</Text>
         <Text style={styles.channelType}>
@@ -396,7 +434,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
+  avatarImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    marginRight: 12,
+    backgroundColor: 'rgba(243, 156, 18, 0.15)',
+  },
   avatarText: { fontSize: 20 },
+  avatarInitials: { color: colors.successGold, fontSize: 16, fontWeight: '700' },
   channelInfo: { flex: 1 },
   channelName: { color: '#fff', fontSize: 15, fontWeight: '700' },
   channelType: { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 },
