@@ -13,7 +13,7 @@ import {
   Modal,
   SafeAreaView,
 } from 'react-native'
-import { Video, ResizeMode } from 'expo-av'
+import { Video, ResizeMode, Audio } from 'expo-av'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useAuth } from '../context/AuthContext'
 import { useCompanyColors } from '../hooks/useCompanyColors'
@@ -35,6 +35,15 @@ export default function TrainingVideosScreen() {
   useEffect(() => {
     if (profile?.company_id) fetchData()
   }, [profile?.company_id])
+
+  useEffect(() => {
+    if (!activeVideoUrl) return
+    Audio.setAudioModeAsync({
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: false,
+      shouldDuckAndroid: true,
+    }).catch((err) => console.warn('Failed to set audio mode:', err))
+  }, [activeVideoUrl])
 
   const fetchData = async () => {
     if (!profile?.company_id) return
@@ -64,18 +73,17 @@ export default function TrainingVideosScreen() {
     if (video.video_type === 'youtube' && video.youtube_url) {
       try {
         await Linking.openURL(video.youtube_url)
-        if (user?.id && !completedIds.has(video.id)) {
-          await trainingService.markVideoComplete(video.id, user.id)
-          setCompletedIds((prev) => new Set([...prev, video.id]))
-        }
       } catch {
         Alert.alert('Error', 'Could not open YouTube video.')
+        return
       }
+      trackCompletion(video.id)
       return
     }
 
     if (video.video_type === 'upload' && video.storage_path) {
       setLoadingVideoId(video.id)
+      let signedUrl: string | null = null
       try {
         const { data, error } = await supabase.storage
           .from('training-videos')
@@ -84,20 +92,30 @@ export default function TrainingVideosScreen() {
           Alert.alert('Error', 'Could not load video. Please try again.')
           return
         }
-        setActiveVideoUrl(data.signedUrl)
-        if (user?.id && !completedIds.has(video.id)) {
-          await trainingService.markVideoComplete(video.id, user.id)
-          setCompletedIds((prev) => new Set([...prev, video.id]))
-        }
+        signedUrl = data.signedUrl
       } catch {
         Alert.alert('Error', 'Could not load video. Please try again.')
+        return
       } finally {
         setLoadingVideoId(null)
       }
+
+      setActiveVideoUrl(signedUrl)
+      trackCompletion(video.id)
       return
     }
 
     Alert.alert('Video Unavailable', 'This video cannot be played at this time.')
+  }
+
+  const trackCompletion = async (videoId: string) => {
+    if (!user?.id || completedIds.has(videoId)) return
+    try {
+      await trainingService.markVideoComplete(videoId, user.id)
+      setCompletedIds((prev) => new Set([...prev, videoId]))
+    } catch (err) {
+      console.error('Failed to mark video complete:', err)
+    }
   }
 
   const formatDuration = (seconds: number | undefined) => {
