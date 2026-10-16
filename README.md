@@ -66,7 +66,7 @@ src/
 │   └── AppNavigator.tsx
 ├── screens/          # App screens
 │   ├── LoginScreen.tsx
-│   ├── DashboardScreen.tsx
+│   ├── HomeScreen.tsx
 │   ├── RecordAudioScreen.tsx
 │   ├── TranscriptDetailScreen.tsx
 │   ├── TrainingVideosScreen.tsx
@@ -74,7 +74,6 @@ src/
 ├── services/         # API service layer
 │   ├── transcripts.service.ts
 │   ├── training.service.ts
-│   ├── company.service.ts
 │   └── upload.service.ts
 ├── theme/            # Design system
 │   ├── index.ts      # Theme configuration
@@ -82,8 +81,7 @@ src/
 ├── types/            # TypeScript types
 │   └── index.ts
 └── utils/            # Utilities
-    ├── supabase.ts   # Supabase client
-    └── auth.ts       # Auth helpers
+    └── supabase.ts   # Supabase client
 ```
 
 ## ✨ Features
@@ -269,8 +267,8 @@ See [TESTING_GUIDE.md](./TESTING_GUIDE.md) for comprehensive testing procedures.
 - **Type safety** - Full TypeScript support
 
 ### Component Library
-- **Common components** - Button, Card, Input, ScreenHeader, EmptyState
-- **Domain components** - TranscriptCard, VideoCard, AudioPreview
+- **Common components** - Button, Card, Input, ErrorBoundary
+- **Domain components** - ConversationCard, InteractiveTranscript, AudioPreview
 - **Design tokens** - Consistent spacing, colors, typography
 - **React Native Paper** - Material Design foundation
 
