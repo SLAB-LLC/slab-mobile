@@ -3,6 +3,25 @@ import { supabase } from '../utils/supabase'
 
 let currentSessionId: string | null = null
 let startingPromise: Promise<string | null> | null = null
+let audioPlaying = false
+let currentRoute = 'Home'
+
+// Read by the app-wide heartbeat so each ping says what the user is doing and where
+export function setAudioPlaying(playing: boolean) {
+  audioPlaying = playing
+}
+
+export function isAudioPlaying(): boolean {
+  return audioPlaying
+}
+
+export function setCurrentRoute(name: string | undefined) {
+  if (name) currentRoute = name
+}
+
+export function getCurrentRoute(): string {
+  return currentRoute
+}
 
 export function getSessionId(): string | null {
   return currentSessionId
