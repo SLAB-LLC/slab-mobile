@@ -1,6 +1,8 @@
 import { useEffect, useRef, useCallback } from 'react'
+import { AppState } from 'react-native'
 import { useAuth } from '../context/AuthContext'
 import * as streakService from '../services/streak.service'
+import { setAudioPlaying } from '../services/activitySession.service'
 
 const STREAK_THRESHOLD_SECONDS = 120 // 2 minutes of listening → log streak
 const HEARTBEAT_INTERVAL_MS = 60_000 // fire heartbeat every 60s while playing
@@ -8,7 +10,8 @@ const HEARTBEAT_INTERVAL_MS = 60_000 // fire heartbeat every 60s while playing
 /**
  * Tracks cumulative audio listening time and:
  *  1. Logs a streak activity once the user has listened for 2+ continuous minutes.
- *  2. Fires a heartbeat every 60s (updates daily_usage_stats so the minutes chart reflects mobile listening).
+ *  2. Marks audio as playing so the app-wide heartbeat reports listening time, and keeps a
+ *     60s heartbeat going while the app is in the background (the app-wide one pauses then).
  * Also supports manual triggers for transcript views and training playlists.
  */
 export function useStreakTracker(transcriptId?: string) {
@@ -32,7 +35,10 @@ export function useStreakTracker(transcriptId?: string) {
     // No-op if already running or no auth
     if (heartbeatIntervalRef.current || !userId || !companyId) return
     heartbeatIntervalRef.current = setInterval(() => {
-      streakService.recordHeartbeat(userId, companyId, 'audio_playing', '/mobile/audio')
+      // In the foreground the app-wide heartbeat already reports listening
+      if (AppState.currentState !== 'active') {
+        streakService.recordHeartbeat(userId, companyId, 'audio_playing', '/mobile/background-audio')
+      }
     }, HEARTBEAT_INTERVAL_MS)
   }, [userId, companyId])
 
@@ -41,6 +47,7 @@ export function useStreakTracker(transcriptId?: string) {
     if (!userId || !companyId) return
 
     // Ensure heartbeat is running
+    setAudioPlaying(true)
     startHeartbeat()
 
     const now = Date.now()
@@ -66,6 +73,7 @@ export function useStreakTracker(transcriptId?: string) {
   // Call when audio pauses to stop accumulating time and pause the heartbeat
   const onPause = useCallback(() => {
     lastTickRef.current = null
+    setAudioPlaying(false)
     stopHeartbeat()
   }, [stopHeartbeat])
 
@@ -94,6 +102,7 @@ export function useStreakTracker(transcriptId?: string) {
     return () => {
       cumulativeTimeRef.current = 0
       lastTickRef.current = null
+      setAudioPlaying(false)
       stopHeartbeat()
     }
   }, [stopHeartbeat])

@@ -1,5 +1,5 @@
 import { supabase } from '../utils/supabase'
-import { getSessionId } from './activitySession.service'
+import { getSessionId, getCurrentRoute } from './activitySession.service'
 
 export interface StreakData {
   current_streak: number
@@ -96,7 +96,7 @@ export async function recordHeartbeat(
   userId: string,
   _companyId: string,
   activityType: 'page_active' | 'audio_playing' = 'page_active',
-  pagePath: string = '/mobile'
+  pagePath: string = `/mobile/${getCurrentRoute()}`
 ): Promise<void> {
   const sessionId = getSessionId()
   if (!sessionId) return

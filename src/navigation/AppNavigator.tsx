@@ -50,6 +50,7 @@ import AppHeader from '../components/layout/AppHeader'
 import SideDrawer from '../components/layout/SideDrawer'
 
 import { colors } from '../theme/tokens'
+import { setCurrentRoute } from '../services/activitySession.service'
 
 const RootStack = createNativeStackNavigator<RootStackParamList>()
 const Tab = createBottomTabNavigator<MainTabParamList>()
@@ -336,7 +337,11 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer
+      ref={navigationRef}
+      onReady={() => setCurrentRoute(navigationRef.getCurrentRoute()?.name)}
+      onStateChange={() => setCurrentRoute(navigationRef.getCurrentRoute()?.name)}
+    >
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
         {user ? (
           <>

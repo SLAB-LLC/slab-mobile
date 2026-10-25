@@ -4,7 +4,7 @@ import { User } from '@supabase/supabase-js'
 import { supabase } from '../utils/supabase'
 import { UserProfile, Company } from '../types'
 import { registerPushTokenSilently, deactivatePushToken } from '../services/notifications.service'
-import { startSession, endSession } from '../services/activitySession.service'
+import { startSession, endSession, isAudioPlaying } from '../services/activitySession.service'
 import { recordHeartbeat } from '../services/streak.service'
 
 const HEARTBEAT_INTERVAL_MS = 60_000
@@ -132,7 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       heartbeatTimerRef.current = setInterval(() => {
         const uid = userIdRef.current
         const cid = companyIdRef.current
-        if (uid && cid) recordHeartbeat(uid, cid, 'page_active', '/mobile')
+        if (uid && cid) recordHeartbeat(uid, cid, isAudioPlaying() ? 'audio_playing' : 'page_active')
       }, HEARTBEAT_INTERVAL_MS)
     }
 
@@ -146,7 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (cancelled || !sessionId) return
       // Fire an immediate heartbeat so even a short session counts as activity
       if (userIdRef.current && companyIdRef.current) {
-        recordHeartbeat(userIdRef.current, companyIdRef.current, 'page_active', '/mobile')
+        recordHeartbeat(userIdRef.current, companyIdRef.current, 'page_active')
       }
       if (AppState.currentState === 'active') startHeartbeat()
     })
