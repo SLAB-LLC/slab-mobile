@@ -68,6 +68,9 @@ export interface TenantFeatures {
   powerHour: { enabled: boolean; startHour: number; multiplier: number }
   streakTiers: StreakTier[]
   xp: {
+    lesson: number
+    askCoach: number
+    askCoachDailyCap: number
     book: number
     bossFirstWin: number
     bossRematch: number

@@ -4,6 +4,7 @@ import AppNavigator from './src/navigation/AppNavigator'
 import { AuthProvider } from './src/context/AuthContext'
 import ErrorBoundary from './src/components/common/ErrorBoundary'
 import { TenantProvider, useTenantTheme, buildPaperTheme } from './src/tenant'
+import { XpProvider } from './src/xp'
 import { useMemo } from 'react'
 
 /** Everything below the tenant provider paints in the company's theme */
@@ -13,7 +14,9 @@ function ThemedApp() {
 
   return (
     <PaperProvider theme={paperTheme}>
-      <AppNavigator />
+      <XpProvider>
+        <AppNavigator />
+      </XpProvider>
       <StatusBar style={tenantTheme.statusBar} />
     </PaperProvider>
   )

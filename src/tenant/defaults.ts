@@ -50,7 +50,11 @@ export const DEFAULT_TENANT_CONFIG: TenantConfig = {
       { days: 15, mult: 1.5 },
       { days: 30, mult: 2 },
     ],
+    // Keep in sync with the fallbacks in slabtech sql/xp-engine-migration.sql
     xp: {
+      lesson: 15,
+      askCoach: 8,
+      askCoachDailyCap: 40,
       book: 50,
       bossFirstWin: 40,
       bossRematch: 10,

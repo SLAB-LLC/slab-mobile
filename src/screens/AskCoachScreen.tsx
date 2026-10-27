@@ -14,7 +14,8 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useAuth } from '../context/AuthContext'
 import { useTenantTheme } from '../tenant'
-import { askCoach, CoachMessage } from '../services/coach.service'
+import { askCoach, isCoachConnected, CoachMessage } from '../services/coach.service'
+import { useXp } from '../xp'
 
 /** How many past messages are kept on the phone and sent with each question */
 const HISTORY_LIMIT = 40
@@ -29,6 +30,7 @@ export default function AskCoachScreen() {
   const { user, profile, company } = useAuth()
   const theme = useTenantTheme()
   const { colors, coach } = theme
+  const { award } = useXp()
 
   const [messages, setMessages] = useState<CoachMessage[]>([])
   const [draft, setDraft] = useState('')
@@ -71,6 +73,8 @@ export default function AskCoachScreen() {
       const next: CoachMessage[] = [...withQuestion, { role: 'assistant', content: reply }]
       setMessages(next)
       save(next)
+      // Placeholder answers don't pay; real ones do (capped per day on the server)
+      if (isCoachConnected()) award('coach_ask', null, `asked ${coach.name}`)
     } catch (err) {
       console.error('Coach error:', err)
       const next: CoachMessage[] = [
