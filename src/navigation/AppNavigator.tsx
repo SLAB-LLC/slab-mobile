@@ -40,6 +40,7 @@ import SupportScreen from '../screens/SupportScreen'
 import NotificationSettingsScreen from '../screens/NotificationSettingsScreen'
 import TermsOfServiceScreen from '../screens/TermsOfServiceScreen'
 import LockerScreen, { RepBuilder } from '../screens/LockerScreen'
+import GameScreen from '../game/GameScreen'
 
 // Layout
 import AppHeader from '../components/layout/AppHeader'
@@ -218,10 +219,14 @@ function BottomTabs({ onMenuPress }: { onMenuPress: () => void }) {
 function AuthenticatedShell() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const navigation = useNavigation<any>()
+  const { appStyle } = useTenantTheme()
 
   const handleDrawerNavigate = useCallback((screen: string) => {
     navigation.navigate(screen)
   }, [navigation])
+
+  // Game-style companies get the full Lab experience (the demo, in a web view)
+  if (appStyle === 'game') return <GameScreen />
 
   return (
     <View style={{ flex: 1 }}>
@@ -340,7 +345,7 @@ export default function AppNavigator() {
       )}
 
       {/* First run: build a pixel rep before anything else (after TOS) */}
-      {user && tosAccepted === true && hasLook === false && (
+      {user && tosAccepted === true && hasLook === false && theme.appStyle !== 'game' && (
         <Modal visible animationType="slide" presentationStyle="fullScreen">
           <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
             <RepBuilder firstRun />
