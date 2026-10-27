@@ -7,6 +7,7 @@ export type RootStackParamList = {
   Support: undefined
   NotificationSettings: undefined
   MyStats: undefined
+  Locker: undefined
   TranscriptDetail: { id: string }
   TermsOfService: undefined
   BroadcastDetail: { id: string }

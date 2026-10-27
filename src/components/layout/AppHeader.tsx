@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, Platform } from 'react
 import { useAuth } from '../../context/AuthContext'
 import { useTenantTheme, useFeatures } from '../../tenant'
 import { useXp, hourLabel } from '../../xp'
+import { PixelSprite, useMyLook } from '../../avatar'
 
 const slabLogo = require('../../../assets/slab-logo-thermal.png')
 
@@ -16,6 +17,7 @@ export default function AppHeader({ onMenuPress, onProfilePress }: AppHeaderProp
   const theme = useTenantTheme()
   const features = useFeatures()
   const { totalXp, streakDays, streakMult, powerHourActive } = useXp()
+  const { look, hasLook } = useMyLook()
 
   const displayName = profile?.display_name || profile?.full_name
   const initials = displayName
@@ -81,9 +83,11 @@ export default function AppHeader({ onMenuPress, onProfilePress }: AppHeaderProp
           {/* Profile avatar */}
           <TouchableOpacity
             onPress={onProfilePress}
-            style={[styles.avatar, { backgroundColor: colors.accent }]}
+            style={[styles.avatar, { backgroundColor: hasLook ? colors.accentSoft : colors.accent }]}
           >
-            {profile?.profile_picture_url ? (
+            {hasLook ? (
+              <PixelSprite look={look} size={30} crop="head" />
+            ) : profile?.profile_picture_url ? (
               <Image source={{ uri: profile.profile_picture_url }} style={styles.avatarImage} />
             ) : (
               <Text style={[styles.avatarText, { color: colors.onAccent }]}>{initials}</Text>

@@ -43,6 +43,20 @@ export interface TenantTheme {
   /** Status bar content over the header */
   statusBar: 'light' | 'dark'
   colors: TenantColors
+  /**
+   * How reps' pixel gear is branded. Nulls fall back to the brand name, its
+   * first letters and the accent color.
+   */
+  gear: {
+    /** Word in gear names, e.g. "Ace" in "Ace hoodie" */
+    name: string | null
+    /** Up to 4 letters printed across the back of tees, hoodies and varsities */
+    letters: string | null
+    /** Logo/trim color */
+    primary: string | null
+    /** Dark base color of branded gear */
+    dark: string
+  }
   /** The AI/hype coach reps chat with */
   coach: { name: string; avatarUrl: string | null }
   /** Default app style for reps of this company; reps may switch */

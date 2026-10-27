@@ -29,6 +29,7 @@ export const DEFAULT_TENANT_CONFIG: TenantConfig = {
       danger: '#EF4444',
       success: '#10B981',
     },
+    gear: { name: null, letters: null, primary: null, dark: '#1b1b20' },
     coach: { name: 'Marshall', avatarUrl: null },
     appStyle: 'game',
   },

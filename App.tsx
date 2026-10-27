@@ -5,6 +5,7 @@ import { AuthProvider } from './src/context/AuthContext'
 import ErrorBoundary from './src/components/common/ErrorBoundary'
 import { TenantProvider, useTenantTheme, buildPaperTheme } from './src/tenant'
 import { XpProvider } from './src/xp'
+import { AvatarProvider } from './src/avatar'
 import { useMemo } from 'react'
 
 /** Everything below the tenant provider paints in the company's theme */
@@ -15,7 +16,9 @@ function ThemedApp() {
   return (
     <PaperProvider theme={paperTheme}>
       <XpProvider>
-        <AppNavigator />
+        <AvatarProvider>
+          <AppNavigator />
+        </AvatarProvider>
       </XpProvider>
       <StatusBar style={tenantTheme.statusBar} />
     </PaperProvider>

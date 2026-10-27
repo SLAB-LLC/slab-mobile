@@ -117,6 +117,7 @@ export default function SideDrawer({ visible, onClose, onNavigate }: SideDrawerP
 
   const items: DrawerItem[] = [
     { label: 'Profile', icon: '\u{1F464}', screen: 'Profile' },
+    { label: 'Your Rep', icon: '\u{1F9CD}', screen: 'Locker' },
     { label: 'My Stats', icon: '\u{1F4C8}', screen: 'MyStats' },
     { label: 'Support', icon: '\u{1F4AC}', screen: 'Support' },
     { label: 'Notifications', icon: '\u{1F514}', screen: 'NotificationSettings' },

@@ -6,6 +6,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   Platform,
+  Modal,
+  SafeAreaView,
 } from 'react-native'
 import {
   NavigationContainer,
@@ -37,12 +39,14 @@ import ProfileScreen from '../screens/ProfileScreen'
 import SupportScreen from '../screens/SupportScreen'
 import NotificationSettingsScreen from '../screens/NotificationSettingsScreen'
 import TermsOfServiceScreen from '../screens/TermsOfServiceScreen'
+import LockerScreen, { RepBuilder } from '../screens/LockerScreen'
 
 // Layout
 import AppHeader from '../components/layout/AppHeader'
 import SideDrawer from '../components/layout/SideDrawer'
 
 import { useTenantTheme, useLabels } from '../tenant'
+import { useMyLook } from '../avatar'
 import type { TabKey, TenantTheme } from '../tenant'
 
 const RootStack = createNativeStackNavigator<RootStackParamList>()
@@ -241,6 +245,7 @@ export default function AppNavigator() {
   const { user, loading } = useAuth()
   const theme = useTenantTheme()
   const backHeaderOptions = useBackHeader()
+  const { hasLook } = useMyLook()
 
   // TOS acceptance gate — blocks app once user is authenticated.
   // null = checking, true = already accepted, false = needs to accept
@@ -309,6 +314,7 @@ export default function AppNavigator() {
             <RootStack.Screen name="Support" component={SupportScreen} options={backHeaderOptions} />
             <RootStack.Screen name="NotificationSettings" component={NotificationSettingsScreen} options={backHeaderOptions} />
             <RootStack.Screen name="MyStats" component={HomeScreen} options={backHeaderOptions} />
+            <RootStack.Screen name="Locker" component={LockerScreen} options={backHeaderOptions} />
             <RootStack.Screen
               name="TranscriptDetail"
               component={TranscriptDetailScreen}
@@ -333,8 +339,17 @@ export default function AppNavigator() {
         />
       )}
 
-      {/* Notification permission prompt — only after TOS, only if not granted */}
-      {user && tosAccepted === true && showNotifPrompt && (
+      {/* First run: build a pixel rep before anything else (after TOS) */}
+      {user && tosAccepted === true && hasLook === false && (
+        <Modal visible animationType="slide" presentationStyle="fullScreen">
+          <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+            <RepBuilder firstRun />
+          </SafeAreaView>
+        </Modal>
+      )}
+
+      {/* Notification permission prompt — only after TOS and the rep, only if not granted */}
+      {user && tosAccepted === true && hasLook !== false && showNotifPrompt && (
         <NotificationPromptModal
           visible
           onDismiss={dismissForToday}
