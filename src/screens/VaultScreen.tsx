@@ -10,7 +10,8 @@ import {
 } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useAuth } from '../context/AuthContext'
-import { useTenantTheme, useLabels } from '../tenant'
+import { useTenantTheme, useLabels, useFeatures } from '../tenant'
+import { useXp } from '../xp'
 import * as transcriptsService from '../services/transcripts.service'
 import { Transcript } from '../types'
 import TrendingScreen from './TrendingScreen'
@@ -36,6 +37,8 @@ export default function VaultScreen() {
   const { user } = useAuth()
   const { colors } = useTenantTheme()
   const labels = useLabels()
+  const features = useFeatures()
+  const { totalXp, xpLoaded } = useXp()
   const navigation = useNavigation<any>()
 
   const [tab, setTab] = useState<VaultTab>('days')
@@ -55,9 +58,12 @@ export default function VaultScreen() {
     }
   }
 
+  const unlockXp = features.vaultUnlockXp
+  const locked = totalXp < unlockXp
+
   useEffect(() => {
-    fetchDays()
-  }, [user?.id])
+    if (!locked) fetchDays()
+  }, [user?.id, locked])
 
   const sections = useMemo<RepSection[]>(() => {
     const byRep = new Map<string, Transcript[]>()
@@ -84,6 +90,34 @@ export default function VaultScreen() {
       >
         <Text style={[styles.tabText, { color: active ? colors.onAccent : colors.text }]}>{label}</Text>
       </TouchableOpacity>
+    )
+  }
+
+  if (!xpLoaded) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <ActivityIndicator style={styles.loading} size="large" color={colors.accent} />
+      </View>
+    )
+  }
+
+  if (locked) {
+    const progress = unlockXp > 0 ? Math.min(totalXp / unlockXp, 1) : 1
+    return (
+      <View style={[styles.container, styles.lockedWrap, { backgroundColor: colors.background }]}>
+        <Text style={styles.lockIcon}>{'\u{1F512}'}</Text>
+        <Text style={[styles.title, { color: colors.accent }]}>{labels.tabs.vault.toUpperCase()}</Text>
+        <Text style={[styles.lockText, { color: colors.text }]}>
+          Opens at {unlockXp.toLocaleString()} XP
+        </Text>
+        <View style={[styles.bar, { backgroundColor: colors.surfaceRaised }]}>
+          <View style={[styles.barFill, { backgroundColor: colors.accent, width: `${progress * 100}%` }]} />
+        </View>
+        <Text style={[styles.lockSub, { color: colors.textMuted }]}>
+          {totalXp.toLocaleString()} / {unlockXp.toLocaleString()} XP. Pass lessons in{' '}
+          {labels.tabs.lab} to unlock real days from the doors.
+        </Text>
+      </View>
     )
   }
 
@@ -159,6 +193,12 @@ export default function VaultScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  lockedWrap: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+  lockIcon: { fontSize: 56 },
+  lockText: { fontSize: 18, fontWeight: '800', marginTop: 12 },
+  bar: { width: '100%', height: 10, borderRadius: 5, marginTop: 16, overflow: 'hidden' },
+  barFill: { height: '100%', borderRadius: 5 },
+  lockSub: { fontSize: 14, marginTop: 12, textAlign: 'center', lineHeight: 20 },
   title: { fontSize: 26, fontWeight: '900', letterSpacing: 3, textAlign: 'center', marginTop: 16 },
   tabs: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, marginTop: 14, marginBottom: 6 },
   tab: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center' },

@@ -17,6 +17,8 @@ interface AwardOptions {
 }
 
 interface XpContextType {
+  /** False until the rep's XP has been loaded once (avoids flashing locks) */
+  xpLoaded: boolean
   totalXp: number
   monthXp: number
   weekXp: number
@@ -40,6 +42,7 @@ export function XpProvider({ children }: { children: React.ReactNode }) {
 
   const [totals, setTotals] = useState<XpTotals>({ total_xp: 0, month_xp: 0, week_xp: 0 })
   const [streakDays, setStreakDays] = useState(0)
+  const [xpLoaded, setXpLoaded] = useState(false)
   const [now, setNow] = useState(() => new Date())
   const [toasts, setToasts] = useState<ToastItem[]>([])
   const toastId = useRef(0)
@@ -62,12 +65,15 @@ export function XpProvider({ children }: { children: React.ReactNode }) {
         warnedRef.current = true
         console.warn('XP unavailable:', err?.message ?? err)
       }
+    } finally {
+      setXpLoaded(true)
     }
   }, [userId])
 
   useEffect(() => {
     setTotals({ total_xp: 0, month_xp: 0, week_xp: 0 })
     setStreakDays(0)
+    setXpLoaded(false)
     refreshXp()
   }, [refreshXp])
 
@@ -145,6 +151,7 @@ export function XpProvider({ children }: { children: React.ReactNode }) {
   )
 
   const value: XpContextType = {
+    xpLoaded,
     totalXp: totals.total_xp,
     monthXp: totals.month_xp,
     weekXp: totals.week_xp,
