@@ -7406,7 +7406,8 @@ function paintVaultDoor(c){
   g.fillStyle = '#3a2c12';
   // "ACE" in a 3x5 pixel font
   const F = { A:['010','101','111','101','101'], C:['011','100','100','100','011'], E:['111','100','110','100','111'] };
-  [...'ACE'].forEach((ch, i) => F[ch].forEach((row, y) => [...row].forEach((b, x) => { if (b === '1') g.fillRect(53 + i * 5 + x, 88 + y, 1, 1); })));
+  const vx0 = 45 + Math.floor((30 - (GEAR_LETTERS.length * 5 - 2)) / 2);
+  GEAR_LETTERS.forEach((ch, i) => (GLYPH[ch] || GLYPH[' ']).forEach((row, y) => [...row].forEach((b, x) => { if (b === '1') g.fillRect(vx0 + i * 5 + x, 88 + y, 1, 1); })));
 }
 function paintVaultWheel(c){
   const g = c.getContext('2d'), cx = 29.5, cy = 29.5;
@@ -8443,7 +8444,7 @@ const vxAu = new Audio(); vxAu.preload = 'metadata';
 let vxMode = null;   // 'day' | 'reel'
 let vxCur = null;    // day: { rid, n }   reel: clip
 function vxLoad(src, t, play){
-  const abs = new URL(src, location.href).href;
+  let abs = new URL(src, location.href).href;
   const go = () => { try { vxAu.currentTime = t; } catch (e) {} if (play) vxAu.play().catch(() => {}); };
   if (APP && APP.media && !/^(https?|data|blob):/.test(src)) { src = APP.media + src.replace(/^audio\//, ''); abs = src; }
   if (vxAu.src !== abs) { vxAu.src = src; vxAu.addEventListener('loadedmetadata', go, { once:true }); vxAu.load(); } else go();

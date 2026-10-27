@@ -121,6 +121,8 @@ def main(src):
                "function haptic(kind){\n  if (APP && ME.haptics) { appSend('haptic', kind); return; }\n  if (!ME.haptics || !navigator.vibrate) return;")
 
     # ---- Vault audio: served from the app's media host ----
+    html = rep(html, "function vxLoad(src, t, play){\n  const abs = new URL(src, location.href).href;",
+               "function vxLoad(src, t, play){\n  let abs = new URL(src, location.href).href;")
     html = rep(html, "  if (vxAu.src !== abs) { vxAu.src = src;",
                "  if (APP && APP.media && !/^(https?|data|blob):/.test(src)) { src = APP.media + src.replace(/^audio\\//, ''); abs = src; }\n"
                "  if (vxAu.src !== abs) { vxAu.src = src;")
@@ -140,6 +142,10 @@ def main(src):
 
     html = rep(html, 'More Ace gear unlocks as you earn XP.', "More ${APP_GEAR ? esc(APP_GEAR.name) : 'Ace'} gear unlocks as you earn XP.")
     html = rep(html, "and more XP unlocks more Ace gear.' }", "and more XP unlocks more ' + (APP_GEAR ? APP_GEAR.name : 'Ace') + ' gear.' }")
+
+    html = rep(html, "[...'ACE'].forEach((ch, i) => F[ch].forEach((row, y) => [...row].forEach((b, x) => { if (b === '1') g.fillRect(53 + i * 5 + x, 88 + y, 1, 1); })));",
+               "const vx0 = 45 + Math.floor((30 - (GEAR_LETTERS.length * 5 - 2)) / 2);\n"
+               "  GEAR_LETTERS.forEach((ch, i) => (GLYPH[ch] || GLYPH[' ']).forEach((row, y) => [...row].forEach((b, x) => { if (b === '1') g.fillRect(vx0 + i * 5 + x, 88 + y, 1, 1); })));")
 
     # ---- unlocks: the company's thresholds, not the demo's rookie/vet shortcut ----
     html = rep(html, '  audioUnlockXP = isVet() ? 0 : 500;\n  chatUnlockXP = isVet() ? 0 : 200;',

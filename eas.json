@@ -13,13 +13,15 @@
       }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "preview"
     },
     "production": {
       "autoIncrement": true,
       "cache": {
         "disabled": true
-      }
+      },
+      "channel": "production"
     }
   },
   "submit": {

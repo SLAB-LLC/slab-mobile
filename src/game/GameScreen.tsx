@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { View, Text, StyleSheet, ActivityIndicator, Linking, TouchableOpacity } from 'react-native'
 import { WebView, WebViewMessageEvent } from 'react-native-webview'
 import type { ShouldStartLoadRequest } from 'react-native-webview/lib/WebViewTypes'
-import { Asset } from 'expo-asset'
 import * as Haptics from 'expo-haptics'
 import { useNavigation } from '@react-navigation/native'
 import { useAuth } from '../context/AuthContext'
@@ -15,11 +14,10 @@ import { grantXp } from '../services/xp.service'
 import { markVideoComplete } from '../services/training.service'
 import { askCoach, isCoachConnected } from '../services/coach.service'
 import { buildGameBoot, VideoIndex, youtubeEmbedUrl } from './boot'
+import { prepareGameFiles } from './files'
 
-/** Where the Vault's audio pack is served from (EXPO_PUBLIC_VAULT_MEDIA_URL, ending in /) */
+/** Optional remote home for the Vault audio (ending in /); by default it plays from the copy in the app */
 const MEDIA_URL = process.env.EXPO_PUBLIC_VAULT_MEDIA_URL || null
-
-const GAME_PAGE = require('../../assets/game/game.html')
 
 const HAPTICS: Record<string, () => Promise<void>> = {
   tap: () => Haptics.selectionAsync(),
@@ -50,14 +48,17 @@ export default function GameScreen() {
   const webRef = useRef<WebView>(null)
   const videosRef = useRef<VideoIndex>({})
   const [pageUri, setPageUri] = useState<string | null>(null)
+  const [dirUri, setDirUri] = useState<string | null>(null)
   const [bootScript, setBootScript] = useState<string | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
 
-  // The page file ships inside the app (and with each over-the-air update)
+  // The page and the Vault pack ship inside the app (and with each over-the-air update)
   useEffect(() => {
-    Asset.fromModule(GAME_PAGE)
-      .downloadAsync()
-      .then((a) => setPageUri(a.localUri || a.uri))
+    prepareGameFiles()
+      .then(({ pageUri: page, dirUri: dir }) => {
+        setDirUri(dir)
+        setPageUri(page)
+      })
       .catch((err) => setFailed(String(err?.message || err)))
   }, [])
 
@@ -174,7 +175,6 @@ export default function GameScreen() {
       if (req.isTopFrame === false) return true
       if (!pageUri || url.startsWith('file:') || url.startsWith('about:') || url.startsWith('data:') || url === pageUri) return true
       if (url.startsWith('https://www.youtube.com/embed/')) return true
-      if (url.startsWith(pageUri.split('#')[0])) return true
       Linking.openURL(url).catch(() => {})
       return false
     },
@@ -221,7 +221,7 @@ export default function GameScreen() {
         onShouldStartLoadWithRequest={onShouldStart}
         allowFileAccess
         allowFileAccessFromFileURLs
-        allowingReadAccessToURL={pageUri}
+        allowingReadAccessToURL={dirUri ?? pageUri}
         allowsInlineMediaPlayback
         mediaPlaybackRequiresUserAction={false}
         allowsFullscreenVideo
