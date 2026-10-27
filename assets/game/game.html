@@ -8647,7 +8647,7 @@ const vxToggle = (a, k) => { const i = a.indexOf(k); if (i >= 0) a.splice(i, 1);
 function vxCardHTML(c, i){
   const d = c.d, r = vxRep(c.rep), seed = (i * 37) % 100;
   return `<section class="vx-card" data-q="${i}" style="--lx:${-48 + (seed % 3) * 14}%;--ly:${10 + (seed % 4) * 7}%">
-    <img class="logo" src="${IMG.ace}" alt="">
+    ${APP && !(APP.brand && APP.brand.isAce) ? '' : `<img class="logo" src="${IMG.ace}" alt="">`}
     <span class="vx-paused"><svg viewBox="0 0 12 14" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="0" width="5" height="14" fill="#2a1d05"/><rect x="1" y="1" width="3" height="12" fill="#f2c94c"/><rect x="1" y="1" width="1" height="11" fill="#ffe9a8"/><rect x="3" y="1" width="1" height="12" fill="#c8961f"/><rect x="1" y="12" width="3" height="1" fill="#a5791a"/><rect x="7" y="0" width="5" height="14" fill="#2a1d05"/><rect x="8" y="1" width="3" height="12" fill="#f2c94c"/><rect x="8" y="1" width="1" height="11" fill="#ffe9a8"/><rect x="10" y="1" width="1" height="12" fill="#c8961f"/><rect x="8" y="12" width="3" height="1" fill="#a5791a"/></svg></span>
     <div class="vx-press"><button data-more>More like this</button><button data-less>Less like this</button><button data-cancel>Cancel</button></div>
     <div class="vx-rail"><button class="lk${vxS.likes[c.id] ? ' on' : ''}"><i aria-hidden="true">${VX_I.heart}</i><span>${vxK(vxLikes(c))}</span></button><button class="cmb"><i aria-hidden="true">${VX_I.chat}</i><span>${c.cm + ((vxS.comments[c.id] || []).length)}</span></button><button class="sv${vxS.saves[c.id] ? ' on' : ''}"><i aria-hidden="true">${VX_I.save}</i><span>Save</span></button><button class="sh"><i aria-hidden="true">${VX_I.share}</i><span>Share</span></button></div>
@@ -8928,6 +8928,29 @@ navBtns.forEach(btn => {
 //
 // Page -> native: appSend(type, payload) and appCall(type, payload) -> Promise.
 // Native -> page: window.__appReply(id, ok, result) and window.__appEvent(type, data).
+// Errors: in the app, show them on screen (tap to dismiss) and pass them to the native log,
+// so a screenshot is enough to debug a phone we can't attach to
+function appReportError(where, err){
+  const msg = (err && (err.message || err.reason || String(err))) || 'error';
+  const at = err && err.stack ? String(err.stack).split('\n').slice(0, 2).join(' | ') : '';
+  try { console.error('[game]', where, msg, at); } catch (e) {}
+  if (!APP) return;
+  appSend('log', { where, msg, at });
+  let box = document.getElementById('app-errors');
+  if (!box) {
+    box = document.createElement('div'); box.id = 'app-errors';
+    box.style.cssText = 'position:fixed;left:8px;right:8px;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:99999;background:#b3261e;color:#fff;font:12px/1.35 -apple-system,sans-serif;padding:8px 10px;border-radius:10px;max-height:40vh;overflow:auto;box-shadow:0 6px 20px rgba(0,0,0,.5)';
+    box.addEventListener('click', () => box.remove());
+    document.body.appendChild(box);
+  }
+  const line = document.createElement('div');
+  line.textContent = where + ': ' + msg + (at ? '  (' + at.slice(0, 160) + ')' : '');
+  box.appendChild(line);
+}
+function appSafe(where, f){ try { f(); } catch (e) { appReportError(where, e); } }
+window.addEventListener('error', (e) => appReportError('page', e.error || e.message));
+window.addEventListener('unhandledrejection', (e) => appReportError('promise', e.reason));
+
 const appPending = new Map();
 let appSeq = 0;
 function appSend(type, payload){
@@ -9051,6 +9074,8 @@ function appSaveMe(){
 if (APP) {
   // The company's real reps, ranked by total XP; reps without a saved look show the default rep
   if (APP.leaders && APP.leaders.length) leaders.splice(0, leaders.length, ...APP.leaders.map(l => ({ props:0, lessons:0, bosses:0, books:0, badges:[], ...l, look: Object.assign({ ...DEFAULT_LOOK }, l.look || {}) })));
+  // The page needs the rep's own row
+  if (!leaders.some(l => l.you)) leaders.push({ name: APP.me.name, streak: APP.me.streakDays, xp: APP.me.xp, you:true, props:0 });
 
   // Company branding: accent color and co-brand line from the tenant config
   const accent = APP.brand && APP.brand.accent;
@@ -9092,16 +9117,16 @@ if (APP) {
 
 
 // ============ INIT ============
-updateXPBadge();
-renderCourse();
-renderRecordings();
-switchChatRep('marshall');
-renderLeaderboard(false);
-applyLockStates();
-renderShelves();
-scrollToActiveLesson(true, 900);
-applyStreak(false);
-initRep();
+appSafe('xp badge', updateXPBadge);
+appSafe('course', renderCourse);
+appSafe('vault', renderRecordings);
+appSafe('chat', () => switchChatRep('marshall'));
+appSafe('leaderboard', () => renderLeaderboard(false));
+appSafe('locks', applyLockStates);
+appSafe('shelves', renderShelves);
+appSafe('scroll', () => scrollToActiveLesson(true, 900));
+appSafe('streak', () => applyStreak(false));
+appSafe('rep', initRep);
 window.addEventListener('resize', () => { clearTimeout(window.__rz); window.__rz = setTimeout(renderCourse, 150); });
 </script>
 

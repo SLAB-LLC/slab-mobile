@@ -198,8 +198,9 @@ async function loadLeaders(companyId: string, me: { id: string; name: string; xp
       look: looks[b.user_id] ?? null,
     })
   }
-  leaders.push({ name: me.name, streak: me.streak, xp: me.xp, you: true })
-  return leaders.sort((a, b) => b.xp - a.xp).slice(0, 30)
+  // The top reps, and always the rep themselves (the page needs their row even when they're far down)
+  const top = leaders.sort((a, b) => b.xp - a.xp).slice(0, 29)
+  return [...top, { name: me.name, streak: me.streak, xp: me.xp, you: true }]
 }
 
 export async function buildGameBoot(args: {

@@ -157,6 +157,34 @@ def main(src):
     html = rep(html, "'<span class=\"bv-crumb\">Ace Library</span>'", "'<span class=\"bv-crumb\">' + libName() + '</span>'")
     html = rep(html, '<h2 class="lv-title">Ace Library</h2>', '<h2 class="lv-title">${libName()}</h2>')
 
+    # ---- start-up: one failing step no longer stops the rest (and the app reports it) ----
+    init_old = """updateXPBadge();
+renderCourse();
+renderRecordings();
+switchChatRep('marshall');
+renderLeaderboard(false);
+applyLockStates();
+renderShelves();
+scrollToActiveLesson(true, 900);
+applyStreak(false);
+initRep();
+"""
+    init_new = """appSafe('xp badge', updateXPBadge);
+appSafe('course', renderCourse);
+appSafe('vault', renderRecordings);
+appSafe('chat', () => switchChatRep('marshall'));
+appSafe('leaderboard', () => renderLeaderboard(false));
+appSafe('locks', applyLockStates);
+appSafe('shelves', renderShelves);
+appSafe('scroll', () => scrollToActiveLesson(true, 900));
+appSafe('streak', () => applyStreak(false));
+appSafe('rep', initRep);
+"""
+    html = rep(html, init_old, init_new)
+
+    # ---- reels: other companies don't get Ace's logo behind every card ----
+    html = rep(html, '    <img class="logo" src="${IMG.ace}" alt="">', "    ${APP && !(APP.brand && APP.brand.isAce) ? '' : `<img class=\"logo\" src=\"${IMG.ace}\" alt=\"\">`}")
+
     # ---- the bridge itself, just before start-up runs ----
     html = rep(html, '// ============ INIT ============', bridge + '\n\n// ============ INIT ============')
 

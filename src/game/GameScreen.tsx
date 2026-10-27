@@ -4,6 +4,7 @@ import { WebView, WebViewMessageEvent } from 'react-native-webview'
 import type { ShouldStartLoadRequest } from 'react-native-webview/lib/WebViewTypes'
 import * as Haptics from 'expo-haptics'
 import { useNavigation } from '@react-navigation/native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '../context/AuthContext'
 import { useTenant, useTenantTheme, useFeatures } from '../tenant'
 import { useXp } from '../xp'
@@ -45,6 +46,7 @@ export default function GameScreen() {
   const { look, hasLook, saveLook } = useMyLook()
   const engine = useSpriteEngine()
 
+  const insets = useSafeAreaInsets()
   const webRef = useRef<WebView>(null)
   const videosRef = useRef<VideoIndex>({})
   const [pageUri, setPageUri] = useState<string | null>(null)
@@ -142,6 +144,9 @@ export default function GameScreen() {
         case 'haptic':
           HAPTICS[payload]?.().catch(() => {})
           return null
+        case 'log':
+          console.warn('[game]', payload?.where, payload?.msg, payload?.at)
+          return null
         case 'notif':
           // Notification choices live in the native settings screen for now
           return null
@@ -211,7 +216,8 @@ export default function GameScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    // The page draws edge to edge; keep it below the status bar
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <WebView
         ref={webRef}
         source={{ uri: pageUri }}

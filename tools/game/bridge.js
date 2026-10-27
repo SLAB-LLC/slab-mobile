@@ -5,6 +5,29 @@
 //
 // Page -> native: appSend(type, payload) and appCall(type, payload) -> Promise.
 // Native -> page: window.__appReply(id, ok, result) and window.__appEvent(type, data).
+// Errors: in the app, show them on screen (tap to dismiss) and pass them to the native log,
+// so a screenshot is enough to debug a phone we can't attach to
+function appReportError(where, err){
+  const msg = (err && (err.message || err.reason || String(err))) || 'error';
+  const at = err && err.stack ? String(err.stack).split('\n').slice(0, 2).join(' | ') : '';
+  try { console.error('[game]', where, msg, at); } catch (e) {}
+  if (!APP) return;
+  appSend('log', { where, msg, at });
+  let box = document.getElementById('app-errors');
+  if (!box) {
+    box = document.createElement('div'); box.id = 'app-errors';
+    box.style.cssText = 'position:fixed;left:8px;right:8px;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:99999;background:#b3261e;color:#fff;font:12px/1.35 -apple-system,sans-serif;padding:8px 10px;border-radius:10px;max-height:40vh;overflow:auto;box-shadow:0 6px 20px rgba(0,0,0,.5)';
+    box.addEventListener('click', () => box.remove());
+    document.body.appendChild(box);
+  }
+  const line = document.createElement('div');
+  line.textContent = where + ': ' + msg + (at ? '  (' + at.slice(0, 160) + ')' : '');
+  box.appendChild(line);
+}
+function appSafe(where, f){ try { f(); } catch (e) { appReportError(where, e); } }
+window.addEventListener('error', (e) => appReportError('page', e.error || e.message));
+window.addEventListener('unhandledrejection', (e) => appReportError('promise', e.reason));
+
 const appPending = new Map();
 let appSeq = 0;
 function appSend(type, payload){
@@ -128,6 +151,8 @@ function appSaveMe(){
 if (APP) {
   // The company's real reps, ranked by total XP; reps without a saved look show the default rep
   if (APP.leaders && APP.leaders.length) leaders.splice(0, leaders.length, ...APP.leaders.map(l => ({ props:0, lessons:0, bosses:0, books:0, badges:[], ...l, look: Object.assign({ ...DEFAULT_LOOK }, l.look || {}) })));
+  // The page needs the rep's own row
+  if (!leaders.some(l => l.you)) leaders.push({ name: APP.me.name, streak: APP.me.streakDays, xp: APP.me.xp, you:true, props:0 });
 
   // Company branding: accent color and co-brand line from the tenant config
   const accent = APP.brand && APP.brand.accent;
