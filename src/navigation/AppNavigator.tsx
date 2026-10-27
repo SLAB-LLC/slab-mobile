@@ -28,19 +28,12 @@ import LandingScreen from '../screens/LandingScreen'
 import LoginScreen from '../screens/LoginScreen'
 import HomeScreen from '../screens/HomeScreen'
 import LeaderboardScreen from '../screens/LeaderboardScreen'
-import AudioHomeScreen from '../screens/AudioHomeScreen'
-import MemberProfileScreen from '../screens/MemberProfileScreen'
-import HighlightsScreen from '../screens/HighlightsScreen'
-import SecretsScreen from '../screens/SecretsScreen'
-import FavoritesScreen from '../screens/FavoritesScreen'
-import ObjectionsScreen from '../screens/ObjectionsScreen'
-import TrendingScreen from '../screens/TrendingScreen'
+import VaultScreen from '../screens/VaultScreen'
+import AskCoachScreen from '../screens/AskCoachScreen'
+import LibraryScreen from '../screens/LibraryScreen'
 import TranscriptDetailScreen from '../screens/TranscriptDetailScreen'
-import ChannelListScreen from '../screens/ChannelListScreen'
-import ChatRoomScreen from '../screens/ChatRoomScreen'
 import TrainingVideosScreen from '../screens/TrainingVideosScreen'
 import ProfileScreen from '../screens/ProfileScreen'
-import RecordAudioScreen from '../screens/RecordAudioScreen'
 import SupportScreen from '../screens/SupportScreen'
 import NotificationSettingsScreen from '../screens/NotificationSettingsScreen'
 import TermsOfServiceScreen from '../screens/TermsOfServiceScreen'
@@ -55,16 +48,13 @@ import type { TabKey, TenantTheme } from '../tenant'
 const RootStack = createNativeStackNavigator<RootStackParamList>()
 const Tab = createBottomTabNavigator<MainTabParamList>()
 const InnerStack = createNativeStackNavigator()
-const HomeStack = createNativeStackNavigator()
-const AudioStack = createNativeStackNavigator()
-const ChatStack = createNativeStackNavigator()
 
 // Used to navigate from notification tap handlers (which run outside React tree)
 const navigationRef = createNavigationContainerRef<RootStackParamList>()
 
 /**
  * Route a tapped notification to the appropriate screen based on its data
- * payload. Currently handles broadcast and chat notifications. No-op when
+ * payload. Currently handles broadcast notifications. No-op when
  * navigation is not yet ready or the payload is unrelated.
  */
 function handleNotificationResponse(response: Notifications.NotificationResponse) {
@@ -74,21 +64,6 @@ function handleNotificationResponse(response: Notifications.NotificationResponse
   const broadcastId = data.broadcast_id
   if (typeof broadcastId === 'string' && broadcastId) {
     navigationRef.navigate('BroadcastDetail', { id: broadcastId })
-    return
-  }
-
-  if (data.type === 'chat' && typeof data.channelId === 'string' && data.channelId) {
-    const channelName = typeof data.channelName === 'string' ? data.channelName : 'Chat'
-    navigationRef.navigate('MainDrawer' as any, {
-      screen: 'HomeTabs',
-      params: {
-        screen: 'Chat',
-        params: {
-          screen: 'ChatRoom',
-          params: { channelId: data.channelId, channelName },
-        },
-      },
-    })
   }
 }
 
@@ -110,54 +85,21 @@ function useBackHeader() {
   return React.useMemo(() => backHeader(theme), [theme])
 }
 
-function HomeStackScreen() {
-  const backHeaderOptions = useBackHeader()
-  return (
-    <HomeStack.Navigator screenOptions={{ headerShown: false }}>
-      <HomeStack.Screen name="HomeMain" component={HomeScreen} />
-      <HomeStack.Screen name="Leaderboard" component={LeaderboardScreen} options={backHeaderOptions} />
-    </HomeStack.Navigator>
-  )
-}
-
-function AudioStackScreen() {
-  const backHeaderOptions = useBackHeader()
-  return (
-    <AudioStack.Navigator screenOptions={{ headerShown: false }}>
-      <AudioStack.Screen name="AudioHome" component={AudioHomeScreen} />
-      <AudioStack.Screen name="MemberProfile" component={MemberProfileScreen} />
-      <AudioStack.Screen name="Highlights" component={HighlightsScreen} options={backHeaderOptions} />
-      <AudioStack.Screen name="Secrets" component={SecretsScreen} options={{ headerShown: false }} />
-      <AudioStack.Screen name="Favorites" component={FavoritesScreen} options={{ headerShown: false }} />
-      <AudioStack.Screen name="Objections" component={ObjectionsScreen} options={backHeaderOptions} />
-      <AudioStack.Screen name="Trending" component={TrendingScreen} options={backHeaderOptions} />
-    </AudioStack.Navigator>
-  )
-}
-
-function ChatStackScreen() {
-  const backHeaderOptions = useBackHeader()
-  return (
-    <ChatStack.Navigator screenOptions={{ headerShown: false }}>
-      <ChatStack.Screen name="ChannelList" component={ChannelListScreen} />
-      <ChatStack.Screen name="ChatRoom" component={ChatRoomScreen} options={backHeaderOptions} />
-    </ChatStack.Navigator>
-  )
-}
-
 // ─── Tab icons and label keys ─────────────────────────────────
-const TAB_LABEL_KEYS: Record<string, TabKey> = {
-  Home: 'home',
-  Audios: 'audios',
+const TAB_LABEL_KEYS: Record<keyof MainTabParamList, TabKey> = {
+  Lab: 'lab',
+  Vault: 'vault',
   Chat: 'chat',
-  Videos: 'videos',
+  Leaderboard: 'leaderboard',
+  Library: 'library',
 }
 
-const TAB_ICONS: Record<string, string> = {
-  Home: '\u{1F3E0}',
-  Audios: '\u{1F3A7}',
+const TAB_ICONS: Record<keyof MainTabParamList, string> = {
+  Lab: '\u{1F9EA}',
+  Vault: '\u{1F512}',
   Chat: '\u{1F4AC}',
-  Videos: '\u{1F3AC}',
+  Leaderboard: '\u{1F3C6}',
+  Library: '\u{1F4DA}',
 }
 
 // ─── Custom solid tab bar ──────────────────────────────────────
@@ -184,7 +126,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
                 style={[tabStyles.indicator, focused && { backgroundColor: colors.accent }]}
               />
               <Text style={[tabStyles.icon, focused && tabStyles.iconActive]}>
-                {TAB_ICONS[route.name] || '?'}
+                {TAB_ICONS[route.name as keyof MainTabParamList] || '?'}
               </Text>
               <Text
                 style={[
@@ -192,7 +134,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
                   { color: focused ? colors.text : colors.textMuted },
                 ]}
               >
-                {labels.tabs[TAB_LABEL_KEYS[route.name]] ?? route.name}
+                {labels.tabs[TAB_LABEL_KEYS[route.name as keyof MainTabParamList]] ?? route.name}
               </Text>
             </TouchableOpacity>
             {!isLast && <View style={tabStyles.divider} />}
@@ -259,10 +201,11 @@ function BottomTabs({ onMenuPress }: { onMenuPress: () => void }) {
         ),
       })}
     >
-      <Tab.Screen name="Home" component={HomeStackScreen} />
-      <Tab.Screen name="Audios" component={AudioStackScreen} />
-      <Tab.Screen name="Chat" component={ChatStackScreen} />
-      <Tab.Screen name="Videos" component={TrainingVideosScreen} />
+      <Tab.Screen name="Lab" component={TrainingVideosScreen} />
+      <Tab.Screen name="Vault" component={VaultScreen} />
+      <Tab.Screen name="Chat" component={AskCoachScreen} />
+      <Tab.Screen name="Leaderboard" component={LeaderboardScreen} />
+      <Tab.Screen name="Library" component={LibraryScreen} />
     </Tab.Navigator>
   )
 }
@@ -365,12 +308,12 @@ export default function AppNavigator() {
             <RootStack.Screen name="Profile" component={ProfileScreen} options={backHeaderOptions} />
             <RootStack.Screen name="Support" component={SupportScreen} options={backHeaderOptions} />
             <RootStack.Screen name="NotificationSettings" component={NotificationSettingsScreen} options={backHeaderOptions} />
+            <RootStack.Screen name="MyStats" component={HomeScreen} options={backHeaderOptions} />
             <RootStack.Screen
               name="TranscriptDetail"
               component={TranscriptDetailScreen}
               options={{ headerShown: false }}
             />
-            <RootStack.Screen name="RecordAudio" component={RecordAudioScreen} options={backHeaderOptions} />
             <RootStack.Screen name="TermsOfService" component={TermsOfServiceScreen} options={{ ...backHeaderOptions, headerBackTitle: 'Back' }} />
             <RootStack.Screen name="BroadcastDetail" component={BroadcastDetailScreen} options={{ headerShown: false }} />
           </>

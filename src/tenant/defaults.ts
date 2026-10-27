@@ -61,14 +61,11 @@ export const DEFAULT_TENANT_CONFIG: TenantConfig = {
   },
   labels: {
     tabs: {
-      home: 'Home',
       lab: 'The Lab',
       vault: 'The Vault',
       chat: 'Chat',
       leaderboard: 'Leaderboard',
       library: 'Library',
-      audios: 'Audios',
-      videos: 'Videos',
     },
   },
 }

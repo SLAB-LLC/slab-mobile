@@ -77,7 +77,7 @@ export interface TenantFeatures {
   }
 }
 
-export type TabKey = 'home' | 'lab' | 'vault' | 'chat' | 'leaderboard' | 'library' | 'audios' | 'videos'
+export type TabKey = 'lab' | 'vault' | 'chat' | 'leaderboard' | 'library'
 
 export interface TenantLabels {
   tabs: Record<TabKey, string>

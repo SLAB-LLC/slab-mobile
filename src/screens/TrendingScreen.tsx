@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext'
 import { Conversation } from '../types'
 import * as upvotesService from '../services/upvotes.service'
 import { colors, borderRadius, categoryColors } from '../theme/tokens'
+import { useCompanyColors } from '../hooks/useCompanyColors'
 
 interface TrendingItem {
   conversation: Conversation
@@ -32,6 +33,7 @@ const CATEGORY_BADGE: Record<string, { bg: string; text: string }> = {
 }
 
 export default function TrendingScreen() {
+  const { bgGradient } = useCompanyColors()
   const { user } = useAuth()
   const navigation = useNavigation<any>()
 
@@ -161,14 +163,14 @@ export default function TrendingScreen() {
 
   if (loading) {
     return (
-      <LinearGradient colors={['#000033', '#001155', '#0a1a5f']} style={styles.centered}>
+      <LinearGradient colors={bgGradient} style={styles.centered}>
         <ActivityIndicator size="large" color={colors.successGold} />
       </LinearGradient>
     )
   }
 
   return (
-    <LinearGradient colors={['#000033', '#001155', '#0a1a5f']} style={styles.container}>
+    <LinearGradient colors={bgGradient} style={styles.container}>
       <Text style={styles.title}>{'\u{1F525}'} Trending</Text>
       <Text style={styles.subtitle}>Most upvoted conversations</Text>
 

@@ -19,6 +19,7 @@ import {
   NotificationPreferences,
 } from '../services/notifications.service'
 import * as Notifications from 'expo-notifications'
+import { useCompanyColors } from '../hooks/useCompanyColors'
 
 interface ToggleItem {
   key: keyof NotificationPreferences
@@ -62,6 +63,7 @@ const TOGGLES: ToggleItem[] = [
 ]
 
 export default function NotificationSettingsScreen() {
+  const { bgGradient } = useCompanyColors()
   const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<keyof NotificationPreferences | null>(null)
@@ -149,7 +151,7 @@ export default function NotificationSettingsScreen() {
 
   if (loading) {
     return (
-      <LinearGradient colors={['#000033', '#001199', '#0a1a5f']} style={styles.loadingContainer}>
+      <LinearGradient colors={bgGradient} style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#f39c12" />
       </LinearGradient>
     )
@@ -157,7 +159,7 @@ export default function NotificationSettingsScreen() {
 
   return (
     <LinearGradient
-      colors={['#000033', '#001199', '#0a1a5f']}
+      colors={bgGradient}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.container}
