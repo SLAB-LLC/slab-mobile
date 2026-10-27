@@ -3,17 +3,30 @@ import { PaperProvider } from 'react-native-paper'
 import AppNavigator from './src/navigation/AppNavigator'
 import { AuthProvider } from './src/context/AuthContext'
 import ErrorBoundary from './src/components/common/ErrorBoundary'
-import { theme } from './src/theme'
+import { TenantProvider, useTenantTheme, buildPaperTheme } from './src/tenant'
+import { useMemo } from 'react'
+
+/** Everything below the tenant provider paints in the company's theme */
+function ThemedApp() {
+  const tenantTheme = useTenantTheme()
+  const paperTheme = useMemo(() => buildPaperTheme(tenantTheme), [tenantTheme])
+
+  return (
+    <PaperProvider theme={paperTheme}>
+      <AppNavigator />
+      <StatusBar style={tenantTheme.statusBar} />
+    </PaperProvider>
+  )
+}
 
 export default function App() {
   return (
     <ErrorBoundary>
-      <PaperProvider theme={theme}>
-        <AuthProvider>
-          <AppNavigator />
-          <StatusBar style="light" />
-        </AuthProvider>
-      </PaperProvider>
+      <AuthProvider>
+        <TenantProvider>
+          <ThemedApp />
+        </TenantProvider>
+      </AuthProvider>
     </ErrorBoundary>
   )
 }

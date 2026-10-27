@@ -49,7 +49,8 @@ import TermsOfServiceScreen from '../screens/TermsOfServiceScreen'
 import AppHeader from '../components/layout/AppHeader'
 import SideDrawer from '../components/layout/SideDrawer'
 
-import { colors } from '../theme/tokens'
+import { useTenantTheme, useLabels } from '../tenant'
+import type { TabKey, TenantTheme } from '../tenant'
 
 const RootStack = createNativeStackNavigator<RootStackParamList>()
 const Tab = createBottomTabNavigator<MainTabParamList>()
@@ -91,49 +92,67 @@ function handleNotificationResponse(response: Notifications.NotificationResponse
   }
 }
 
-// Shared back-header style — dark bg matching the gradient, no title, "Back" label
-const BACK_HEADER = {
-  headerShown: true,
-  title: '',
-  headerBackTitle: 'Back',
-  headerStyle: { backgroundColor: '#000033' },
-  headerTintColor: '#ffffff',
-  headerShadowVisible: false,
-} as const
+// Shared back-header style — background matching the tenant theme, no title, "Back" label
+function backHeader(theme: TenantTheme) {
+  return {
+    headerShown: true,
+    title: '',
+    headerBackTitle: 'Back',
+    headerStyle: { backgroundColor: theme.colors.background },
+    headerTintColor: theme.colors.text,
+    headerShadowVisible: false,
+  } as const
+}
+
+/** Back-header options for the current tenant */
+function useBackHeader() {
+  const theme = useTenantTheme()
+  return React.useMemo(() => backHeader(theme), [theme])
+}
 
 function HomeStackScreen() {
+  const backHeaderOptions = useBackHeader()
   return (
     <HomeStack.Navigator screenOptions={{ headerShown: false }}>
       <HomeStack.Screen name="HomeMain" component={HomeScreen} />
-      <HomeStack.Screen name="Leaderboard" component={LeaderboardScreen} options={BACK_HEADER} />
+      <HomeStack.Screen name="Leaderboard" component={LeaderboardScreen} options={backHeaderOptions} />
     </HomeStack.Navigator>
   )
 }
 
 function AudioStackScreen() {
+  const backHeaderOptions = useBackHeader()
   return (
     <AudioStack.Navigator screenOptions={{ headerShown: false }}>
       <AudioStack.Screen name="AudioHome" component={AudioHomeScreen} />
       <AudioStack.Screen name="MemberProfile" component={MemberProfileScreen} />
-      <AudioStack.Screen name="Highlights" component={HighlightsScreen} options={BACK_HEADER} />
+      <AudioStack.Screen name="Highlights" component={HighlightsScreen} options={backHeaderOptions} />
       <AudioStack.Screen name="Secrets" component={SecretsScreen} options={{ headerShown: false }} />
       <AudioStack.Screen name="Favorites" component={FavoritesScreen} options={{ headerShown: false }} />
-      <AudioStack.Screen name="Objections" component={ObjectionsScreen} options={BACK_HEADER} />
-      <AudioStack.Screen name="Trending" component={TrendingScreen} options={BACK_HEADER} />
+      <AudioStack.Screen name="Objections" component={ObjectionsScreen} options={backHeaderOptions} />
+      <AudioStack.Screen name="Trending" component={TrendingScreen} options={backHeaderOptions} />
     </AudioStack.Navigator>
   )
 }
 
 function ChatStackScreen() {
+  const backHeaderOptions = useBackHeader()
   return (
     <ChatStack.Navigator screenOptions={{ headerShown: false }}>
       <ChatStack.Screen name="ChannelList" component={ChannelListScreen} />
-      <ChatStack.Screen name="ChatRoom" component={ChatRoomScreen} options={BACK_HEADER} />
+      <ChatStack.Screen name="ChatRoom" component={ChatRoomScreen} options={backHeaderOptions} />
     </ChatStack.Navigator>
   )
 }
 
-// ─── Tab icons ────────────────────────────────────────────────
+// ─── Tab icons and label keys ─────────────────────────────────
+const TAB_LABEL_KEYS: Record<string, TabKey> = {
+  Home: 'home',
+  Audios: 'audios',
+  Chat: 'chat',
+  Videos: 'videos',
+}
+
 const TAB_ICONS: Record<string, string> = {
   Home: '\u{1F3E0}',
   Audios: '\u{1F3A7}',
@@ -143,11 +162,11 @@ const TAB_ICONS: Record<string, string> = {
 
 // ─── Custom solid tab bar ──────────────────────────────────────
 function CustomTabBar({ state, navigation }: BottomTabBarProps) {
-  const { company } = useAuth()
-  const barColor = company?.secondary_color || '#0a1a5f'
+  const { colors } = useTenantTheme()
+  const labels = useLabels()
 
   return (
-    <View style={[tabStyles.container, { backgroundColor: barColor }]}>
+    <View style={[tabStyles.container, { backgroundColor: colors.tabBar }]}>
       {state.routes.map((route, index) => {
         const focused = state.index === index
         const isLast = index === state.routes.length - 1
@@ -161,12 +180,19 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
               activeOpacity={0.7}
             >
               {/* Gold indicator bar at top for active tab */}
-              <View style={[tabStyles.indicator, focused && tabStyles.indicatorActive]} />
+              <View
+                style={[tabStyles.indicator, focused && { backgroundColor: colors.accent }]}
+              />
               <Text style={[tabStyles.icon, focused && tabStyles.iconActive]}>
                 {TAB_ICONS[route.name] || '?'}
               </Text>
-              <Text style={[tabStyles.label, focused && tabStyles.labelActive]}>
-                {route.name}
+              <Text
+                style={[
+                  tabStyles.label,
+                  { color: focused ? colors.text : colors.textMuted },
+                ]}
+              >
+                {labels.tabs[TAB_LABEL_KEYS[route.name]] ?? route.name}
               </Text>
             </TouchableOpacity>
             {!isLast && <View style={tabStyles.divider} />}
@@ -199,9 +225,6 @@ const tabStyles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: 'transparent',
   },
-  indicatorActive: {
-    backgroundColor: colors.successGold,
-  },
   divider: {
     width: 1,
     marginVertical: 10,
@@ -217,10 +240,6 @@ const tabStyles = StyleSheet.create({
   label: {
     fontSize: 11,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.5)',
-  },
-  labelActive: {
-    color: '#fff',
   },
 })
 
@@ -277,6 +296,8 @@ function AuthenticatedShell() {
 // ─── Root Navigator ────────────────────────────────────────────
 export default function AppNavigator() {
   const { user, loading } = useAuth()
+  const theme = useTenantTheme()
+  const backHeaderOptions = useBackHeader()
 
   // TOS acceptance gate — blocks app once user is authenticated.
   // null = checking, true = already accepted, false = needs to accept
@@ -320,8 +341,8 @@ export default function AppNavigator() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.successGold} />
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.accent} />
       </View>
     )
   }
@@ -329,8 +350,8 @@ export default function AppNavigator() {
   // Authenticated but still checking TOS — show spinner to avoid flash
   if (user && tosAccepted === null) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.successGold} />
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.accent} />
       </View>
     )
   }
@@ -341,16 +362,16 @@ export default function AppNavigator() {
         {user ? (
           <>
             <RootStack.Screen name="MainDrawer" component={AuthenticatedShell} />
-            <RootStack.Screen name="Profile" component={ProfileScreen} options={BACK_HEADER} />
-            <RootStack.Screen name="Support" component={SupportScreen} options={BACK_HEADER} />
-            <RootStack.Screen name="NotificationSettings" component={NotificationSettingsScreen} options={BACK_HEADER} />
+            <RootStack.Screen name="Profile" component={ProfileScreen} options={backHeaderOptions} />
+            <RootStack.Screen name="Support" component={SupportScreen} options={backHeaderOptions} />
+            <RootStack.Screen name="NotificationSettings" component={NotificationSettingsScreen} options={backHeaderOptions} />
             <RootStack.Screen
               name="TranscriptDetail"
               component={TranscriptDetailScreen}
               options={{ headerShown: false }}
             />
-            <RootStack.Screen name="RecordAudio" component={RecordAudioScreen} options={BACK_HEADER} />
-            <RootStack.Screen name="TermsOfService" component={TermsOfServiceScreen} options={{ ...BACK_HEADER, headerBackTitle: 'Back' }} />
+            <RootStack.Screen name="RecordAudio" component={RecordAudioScreen} options={backHeaderOptions} />
+            <RootStack.Screen name="TermsOfService" component={TermsOfServiceScreen} options={{ ...backHeaderOptions, headerBackTitle: 'Back' }} />
             <RootStack.Screen name="BroadcastDetail" component={BroadcastDetailScreen} options={{ headerShown: false }} />
           </>
         ) : (
@@ -386,6 +407,5 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.midnightBlue,
   },
 })

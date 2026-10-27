@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, Image, Platform } from 'react-native'
 import { useAuth } from '../../context/AuthContext'
-import { colors } from '../../theme/tokens'
+import { useTenantTheme } from '../../tenant'
 
 const slabLogo = require('../../../assets/slab-logo-thermal.png')
 
@@ -11,7 +11,8 @@ interface AppHeaderProps {
 }
 
 export default function AppHeader({ onMenuPress, onProfilePress }: AppHeaderProps) {
-  const { profile, company } = useAuth()
+  const { profile } = useAuth()
+  const theme = useTenantTheme()
 
   const displayName = profile?.display_name || profile?.full_name
   const initials = displayName
@@ -23,10 +24,15 @@ export default function AppHeader({ onMenuPress, onProfilePress }: AppHeaderProp
         .slice(0, 2)
     : '?'
 
-  const bgColor = company?.secondary_color || '#0a1a5f'
+  const { colors } = theme
 
   return (
-    <View style={[styles.container, { backgroundColor: bgColor }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.header, borderBottomColor: colors.accentLine },
+      ]}
+    >
       <View style={styles.content}>
         {/* Hamburger — three explicit white bars */}
         <TouchableOpacity
@@ -35,16 +41,16 @@ export default function AppHeader({ onMenuPress, onProfilePress }: AppHeaderProp
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <View style={styles.hamburger}>
-            <View style={styles.bar} />
-            <View style={styles.bar} />
-            <View style={styles.bar} />
+            <View style={[styles.bar, { backgroundColor: colors.text }]} />
+            <View style={[styles.bar, { backgroundColor: colors.text }]} />
+            <View style={[styles.bar, { backgroundColor: colors.text }]} />
           </View>
         </TouchableOpacity>
 
-        {/* Center: company logo if available, else SLAB logo */}
-        {company?.logo_url ? (
+        {/* Center: tenant wordmark or logo if available, else SLAB logo */}
+        {theme.wordmarkUrl || theme.logoUrl ? (
           <Image
-            source={{ uri: company.logo_url }}
+            source={{ uri: (theme.wordmarkUrl || theme.logoUrl)! }}
             style={styles.companyLogo}
             resizeMode="contain"
           />
@@ -53,11 +59,14 @@ export default function AppHeader({ onMenuPress, onProfilePress }: AppHeaderProp
         )}
 
         {/* Profile avatar */}
-        <TouchableOpacity onPress={onProfilePress} style={styles.avatar}>
+        <TouchableOpacity
+          onPress={onProfilePress}
+          style={[styles.avatar, { backgroundColor: colors.accent }]}
+        >
           {profile?.profile_picture_url ? (
             <Image source={{ uri: profile.profile_picture_url }} style={styles.avatarImage} />
           ) : (
-            <Text style={styles.avatarText}>{initials}</Text>
+            <Text style={[styles.avatarText, { color: colors.onAccent }]}>{initials}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -69,7 +78,6 @@ const styles = StyleSheet.create({
   container: {
     paddingTop: Platform.OS === 'ios' ? 50 : 30,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(243, 156, 18, 0.2)',
   },
   content: {
     flexDirection: 'row',
@@ -91,7 +99,6 @@ const styles = StyleSheet.create({
   },
   bar: {
     height: 2,
-    backgroundColor: '#FFFFFF',
     borderRadius: 1,
   },
   logo: {
@@ -106,7 +113,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.successGold,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -117,7 +123,6 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   avatarText: {
-    color: '#000',
     fontSize: 14,
     fontWeight: '700',
   },
