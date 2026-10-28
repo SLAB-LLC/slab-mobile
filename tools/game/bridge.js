@@ -188,9 +188,11 @@ if (APP) {
     }
     const bv = $('book-view'); if (bv) bv.setAttribute('aria-label', 'Book Library');
   }
-  // My Team sits above the nav bar, which is taller in the app (it pads for the home bar); keep its height current
+  // My Team sits above the nav bar, which is taller in the app (it pads for the home bar); keep the gap from its top edge current
   const navEl = document.querySelector('.navbar');
-  if (navEl && window.ResizeObserver) new ResizeObserver(() => $('phone').style.setProperty('--nav-h', navEl.offsetHeight + 'px')).observe(navEl);
+  const navGap = () => { const ph = $('phone'); if (navEl && ph) ph.style.setProperty('--nav-gap', Math.max(0, Math.round(ph.getBoundingClientRect().bottom - navEl.getBoundingClientRect().top)) + 'px'); };
+  if (navEl && window.ResizeObserver) { const ro = new ResizeObserver(navGap); ro.observe(navEl, { box:'border-box' }); ro.observe($('phone')); }
+  window.addEventListener('resize', navGap); navGap(); setTimeout(navGap, 500);
   // Monthly prize only for companies running one
   if (!APP.features.monthlyPrize) { const pz = document.querySelector('#page-leaderboard .prize'); if (pz) pz.style.display = 'none'; }
 }
