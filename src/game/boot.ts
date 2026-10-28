@@ -7,6 +7,7 @@ import type { TenantFeatures, TenantTheme } from '../tenant'
 import type { Company, UserProfile } from '../types'
 import type { RepLook } from '../avatar'
 import { gearBrand } from '../avatar'
+import { loadVault, VaultData } from './vault'
 
 /**
  * Builds window.SLAB_APP, the data the game page (assets/game/game.html, built by
@@ -67,6 +68,8 @@ export interface GameBoot {
   }
   /** Base URL for the Vault's audio pack (ends with /), or null when it isn't hosted yet */
   media: string | null
+  /** Published days for the Vault (the pipeline's vault_days), or null to keep the pack in the app */
+  vault: VaultData | null
   /** Which update the phone runs, shown under Sign out */
   build: string
   /** False when the company has no training of its own yet: every door on the street stays locked */
@@ -272,7 +275,7 @@ export async function buildGameBoot(args: {
   const gear = gearBrand(theme)
   const meRow: GameLeader = { name, streak: args.streakDays, xp: args.totalXp, you: true }
 
-  const [lessons, leaders, doneLessons, notif] = await Promise.all([
+  const [lessons, leaders, doneLessons, notif, vault] = await Promise.all([
     // Ace's training videos are Marshall's: they play from his page in the Vault even while the street runs the standard levels
     company && (features.companyLessons || ace) ? loadLessons(company.id, userId).catch(() => ({ units: [], videos: {} })) : Promise.resolve({ units: [], videos: {} }),
     company
@@ -280,6 +283,7 @@ export async function buildGameBoot(args: {
       : Promise.resolve([meRow]),
     loadDoneLessons(userId).catch(() => [] as string[]),
     loadNotif(userId),
+    loadVault().catch(() => null),
   ])
 
   return {
@@ -313,6 +317,7 @@ export async function buildGameBoot(args: {
         gear: { name: gear.name, letters: gear.letters.join(''), primary: ace ? ACE_GOLD : gear.primary, dark: gear.dark },
       },
       media: args.media,
+      vault,
       build: args.build,
       // Ace runs the standard levels; other companies open the street once their own lessons are in
       labOpen: ace || (!!features.companyLessons && lessons.units.length > 0),
