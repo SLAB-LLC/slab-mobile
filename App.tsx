@@ -7,6 +7,7 @@ import { TenantProvider, useTenantTheme, buildPaperTheme } from './src/tenant'
 import { XpProvider } from './src/xp'
 import { AvatarProvider } from './src/avatar'
 import { useMemo } from 'react'
+import { useOtaUpdates } from './src/utils/otaUpdates'
 
 /** Everything below the tenant provider paints in the company's theme */
 function ThemedApp() {
@@ -26,6 +27,7 @@ function ThemedApp() {
 }
 
 export default function App() {
+  useOtaUpdates()
   return (
     <ErrorBoundary>
       <AuthProvider>

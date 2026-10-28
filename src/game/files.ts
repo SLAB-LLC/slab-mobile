@@ -9,6 +9,7 @@ import { Asset } from 'expo-asset'
  */
 
 const PAGE = require('../../assets/game/game.html')
+const LOGIN = require('../../assets/game/login.html')
 
 /** Marshall's pack: full days (m) and reels (r), the files the demo's Vault data points at */
 const AUDIO: Record<string, number> = {
@@ -86,4 +87,20 @@ export async function prepareGameFiles(): Promise<{ pageUri: string; dirUri: str
   await FileSystem.writeAsStringAsync(MANIFEST, JSON.stringify(manifest)).catch(() => {})
   void audio
   return { pageUri: `${DIR}game.html`, dirUri: DIR }
+}
+
+/** The sign-in page, copied next to the game page the same way */
+export async function prepareLoginPage(): Promise<{ pageUri: string; dirUri: string }> {
+  await FileSystem.makeDirectoryAsync(DIR, { intermediates: true }).catch(() => {})
+  let manifest: Record<string, string> = {}
+  try {
+    manifest = JSON.parse(await FileSystem.readAsStringAsync(MANIFEST))
+  } catch {}
+  await place(LOGIN, `${DIR}login.html`, Asset.fromModule(LOGIN).hash, manifest, 'login.html')
+  // Re-read before writing so a game copy running at the same time keeps its entries
+  try {
+    manifest = { ...JSON.parse(await FileSystem.readAsStringAsync(MANIFEST)), 'login.html': manifest['login.html'] }
+  } catch {}
+  await FileSystem.writeAsStringAsync(MANIFEST, JSON.stringify(manifest)).catch(() => {})
+  return { pageUri: `${DIR}login.html`, dirUri: DIR }
 }

@@ -2,7 +2,8 @@
 
 The demo (the "Ace x SLAB Training Demo" artifact) stays the design source. This script takes the
 published demo HTML, wires it to the native app through tools/game/bridge.js, and writes
-assets/game/game.html, which src/game/GameScreen.tsx loads in a WebView.
+assets/game/game.html, which src/game/GameScreen.tsx loads in a WebView. It also writes
+assets/game/login.html (the demo's opening and CRT login), the sign-in page src/game/LoginGameScreen.tsx loads.
 
     python3 tools/game/build.py path/to/demo.html
 
@@ -16,12 +17,60 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 OUT = os.path.join(ROOT, 'assets', 'game', 'game.html')
+LOGIN_OUT = os.path.join(ROOT, 'assets', 'game', 'login.html')
 
 
 def rep(html, old, new, count=1):
     n = html.count(old)
     assert n == count, f'expected {count} of {old[:90]!r}, found {n}'
     return html.replace(old, new)
+
+
+def cut(html, start, end):
+    """The text from start through end, each found exactly once"""
+    assert html.count(start) == 1, f'expected 1 of {start[:60]!r}'
+    i = html.index(start)
+    j = html.index(end, i)
+    return html[i: j + len(end)]
+
+
+def build_login(html):
+    """assets/game/login.html: the demo's opening (SLAB intro, 4E CRT login) as the app's sign-in page"""
+    css = cut(html, '  .bt{ position:absolute', '.bt-wipe{ transition:none; } }')
+    intro = re.search(r'<div class="bt-layer bt-intro" id="bt-intro">.*?</div></div>', html, re.S).group(0)
+    form = cut(html, '<form class="bt-layer bt-login"', '</form>')
+    form = rep(form, 'placeholder="you@acecoop.com"', 'placeholder="you@company.com" autocapitalize="none" autocorrect="off"')
+    demo_js = cut(html, 'const BT_BIG = ', "})($('bt-beaker'));")
+    script = open(os.path.join(HERE, 'login.js'), encoding='utf-8').read().replace('/*BT_DEMO*/', demo_js)
+    page = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *{{ box-sizing:border-box; }}
+  html,body{{ height:100%; margin:0; background:#000; overflow:hidden; -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent; }}
+  body{{ position:relative; }}
+  button{{ font:inherit; color:inherit; }}
+{css}
+  .bt-login{{ padding-top:calc(56px + env(safe-area-inset-top)); padding-bottom:calc(22px + env(safe-area-inset-bottom)); }}
+</style>
+</head>
+<body>
+<div class="bt live" id="boot">
+{intro}
+{form}
+</div>
+<script>
+{script}
+</script>
+</body>
+</html>
+"""
+    open(LOGIN_OUT, 'w', encoding='utf-8').write(page)
+    print('wrote', LOGIN_OUT, len(page))
 
 
 def main(src):
@@ -34,6 +83,7 @@ def main(src):
         end = html.find('</html>', html.rfind('</script>'))
         html = html[: end + len('</html>')] + '\n'
 
+    build_login(html)
     bridge = open(os.path.join(HERE, 'bridge.js'), encoding='utf-8').read()
 
     # ---- state from the app ----

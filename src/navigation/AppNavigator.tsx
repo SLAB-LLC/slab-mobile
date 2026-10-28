@@ -26,8 +26,7 @@ import { useNotificationPrompt } from '../hooks/useNotificationPrompt'
 import BroadcastDetailScreen from '../screens/BroadcastDetailScreen'
 
 // Screens
-import LandingScreen from '../screens/LandingScreen'
-import LoginScreen from '../screens/LoginScreen'
+import LoginGameScreen from '../game/LoginGameScreen'
 import HomeScreen from '../screens/HomeScreen'
 import LeaderboardScreen from '../screens/LeaderboardScreen'
 import VaultScreen from '../screens/VaultScreen'
@@ -247,7 +246,9 @@ function AuthenticatedShell() {
 
 // ─── Root Navigator ────────────────────────────────────────────
 export default function AppNavigator() {
-  const { user, loading } = useAuth()
+  const { user, loading, entryHeld } = useAuth()
+  // Signed in and past the sign-in page's ACCESS GRANTED moment
+  const signedIn = !!user && !entryHeld
   const theme = useTenantTheme()
   const backHeaderOptions = useBackHeader()
   const { hasLook } = useMyLook()
@@ -276,7 +277,7 @@ export default function AppNavigator() {
   }, [user?.id])
 
   // Notification permission prompt — runs only after TOS is accepted
-  const promptReady = !!user && tosAccepted === true
+  const promptReady = signedIn && tosAccepted === true
   const { shouldShow: showNotifPrompt, dismissForToday, markAccepted: markNotifShown } =
     useNotificationPrompt(promptReady)
 
@@ -301,7 +302,7 @@ export default function AppNavigator() {
   }
 
   // Authenticated but still checking TOS — show spinner to avoid flash
-  if (user && tosAccepted === null) {
+  if (signedIn && tosAccepted === null) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
         <ActivityIndicator size="large" color={theme.colors.accent} />
@@ -312,7 +313,7 @@ export default function AppNavigator() {
   return (
     <NavigationContainer ref={navigationRef}>
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
-        {user ? (
+        {signedIn ? (
           <>
             <RootStack.Screen name="MainDrawer" component={AuthenticatedShell} />
             <RootStack.Screen name="Profile" component={ProfileScreen} options={backHeaderOptions} />
@@ -330,14 +331,13 @@ export default function AppNavigator() {
           </>
         ) : (
           <>
-            <RootStack.Screen name="Landing" component={LandingScreen} />
-            <RootStack.Screen name="Login" component={LoginScreen} />
+            <RootStack.Screen name="Login" component={LoginGameScreen} />
           </>
         )}
       </RootStack.Navigator>
 
       {/* TOS acceptance gate — blocks app rendering until accepted */}
-      {user && tosAccepted === false && (
+      {signedIn && tosAccepted === false && (
         <TosAcceptanceModal
           visible
           onAccepted={() => setTosAccepted(true)}
@@ -345,7 +345,7 @@ export default function AppNavigator() {
       )}
 
       {/* First run: build a pixel rep before anything else (after TOS) */}
-      {user && tosAccepted === true && hasLook === false && theme.appStyle !== 'game' && (
+      {signedIn && tosAccepted === true && hasLook === false && theme.appStyle !== 'game' && (
         <Modal visible animationType="slide" presentationStyle="fullScreen">
           <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
             <RepBuilder firstRun />
@@ -354,7 +354,7 @@ export default function AppNavigator() {
       )}
 
       {/* Notification permission prompt — only after TOS and the rep, only if not granted */}
-      {user && tosAccepted === true && hasLook !== false && showNotifPrompt && (
+      {signedIn && tosAccepted === true && hasLook !== false && showNotifPrompt && (
         <NotificationPromptModal
           visible
           onDismiss={dismissForToday}

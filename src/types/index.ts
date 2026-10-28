@@ -1,6 +1,5 @@
 // Navigation types
 export type RootStackParamList = {
-  Landing: undefined
   Login: undefined
   MainDrawer: undefined
   Profile: undefined
