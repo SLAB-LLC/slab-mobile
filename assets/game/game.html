@@ -5844,9 +5844,10 @@ function runTour(){
     <div class="coach-row"><span class="coach-count num"></span><button class="ob-skip" data-skip>Skip</button><button class="btn btn-primary coach-next">Next</button></div></div>`;
   $('phone').appendChild(coach);
   let i = 0;
-  const end = () => { coach.remove(); scrollToActiveLesson(true, 200); };
+  const end = () => { coach.remove(); if (typeof tourDone === 'function') tourDone(); scrollToActiveLesson(true, 200); };
   const show = () => {
     const step = TOUR[i];
+    if (step.go) step.go();
     const target = document.querySelector(step.sel);
     if (!target) { i++; return i < TOUR.length ? show() : end(); }
     if (step.scroll) {
@@ -9453,6 +9454,45 @@ function appNotif(id, on, cb){
 document.querySelectorAll('.navbtn').forEach(b => b.addEventListener('click', () => {
   if (b.dataset.page === 'recordings') appSafe('vault door', vxSync);
 }));
+
+// ============ TOUR: WHAT'S WAITING IN THE VAULT AND ON THE LEADERBOARD ============
+// New reps get a peek inside the Vault (even while it's locked) and see this month's prize, so they
+// know what the XP is for. The peek is undone when the tour ends.
+let tourPeek = null;
+function tourGo(page){
+  const b = document.querySelector(`.navbtn[data-page="${page}"]`);
+  if (b && !b.classList.contains('active')) b.click();
+}
+function tourVault(){
+  if (!tourPeek) tourPeek = { opened: vxOpened };
+  vxOpened = true;   // no door during the tour
+  $('recordings-lock').style.display = 'none';
+  $('recordings-content').classList.remove('locked-blur');
+  tourGo('recordings');
+  $('phone').classList.remove('vault-locked');
+  if (vxView !== 'days') vxView = 'days';
+  vxRenderDays(); vxSync();
+}
+function tourDone(){
+  if (tourPeek) { vxOpened = tourPeek.opened; tourPeek = null; }
+  tourGo('courses');
+  applyLockStates(); applyVaultLock(); vxSync();
+}
+const vaultLockLine = () => currentXP < audioUnlockXP ? ` It opens at ${audioUnlockXP} XP.` : '';
+const tourAt = TOUR.findIndex(t => t.sel === '#me-btn');
+TOUR.splice(tourAt < 0 ? TOUR.length : tourAt, 0,
+  { sel:'#vx .vx-reps', go: tourVault, get text(){ return 'This is the Vault: full days of the best reps knocking doors. Pick a rep and listen door by door while you drive.' + vaultLockLine(); } },
+  { sel:'#vx .vx-seg button[data-v="reels"]', go: tourVault, text:'Reels is a feed of the best moments: closes, objections, switchovers. Tune it to hear exactly what you need to work on.' },
+  { sel:'#prize-stage', go: () => tourGo('leaderboard'), get text(){ return 'The rep with the most XP this month wins the prize. Every lesson, boss and Vault minute counts.'; } },
+);
+
+// Steps whose target isn't in the app (the old lesson path) would show as gaps in "3 of 10"
+const baseRunTour = runTour;
+runTour = function(){
+  for (let i = TOUR.length - 1; i >= 0; i--) if (!TOUR[i].go && !document.querySelector(TOUR[i].sel)) TOUR.splice(i, 1);
+  TOUR.forEach(t => { if (!t.go) t.go = () => tourGo('courses'); });
+  baseRunTour();
+};
 
 
 // ============ INIT ============
