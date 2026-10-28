@@ -76,6 +76,9 @@ async function siteFetch(path: string, init: RequestInit = {}) {
 export const notify = (p: { title: string; body: string; to: 'all' | 'team' | 'rep'; teamId?: string; repId?: string }) =>
   siteFetch('/api/company/notify', { method: 'POST', body: JSON.stringify(p) })
 
+/** Typed boss fights and book pass-offs: the page's prompt goes to Claude through the website */
+export const askAI = (messages: unknown) => siteFetch('/api/app/ai', { method: 'POST', body: JSON.stringify({ messages }) })
+
 export const sentList = () => siteFetch('/api/company/notify').then((b) => b.sent ?? [])
 
 /** Training settings the owner picks (required units and books, pass scores), kept in company_app_config.features.training */

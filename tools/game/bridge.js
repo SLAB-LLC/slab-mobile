@@ -430,3 +430,13 @@ if (APP) {
   // Monthly prize only for companies running one
   if (!APP.features.monthlyPrize) { const pz = document.querySelector('#page-leaderboard .prize'); if (pz) pz.style.display = 'none'; }
 }
+
+// ============ TYPED BOSS FIGHTS (graded by Claude through the website) ============
+// The demo asks Claude through the viewer's `sample` capability. In the app the same prompts
+// go to slabtech /api/app/ai; errors come back as their code ('rate_limited', ...).
+if (APP) {
+  bossAI = {
+    json: (msgs) => appCall('ai', { messages: typeof msgs === 'string' ? [{ role:'user', content:msgs }] : msgs })
+      .catch((e) => { e.code = e && e.message; throw e; }),
+  };
+}
