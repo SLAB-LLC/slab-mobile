@@ -169,7 +169,7 @@ def main(src):
     html = rep(html, '<div><span>Company</span><b>Ace Cooperatives</b></div>',
                "<div><span>Company</span><b>${APP ? esc(APP.me.companyName || '') : 'Ace Cooperatives'}</b></div>")
     html = rep(html, "    if (id === 'push' && !on) showToast('Push notifications are off on this phone', 'ph-bell-slash');\n",
-               "    if (APP) appSend('notif', { id, on });\n"
+               "    if (APP) { appNotif(id, on, cb); return; }\n"
                "    if (id === 'push' && !on) showToast('Push notifications are off on this phone', 'ph-bell-slash');\n")
     html = rep(html, "    $('pw-1').value = $('pw-2').value = ''; showToast('Password updated', 'ph-check-circle'); haptic('success');",
                "    if (APP) { appCall('password', { password:a }).then(() => { $('pw-1').value = $('pw-2').value = ''; showToast('Password updated', 'ph-check-circle'); haptic('success'); })"
@@ -322,6 +322,11 @@ appSafe('rep', initRep);
   .nav-head.away .nav-clip canvas{ transform:translateY(150%) scale(1.3); transition:transform 0.42s cubic-bezier(.5,0,.75,0) 0.1s; }
   /* My Team floats just above the nav bar's top edge, wherever that is */
   .mt-fab{ bottom:calc(var(--nav-gap, var(--nav-h, 64px)) + 16px) !important; }
+  .fv-clock{ position:relative; height:22px; margin:0 0 8px; border-radius:11px; background:rgba(255,255,255,.08); overflow:hidden; }
+  .fv-clock i{ position:absolute; inset:0; background:var(--accent, #daae5d); transform-origin:left; animation:fvClock linear forwards; }
+  .fv-clock b{ position:relative; display:block; text-align:center; font-size:12px; line-height:22px; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.6); }
+  .fv-clock.low i{ background:#e0664f; }
+  @keyframes fvClock{ from{ transform:scaleX(1); } to{ transform:scaleX(0); } }
   .app-vid{ position:absolute; inset:0; z-index:95; background:#000; display:flex; flex-direction:column; }
   .app-vid-top{ display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top, 0px) + 12px) 14px 12px; color:#EDEAE2; font:600 15px/1.25 'Barlow', sans-serif; }
   .app-vid-top b{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

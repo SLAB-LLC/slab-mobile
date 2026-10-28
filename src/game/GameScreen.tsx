@@ -18,6 +18,8 @@ import { askCoach, isCoachConnected } from '../services/coach.service'
 import { buildGameBoot, VideoIndex, youtubeEmbedUrl } from './boot'
 import { prepareGameFiles } from './files'
 import * as owner from './owner'
+import * as notifs from '../services/notifications.service'
+import { applyAppIcon, companyIconName } from '../utils/appIcon'
 
 /** Optional remote home for the Vault audio (ending in /); by default it plays from the copy in the app */
 const MEDIA_URL = process.env.EXPO_PUBLIC_VAULT_MEDIA_URL || null
@@ -29,6 +31,14 @@ const HAPTICS: Record<string, () => Promise<void>> = {
   success: () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success),
   hit: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium),
   big: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy),
+}
+
+/** The page's notification switches -> notification_preferences columns */
+const NOTIF_COLUMNS: Record<string, keyof notifs.NotificationPreferences> = {
+  company: 'company_alerts',
+  platform: 'updates',
+  chat: 'chats',
+  streak: 'streak_reminders',
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -92,6 +102,11 @@ export default function GameScreen() {
       })
       .catch((err) => setFailed(String(err?.message || err)))
   }, [ready, user?.id])
+
+  // The home screen icon follows the company (Ace gets the gold Ace logo)
+  useEffect(() => {
+    if (tenantReady) applyAppIcon(companyIconName(company, features))
+  }, [tenantReady, company?.id])
 
   // Keep the build line under Sign out current while update checks run
   useEffect(() => {
@@ -176,9 +191,24 @@ export default function GameScreen() {
           return owner.saveTraining(company.id, payload)
         case 'ai':
           return owner.askAI(payload?.messages)
-        case 'notif':
-          // Notification choices live in the native settings screen for now
-          return null
+        case 'notif': {
+          if (!user?.id) return null
+          const id: string = payload?.id
+          const on = !!payload?.on
+          if (id === 'push') {
+            if (!on) {
+              await notifs.deactivatePushToken(user.id)
+              return { on: false }
+            }
+            // Asks for permission the first time; if it was refused before, only iPhone Settings can turn it on
+            const token = await notifs.registerPushToken(user.id)
+            if (!token) throw new Error('Turn on notifications for SLAB in your iPhone Settings')
+            return { on: true }
+          }
+          const column = NOTIF_COLUMNS[id]
+          if (column) await notifs.saveNotificationPreferences(user.id, { [column]: on })
+          return { on }
+        }
         default:
           throw new Error(`Unknown request: ${type}`)
       }

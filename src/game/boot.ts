@@ -1,4 +1,6 @@
+import * as Notifications from 'expo-notifications'
 import { supabase } from '../utils/supabase'
+import { getNotificationPreferences } from '../services/notifications.service'
 import { getCompanyLeaderboard } from '../services/stats.service'
 import * as avatarService from '../services/avatar.service'
 import type { TenantFeatures, TenantTheme } from '../tenant'
@@ -78,6 +80,8 @@ export interface GameBoot {
   vaultVideos: { title: string; videos: { id: string; title: string; duration: number | null }[] }[]
   /** The owner's Training tab settings, or null for the defaults */
   training: Record<string, unknown> | null
+  /** The profile's notification switches: push is on when this phone has permission */
+  notif: { push: boolean; company: boolean; platform: boolean; chat: boolean; streak: boolean }
 }
 
 /** Lesson id -> where its video lives, kept natively so signed URLs are made on demand */
@@ -235,6 +239,20 @@ async function loadLeaders(companyId: string, me: { id: string; name: string; xp
   return [...top, { name: me.name, streak: me.streak, xp: me.xp, you: true }]
 }
 
+async function loadNotif(userId: string): Promise<GameBoot['notif']> {
+  const [perm, prefs] = await Promise.all([
+    Notifications.getPermissionsAsync().catch(() => null),
+    getNotificationPreferences(userId).catch(() => null),
+  ])
+  return {
+    push: perm?.status === 'granted',
+    company: prefs?.company_alerts ?? true,
+    platform: prefs?.updates ?? true,
+    chat: prefs?.chats ?? true,
+    streak: prefs?.streak_reminders ?? false,
+  }
+}
+
 export async function buildGameBoot(args: {
   userId: string
   email: string | null
@@ -254,13 +272,14 @@ export async function buildGameBoot(args: {
   const gear = gearBrand(theme)
   const meRow: GameLeader = { name, streak: args.streakDays, xp: args.totalXp, you: true }
 
-  const [lessons, leaders, doneLessons] = await Promise.all([
+  const [lessons, leaders, doneLessons, notif] = await Promise.all([
     // Ace's training videos are Marshall's: they play from his page in the Vault even while the street runs the standard levels
     company && (features.companyLessons || ace) ? loadLessons(company.id, userId).catch(() => ({ units: [], videos: {} })) : Promise.resolve({ units: [], videos: {} }),
     company
       ? loadLeaders(company.id, { id: userId, name, xp: args.totalXp, streak: args.streakDays }).catch(() => [meRow])
       : Promise.resolve([meRow]),
     loadDoneLessons(userId).catch(() => [] as string[]),
+    loadNotif(userId),
   ])
 
   return {
@@ -304,6 +323,7 @@ export async function buildGameBoot(args: {
       doneLessons,
       leaders,
       training: features.training ?? null,
+      notif,
     },
   }
 }

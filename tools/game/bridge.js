@@ -308,7 +308,7 @@ function owBindReal(el){
     $('an-send').disabled = true;
     appCall('notify', p).then(r => {
       haptic('success');
-      showToast(`Sent to ${r.reach} ${r.reach === 1 ? 'rep' : 'reps'}`, 'ph-paper-plane-right');
+      showToast(`Sent to ${r.reach} ${r.reach === 1 ? 'rep' : 'reps'}` + (r.sent ? `, ${r.sent} ${r.sent === 1 ? 'phone' : 'phones'} notified` : ', but nobody has notifications on yet'), 'ph-paper-plane-right');
       OW_SENT.unshift({ title:p.title, body:p.body, to:a.aud === 'all' ? 'Everyone' : a.aud === 'team' ? owTeam(a.audTeam).name : a.audRep, when:'Just now', read:null });
       a.title = ''; a.body = ''; renderOwner();
     }).catch(e => { $('an-send').disabled = false; owErr(e); });
@@ -439,4 +439,50 @@ if (APP) {
     json: (msgs) => appCall('ai', { messages: typeof msgs === 'string' ? [{ role:'user', content:msgs }] : msgs })
       .catch((e) => { e.code = e && e.message; throw e; }),
   };
+}
+
+// A rep gets 30 seconds to answer the boss, like a real door. When time runs out whatever is typed
+// goes in; with nothing typed the round counts as a miss.
+const REPLY_SECONDS = 30;
+if (APP) {
+  const baseRoundAI = nextRoundAI;
+  nextRoundAI = async function(){
+    await baseRoundAI();
+    const form = $('fv-type');
+    if (!form || form.hidden || fight.over) return;
+    form.insertAdjacentHTML('beforebegin', `<div class="fv-clock" id="fv-clock"><i style="animation-duration:${REPLY_SECONDS}s"></i><b class="num">${REPLY_SECONDS}</b></div>`);
+    const clock = $('fv-clock'), end = Date.now() + REPLY_SECONDS * 1000;
+    const tick = setInterval(() => {
+      if (fight.over || !form.isConnected) { clearInterval(tick); clock.remove(); return; }
+      const left = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+      clock.querySelector('b').textContent = left;
+      clock.classList.toggle('low', left <= 5);
+      if (left > 0) return;
+      clearInterval(tick); clock.remove();
+      if ($('fv-in').value.trim()) { $('fv-send').click(); return; }
+      const box = document.createElement('div'); box.className = 'fv-box fv-mine';
+      box.innerHTML = `<div class="fv-speaker">${bookEsc(meName())}</div><p class="fv-hint">...</p>`;
+      form.replaceWith(box);
+      const said = ($('fv-say') ? $('fv-say').textContent : '').replace(/^"|"$/g, '');
+      fight.aiSay = 'Hello? You gonna say something or should I shut the door?';
+      fight.turns.push({ role:'user', content:`Homeowner just said: "${said}"\nRep froze and said nothing for ${REPLY_SECONDS} seconds.` },
+                       { role:'assistant', content:JSON.stringify({ tier:'bad', reply:fight.aiSay, sold:false }) });
+      choose({ tier:'bad', k:-1 }, { tip:'Out of time. At the door, dead air loses the sale, so say something even if it isn\'t perfect.', o:[{ tier:'best', t:'Totally fair. Quick question though, have you noticed any spiders or ants this season?' }] });
+    }, 250);
+  };
+}
+
+// ============ NOTIFICATION SWITCHES (profile settings) ============
+// Push asks the phone for permission and registers it; the others are saved to the account.
+if (APP && APP.notif) ME.notif = Object.assign({}, ME.notif, APP.notif);
+function appNotif(id, on, cb){
+  cb.disabled = true;
+  appCall('notif', { id, on }).then(() => {
+    ME.notif[id] = on; saveMe(); haptic('tap');
+    if (id === 'push') { showToast(on ? 'Notifications are on' : 'Notifications are off', on ? 'ph-lightning' : 'ph-bell-slash'); renderProfile(true); }
+    else cb.disabled = false;
+  }).catch(e => {
+    cb.checked = !on; cb.disabled = false;
+    showToast((e && e.message) || 'Couldn\'t save that', 'ph-bell-slash');
+  });
 }
