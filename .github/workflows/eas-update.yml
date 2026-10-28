@@ -31,8 +31,17 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
+      # --environment loads the same EAS variables the builds get (Supabase URL and key). Without it the
+      # bundle had no Supabase URL, crashed on launch, and phones rolled back to the build (updatePreviouslyFailed)
       - name: Publish update
-        run: eas update --branch production --message "${{ github.event.inputs.message }}" --non-interactive
+        run: eas update --branch production --environment production --message "${{ github.event.inputs.message }}" --non-interactive
+
+      - name: Check the update has the Supabase URL
+        run: |
+          if ! grep -q "supabase.co" dist/_expo/static/js/ios/*.hbc; then
+            echo "::error::The published bundle has no Supabase URL; check the production environment variables on expo.dev"
+            exit 1
+          fi
 
       # What the phones see: which branch the production channel serves, and the builds it serves
       - name: Show channel and recent builds
