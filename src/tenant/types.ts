@@ -79,6 +79,8 @@ export interface TenantFeatures {
   bookTests: boolean
   rookieVet: boolean
   monthlyPrize: boolean
+  /** The street runs the company's own training videos instead of the standard SLAB levels */
+  companyLessons: boolean
   powerHour: { enabled: boolean; startHour: number; multiplier: number }
   streakTiers: StreakTier[]
   xp: {

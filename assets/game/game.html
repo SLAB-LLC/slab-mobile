@@ -2769,7 +2769,9 @@ const categories = [
       {title:"Setting the first service date", status:"locked"},
   ]},
 ];
-if (APP && APP.lessons && APP.lessons.length) categories.splice(0, categories.length, ...APP.lessons);
+// The street keeps the standard levels unless the company runs its own; finished ones come from the XP ledger
+if (APP && APP.features.companyLessons && APP.lessons && APP.lessons.length) categories.splice(0, categories.length, ...APP.lessons);
+else if (APP) { const done = new Set(APP.doneLessons || []); categories.forEach(c => c.subs.forEach(s => { s.status = done.has(s.id || s.title) ? 'done' : 'locked'; })); }
 
 const repsData = {
   marshall: {
@@ -8378,8 +8380,8 @@ function normalizePath(){
   }));
 }
 function applyLevel(){
-  audioUnlockXP = APP ? APP.features.vaultUnlockXp : isVet() ? 0 : 500;
-  chatUnlockXP = APP ? APP.features.chatUnlockXp : isVet() ? 0 : 200;
+  audioUnlockXP = isVet() ? 0 : APP ? APP.features.vaultUnlockXp : 500;
+  chatUnlockXP = isVet() ? 0 : APP ? APP.features.chatUnlockXp : 200;
   normalizePath();
   $('phone').classList.toggle('is-vet', isVet());
   if ($('vet-chip')) $('vet-chip').hidden = !isVet();

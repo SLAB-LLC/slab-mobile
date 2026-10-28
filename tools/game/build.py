@@ -93,7 +93,11 @@ def main(src):
     html = rep(html, 'let audioUnlockXP = 500;', 'let audioUnlockXP = APP ? APP.features.vaultUnlockXp : 500;')
     html = rep(html, 'const streakDays = 5;', 'const streakDays = APP ? APP.me.streakDays : 5;')
     html = rep(html, '];\n\nconst repsData = {',
-               '];\nif (APP && APP.lessons && APP.lessons.length) categories.splice(0, categories.length, ...APP.lessons);\n\nconst repsData = {')
+               '];\n'
+               '// The street keeps the standard levels unless the company runs its own; finished ones come from the XP ledger\n'
+               'if (APP && APP.features.companyLessons && APP.lessons && APP.lessons.length) categories.splice(0, categories.length, ...APP.lessons);\n'
+               'else if (APP) { const done = new Set(APP.doneLessons || []); categories.forEach(c => c.subs.forEach(s => { s.status = done.has(s.id || s.title) ? \'done\' : \'locked\'; })); }\n'
+               '\nconst repsData = {')
 
     # ---- lessons: real videos and quizzes ----
     html = rep(html, 'function showWatch(){\n', 'function showWatch(){\n  if (appLessonWatchable()) return appShowWatch();\n')
@@ -199,8 +203,8 @@ def main(src):
 
     # ---- unlocks: the company's thresholds, not the demo's rookie/vet shortcut ----
     html = rep(html, '  audioUnlockXP = isVet() ? 0 : 500;\n  chatUnlockXP = isVet() ? 0 : 200;',
-               '  audioUnlockXP = APP ? APP.features.vaultUnlockXp : isVet() ? 0 : 500;\n'
-               '  chatUnlockXP = APP ? APP.features.chatUnlockXp : isVet() ? 0 : 200;')
+               '  audioUnlockXP = isVet() ? 0 : APP ? APP.features.vaultUnlockXp : 500;\n'
+               '  chatUnlockXP = isVet() ? 0 : APP ? APP.features.chatUnlockXp : 200;')
 
     # ---- the book library carries the company's name ----
     html = rep(html, "'Ace Library, ' + n", "libName() + ', ' + n")

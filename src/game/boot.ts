@@ -53,7 +53,7 @@ export interface GameBoot {
     companyName: string | null
     look: Partial<RepLook> | null
   }
-  features: { vaultUnlockXp: number; chatUnlockXp: number; monthlyPrize: boolean }
+  features: { vaultUnlockXp: number; chatUnlockXp: number; monthlyPrize: boolean; companyLessons: boolean }
   brand: {
     cobrand: string
     accent: string
@@ -63,12 +63,18 @@ export interface GameBoot {
   }
   /** Base URL for the Vault's audio pack (ends with /), or null when it isn't hosted yet */
   media: string | null
+  /** The company's own lessons (only when features.companyLessons); otherwise the street keeps the standard levels */
   lessons: GameUnit[]
+  /** Lessons the rep has finished, by the source id their XP was granted under */
+  doneLessons: string[]
   leaders: GameLeader[]
 }
 
 /** Lesson id -> where its video lives, kept natively so signed URLs are made on demand */
 export type VideoIndex = Record<string, { type: 'youtube' | 'upload'; youtubeUrl?: string | null; storagePath?: string | null }>
+
+/** Sampled from the Ace logo */
+const ACE_GOLD = '#daae5d'
 
 const ROLE_LABELS: Record<UserProfile['role'], string> = {
   user: 'Sales rep',
@@ -176,6 +182,12 @@ async function loadLessons(companyId: string, userId: string): Promise<{ units: 
   return { units, videos: index }
 }
 
+/** Every lesson the rep has been paid XP for; the standard levels are granted under their titles */
+async function loadDoneLessons(userId: string): Promise<string[]> {
+  const { data } = await supabase.from('xp_events').select('source_id').eq('user_id', userId).eq('reason', 'lesson_complete')
+  return ((data ?? []) as any[]).map((r) => r.source_id).filter(Boolean)
+}
+
 /** Company reps ranked by total XP, with their saved looks */
 async function loadLeaders(companyId: string, me: { id: string; name: string; xp: number; streak: number }): Promise<GameLeader[]> {
   const [board, xpRes] = await Promise.all([
@@ -221,11 +233,12 @@ export async function buildGameBoot(args: {
   const gear = gearBrand(theme)
   const meRow: GameLeader = { name, streak: args.streakDays, xp: args.totalXp, you: true }
 
-  const [lessons, leaders] = await Promise.all([
-    company ? loadLessons(company.id, userId).catch(() => ({ units: [], videos: {} })) : Promise.resolve({ units: [], videos: {} }),
+  const [lessons, leaders, doneLessons] = await Promise.all([
+    company && features.companyLessons ? loadLessons(company.id, userId).catch(() => ({ units: [], videos: {} })) : Promise.resolve({ units: [], videos: {} }),
     company
       ? loadLeaders(company.id, { id: userId, name, xp: args.totalXp, streak: args.streakDays }).catch(() => [meRow])
       : Promise.resolve([meRow]),
+    loadDoneLessons(userId).catch(() => [] as string[]),
   ])
 
   return {
@@ -245,16 +258,19 @@ export async function buildGameBoot(args: {
         vaultUnlockXp: features.vaultUnlockXp,
         chatUnlockXp: features.chatUnlockXp,
         monthlyPrize: features.monthlyPrize,
+        companyLessons: !!features.companyLessons,
       },
       brand: {
         cobrand: theme.cobrand || theme.brandName,
         accent: theme.colors.accent,
         isAce: ace,
         logoUrl: theme.logoUrl,
-        gear: { name: gear.name, letters: gear.letters.join(''), primary: gear.primary, dark: gear.dark },
+        // Ace gear is the gold of the Ace logo, whatever accent the company record carries
+        gear: { name: gear.name, letters: gear.letters.join(''), primary: theme.gear.primary || (ace ? ACE_GOLD : gear.primary), dark: gear.dark },
       },
       media: args.media,
       lessons: lessons.units,
+      doneLessons,
       leaders,
     },
   }

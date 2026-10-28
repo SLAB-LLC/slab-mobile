@@ -44,6 +44,7 @@ export const DEFAULT_TENANT_CONFIG: TenantConfig = {
     bookTests: true,
     rookieVet: true,
     monthlyPrize: false,
+    companyLessons: false,
     powerHour: { enabled: true, startHour: 20, multiplier: 2 },
     streakTiers: [
       { days: 0, mult: 1 },
