@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ActivityIndicator, Linking, TouchableOpacity } 
 import { WebView, WebViewMessageEvent } from 'react-native-webview'
 import type { ShouldStartLoadRequest } from 'react-native-webview/lib/WebViewTypes'
 import * as Haptics from 'expo-haptics'
+import { otaStatus } from '../utils/otaUpdates'
 import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '../context/AuthContext'
@@ -81,6 +82,7 @@ export default function GameScreen() {
       streakDays,
       look: hasLook ? look : null,
       media: MEDIA_URL,
+      build: otaStatus(),
     })
       .then(({ boot, videos }) => {
         videosRef.current = videos
@@ -89,6 +91,15 @@ export default function GameScreen() {
       })
       .catch((err) => setFailed(String(err?.message || err)))
   }, [ready, user?.id])
+
+  // Keep the build line under Sign out current while update checks run
+  useEffect(() => {
+    if (!bootScript) return
+    const t = setInterval(() => {
+      webRef.current?.injectJavaScript(`window.APP_BUILD = ${JSON.stringify(otaStatus())}; true;`)
+    }, 4000)
+    return () => clearInterval(t)
+  }, [bootScript])
 
   const reply = useCallback((id: number, ok: boolean, result: unknown) => {
     const payload = JSON.stringify(result ?? null).replace(/</g, '\\u003c')

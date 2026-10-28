@@ -3,7 +3,7 @@ import { View, StyleSheet, ActivityIndicator } from 'react-native'
 import { WebView, WebViewMessageEvent } from 'react-native-webview'
 import { StatusBar } from 'expo-status-bar'
 import * as Haptics from 'expo-haptics'
-import * as Updates from 'expo-updates'
+import { otaStatus } from '../utils/otaUpdates'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../utils/supabase'
 // The old native login, if the page can't be put in place
@@ -15,8 +15,6 @@ const HAPTICS: Record<string, () => Promise<void>> = {
   success: () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success),
 }
 
-/** Which update the phone runs, shown in the login footer so a test can confirm it got the latest */
-const BUILD = (Updates.updateId || 'embedded').slice(0, 8)
 
 /**
  * Sign-in: the demo's opening (SLAB intro, then the CRT login) in a web view (assets/game/login.html,
@@ -36,6 +34,15 @@ export default function LoginGameScreen() {
       if (releaseTimer.current) clearTimeout(releaseTimer.current)
     }
   }, [])
+
+  // The footer shows the update check as it runs
+  useEffect(() => {
+    if (!page) return
+    const t = setInterval(() => {
+      webRef.current?.injectJavaScript(`window.appSetBuild && window.appSetBuild(${JSON.stringify(otaStatus())}); true;`)
+    }, 3000)
+    return () => clearInterval(t)
+  }, [page])
 
   const release = useCallback(() => {
     if (releaseTimer.current) clearTimeout(releaseTimer.current)
@@ -111,7 +118,7 @@ export default function LoginGameScreen() {
           ref={webRef}
           source={{ uri: page.pageUri }}
           originWhitelist={['*']}
-          injectedJavaScriptBeforeContentLoaded={`window.SLAB_LOGIN = ${JSON.stringify({ build: BUILD })}; true;`}
+          injectedJavaScriptBeforeContentLoaded={`window.SLAB_LOGIN = ${JSON.stringify({ build: otaStatus() })}; true;`}
           onMessage={onMessage}
           allowFileAccess
           allowFileAccessFromFileURLs

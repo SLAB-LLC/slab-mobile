@@ -5892,6 +5892,7 @@ function renderProfile(keepScroll){
       <button class="btn btn-quiet" id="me-replay"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i>Replay the signup and tour</button>
     </div>
     <button class="btn btn-quiet me-signout" id="me-signout">Sign out</button>
+    ${APP && APP.build ? `<div style="text-align:center;font-size:11px;opacity:.45;margin-top:10px;letter-spacing:.06em">BUILD ${esc(window.APP_BUILD || APP.build)}</div>` : ''}
   </div>`;
   if (keepScroll) $('me-scroll').scrollTop = scroll;
   liveSprite($('me-big'), () => ME.look, { turn:true, ride:true });

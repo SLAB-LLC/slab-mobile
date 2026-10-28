@@ -136,7 +136,8 @@ $('bt-big').textContent = [0,1,2,3,4].map(r => [...'SLAB'].map(ch => BT_BIG[ch][
 })($('bt-beaker'));
 
 const LOGIN = window.SLAB_LOGIN || {};
-if (LOGIN.build) document.querySelector('.bt-foot span').textContent = 'BUILD ' + LOGIN.build;
+window.appSetBuild = (b) => { const f = document.querySelector('.bt-foot'); f.textContent = 'BUILD ' + b; f.style.justifyContent = 'center'; f.style.textAlign = 'center'; };
+if (LOGIN.build) window.appSetBuild(LOGIN.build);
 
 async function btFlicker(el) {
   if (reduceMotion) { el.style.opacity = 1; return; }

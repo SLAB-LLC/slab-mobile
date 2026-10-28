@@ -236,6 +236,11 @@ appSafe('rep', initRep);
 """
     html = rep(html, init_old, init_new)
 
+    # ---- which update the phone runs, under Sign out ----
+    html = rep(html, '    <button class="btn btn-quiet me-signout" id="me-signout">Sign out</button>\n',
+               '    <button class="btn btn-quiet me-signout" id="me-signout">Sign out</button>\n'
+               '    ${APP && APP.build ? `<div style="text-align:center;font-size:11px;opacity:.45;margin-top:10px;letter-spacing:.06em">BUILD ${esc(window.APP_BUILD || APP.build)}</div>` : \'\'}\n')
+
     # ---- reels: other companies don't get Ace's logo behind every card ----
     html = rep(html, '    <img class="logo" src="${IMG.ace}" alt="">', "    ${APP && !(APP.brand && APP.brand.isAce) ? '' : `<img class=\"logo\" src=\"${IMG.ace}\" alt=\"\">`}")
 

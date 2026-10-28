@@ -63,6 +63,8 @@ export interface GameBoot {
   }
   /** Base URL for the Vault's audio pack (ends with /), or null when it isn't hosted yet */
   media: string | null
+  /** Which update the phone runs, shown under Sign out */
+  build: string
   /** The company's own lessons (only when features.companyLessons); otherwise the street keeps the standard levels */
   lessons: GameUnit[]
   /** Lessons the rep has finished, by the source id their XP was granted under */
@@ -226,6 +228,7 @@ export async function buildGameBoot(args: {
   streakDays: number
   look: Partial<RepLook> | null
   media: string | null
+  build: string
 }): Promise<{ boot: GameBoot; videos: VideoIndex }> {
   const { userId, email, profile, company, theme, features } = args
   const name = profile?.display_name || profile?.full_name || (email ? email.split('@')[0] : 'Rep')
@@ -265,10 +268,11 @@ export async function buildGameBoot(args: {
         accent: theme.colors.accent,
         isAce: ace,
         logoUrl: theme.logoUrl,
-        // Ace gear is the gold of the Ace logo, whatever accent the company record carries
-        gear: { name: gear.name, letters: gear.letters.join(''), primary: theme.gear.primary || (ace ? ACE_GOLD : gear.primary), dark: gear.dark },
+        // Ace gear is always the gold of the Ace logo, whatever colors the company record carries
+        gear: { name: gear.name, letters: gear.letters.join(''), primary: ace ? ACE_GOLD : gear.primary, dark: gear.dark },
       },
       media: args.media,
+      build: args.build,
       lessons: lessons.units,
       doneLessons,
       leaders,

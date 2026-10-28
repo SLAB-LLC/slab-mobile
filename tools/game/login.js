@@ -28,7 +28,8 @@ const haptic = (kind) => appSend('haptic', kind);
 /*BT_DEMO*/
 
 const LOGIN = window.SLAB_LOGIN || {};
-if (LOGIN.build) document.querySelector('.bt-foot span').textContent = 'BUILD ' + LOGIN.build;
+window.appSetBuild = (b) => { const f = document.querySelector('.bt-foot'); f.textContent = 'BUILD ' + b; f.style.justifyContent = 'center'; f.style.textAlign = 'center'; };
+if (LOGIN.build) window.appSetBuild(LOGIN.build);
 
 async function btFlicker(el) {
   if (reduceMotion) { el.style.opacity = 1; return; }
