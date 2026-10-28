@@ -74,6 +74,10 @@ export interface GameBoot {
   /** Lessons the rep has finished, by the source id their XP was granted under */
   doneLessons: string[]
   leaders: GameLeader[]
+  /** Marshall's videos for his page in the Vault (Ace's training videos), grouped by playlist */
+  vaultVideos: { title: string; videos: { id: string; title: string; duration: number | null }[] }[]
+  /** The owner's Training tab settings, or null for the defaults */
+  training: Record<string, unknown> | null
 }
 
 /** Lesson id -> where its video lives, kept natively so signed URLs are made on demand */
@@ -251,7 +255,8 @@ export async function buildGameBoot(args: {
   const meRow: GameLeader = { name, streak: args.streakDays, xp: args.totalXp, you: true }
 
   const [lessons, leaders, doneLessons] = await Promise.all([
-    company && features.companyLessons ? loadLessons(company.id, userId).catch(() => ({ units: [], videos: {} })) : Promise.resolve({ units: [], videos: {} }),
+    // Ace's training videos are Marshall's: they play from his page in the Vault even while the street runs the standard levels
+    company && (features.companyLessons || ace) ? loadLessons(company.id, userId).catch(() => ({ units: [], videos: {} })) : Promise.resolve({ units: [], videos: {} }),
     company
       ? loadLeaders(company.id, { id: userId, name, xp: args.totalXp, streak: args.streakDays }).catch(() => [meRow])
       : Promise.resolve([meRow]),
@@ -292,9 +297,13 @@ export async function buildGameBoot(args: {
       build: args.build,
       // Ace runs the standard levels; other companies open the street once their own lessons are in
       labOpen: ace || (!!features.companyLessons && lessons.units.length > 0),
-      lessons: lessons.units,
+      lessons: features.companyLessons ? lessons.units : [],
+      vaultVideos: ace
+        ? lessons.units.map((u) => ({ title: u.title, videos: u.subs.map((v) => ({ id: v.id, title: v.title, duration: v.video.duration })) }))
+        : [],
       doneLessons,
       leaders,
+      training: features.training ?? null,
     },
   }
 }
