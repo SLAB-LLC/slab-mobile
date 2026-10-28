@@ -73,6 +73,43 @@ def build_login(html):
     print('wrote', LOGIN_OUT, len(page))
 
 
+def vault_live(html):
+    # ---- Vault: live days from the pipeline (src/game/vault.ts), several per rep ----
+    # Each published day is its own entry in VX.reps (r.who is whose day it is); VX.people are the reps
+    # the Vault groups them under. The pack in the app has one day per rep, so there who === id.
+    html = rep(html, 'const VX = VX_DATA;',
+               'const VX = APP && APP.vault ? APP.vault : VX_DATA;\n'
+               'VX.reps.forEach(r => { r.who = r.who || r.id; });\n'
+               'VX.people = VX.people || VX.reps;\n'
+               'const vxDaysOf = (pid) => VX.reps.filter(r => r.who === pid);\n'
+               "const vxStartHTML = () => { const r = vxRep(VX.start), d = r.days[0]; return `<b>Start with ${vxEsc(r.name.split(' ')[0])} · ${d.date}</b><small>${d.doors.length} doors, ${d.doors.filter(x => x.kind === 'sale').length} sales, ${vxFmt(d.mins * 60)}. Plug in and drive.</small>`; };")
+    html = rep(html, "if (vxS.day.d !== vxToday()) vxS.day = { d:vxToday(), xp:0, sec:0 };\n// clips",
+               "if (vxS.day.d !== vxToday()) vxS.day = { d:vxToday(), xp:0, sec:0 };\n"
+               "if (vxS.prog && !vxRep(vxS.prog.rid)) vxS.prog = null;\n"
+               "if (APP && APP.vault) vxS.tune.reps = VX.people.map(p => p.id);\n// clips")
+    html = rep(html, '${VX.reps.map(r => { const ds = vxDoors(r.id); return',
+               '${VX.people.map(r => { const ds = vxDaysOf(r.id).flatMap(x => x.days[0].doors); return')
+    html = rep(html, '<b>Start with Marshall · May 11</b><small>17 doors, 4 sales, 1h 51m. Plug in and drive.</small>',
+               "${VX.start ? vxStartHTML() : `<b>Start with Marshall · May 11</b><small>17 doors, 4 sales, 1h 51m. Plug in and drive.</small>`}")
+    html = rep(html, "vxOpenDay('m', 1, 0)", "vxOpenDay(VX.start || 'm', 1, 0)")
+    html = rep(html, '  const r = vxRep(rid), day = r.days[0], ds = day.doors;',
+               '  const days = vxDaysOf(rid), r = VX.people.find(p => p.id === rid), ds = days.flatMap(x => x.days[0].doors);')
+    html = rep(html, 'VX_TAG[rid]', "(VX_TAG[rid] || '')")
+    html = rep(html, 'VX_TAG[r.id]', "(VX_TAG[r.id] || '')")
+    html = rep(html, """<div class="vx-box"><div class="vx-day" id="vx-day"><b>${day.t}, ${day.date}</b><small>${day.area} · ${vxFmt(day.mins * 60)} · ${ds.length} doors · ${ds.filter(d => d.kind === 'sale').length} sales</small><div class="vx-chunks" id="vx-rch">${vxChunks(rid)}</div></div></div>""",
+               """<div class="vx-box">${days.map(x => { const day = x.days[0], dd = day.doors; return `<div class="vx-day" data-day="${x.id}"><b>${day.t}, ${day.date}</b><small>${day.area ? day.area + ' · ' : ''}${vxFmt(day.mins * 60)} · ${dd.length} doors · ${dd.filter(d => d.kind === 'sale').length} sales</small><div class="vx-chunks">${vxChunks(x.id)}</div></div>`; }).join('')}</div>""")
+    html = rep(html, """  $('vx-rch').onclick = (e) => { const c = e.target.closest('[data-i]'); vxOpenDay(rid, c ? +c.dataset.i + 1 : 1, 0); };
+  $('vx-day').onclick = (e) => { if (!e.target.closest('[data-i]')) vxOpenDay(rid, vxS.prog && vxS.prog.rid === rid ? vxS.prog.n : 1, vxS.prog && vxS.prog.rid === rid ? vxS.prog.t : 0); };""",
+               """  el.querySelectorAll('[data-day]').forEach(b => b.onclick = (e) => {
+    const id = b.dataset.day, c = e.target.closest('[data-i]'), p = vxS.prog && vxS.prog.rid === id ? vxS.prog : null;
+    if (c) vxOpenDay(id, +c.dataset.i + 1, 0); else vxOpenDay(id, p ? p.n : 1, p ? p.t : 0);
+  });""")
+    html = rep(html, '  if (!T.reps.includes(c.rep)) return false;', '  if (!T.reps.includes(vxRep(c.rep).who)) return false;')
+    html = rep(html, '(T.reps.length < VX.reps.length ? 1 : 0)', '(T.reps.length < VX.people.length ? 1 : 0)')
+    html = rep(html, '${VX.reps.map(r => `<button class="vx-chip', '${VX.people.map(r => `<button class="vx-chip')
+    return html
+
+
 def main(src):
     html = open(src, encoding='utf-8').read()
 
@@ -307,6 +344,8 @@ appSafe('rep', initRep);
 
     # ---- power hour: the countdown bar stays, the pretend push on every open goes (the app sends the real one) ----
     html = rep(html, "  if (on && !powerWasOn) {\n    pushNote('Power hour is live'", "  if (on && !powerWasOn && !APP) {\n    pushNote('Power hour is live'")
+
+    html = vault_live(html)
 
     # ---- the bridge itself, just before start-up runs ----
     html = rep(html, '// ============ INIT ============', bridge + '\n\n// ============ INIT ============')
