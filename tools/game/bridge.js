@@ -193,6 +193,17 @@ if (APP) {
   const navGap = () => { const ph = $('phone'); if (navEl && ph) ph.style.setProperty('--nav-gap', Math.max(0, Math.round(ph.getBoundingClientRect().bottom - navEl.getBoundingClientRect().top)) + 'px'); };
   if (navEl && window.ResizeObserver) { const ro = new ResizeObserver(navGap); ro.observe(navEl, { box:'border-box' }); ro.observe($('phone')); }
   window.addEventListener('resize', navGap); navGap(); setTimeout(navGap, 500);
+  // Opening chat, Marshall climbs into the big box from below like he left the nav for it (the leftover
+  // swap class from picking a coach otherwise wins and he just fades in)
+  const dockBase = updateChatDock;
+  updateChatDock = function(){
+    const was = $('phone').classList.contains('chat-open');
+    dockBase();
+    if (was || !$('phone').classList.contains('chat-open')) return;
+    const dock = $('avatar-dock'), cv = dock && dock.querySelector('canvas');
+    if (!cv) return;
+    dock.classList.remove('swap'); cv.style.animation = 'none'; void cv.offsetWidth; cv.style.animation = '';
+  };
   // Monthly prize only for companies running one
   if (!APP.features.monthlyPrize) { const pz = document.querySelector('#page-leaderboard .prize'); if (pz) pz.style.display = 'none'; }
 }
