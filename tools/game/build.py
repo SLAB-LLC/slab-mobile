@@ -263,6 +263,45 @@ appSafe('rep', initRep);
     # ---- reels: other companies don't get Ace's logo behind every card ----
     html = rep(html, '    <img class="logo" src="${IMG.ace}" alt="">', "    ${APP && !(APP.brand && APP.brand.isAce) ? '' : `<img class=\"logo\" src=\"${IMG.ace}\" alt=\"\">`}")
 
+    # ---- owner view and My Team on real data (tools/game/bridge.js fills these from company_roster) ----
+    html = rep(html, 'const OW_SEATS = 25;', 'let OW_SEATS = 25;')
+    html = rep(html, 'const lessons = act.reduce((s, r) => s + Math.round(r.wk / 260), 0);', 'const lessons = act.reduce((s, r) => s + (APP ? r.lesson : Math.round(r.wk / 260)), 0);')
+    html = rep(html, ": r.last === 0 ? 'Active today' : r.last === 1 ? 'Active yesterday' : 'Last active ' + r.last + ' days ago';",
+               ": r.last == null ? 'Hasn\\'t opened the app yet' : r.last === 0 ? 'Active today' : r.last === 1 ? 'Active yesterday' : 'Last active ' + r.last + ' days ago';")
+    html = rep(html, "${r.last === 0 ? 'Today' : r.last === 1 ? 'Yesterday' : r.last + ' days ago'}",
+               "${r.last == null ? 'Not yet' : r.last === 0 ? 'Today' : r.last === 1 ? 'Yesterday' : r.last + ' days ago'}")
+    html = rep(html, "const owTeam = (id) => OW_TEAMS.find(t => t.id === id);",
+               "const OW_NO_TEAM = { id:'', name:'No team', manager:null, goal:0 };\nconst owTeam = (id) => OW_TEAMS.find(t => t.id === id) || OW_NO_TEAM;")
+    html = rep(html, "const teamOpts = (sel) => OW_TEAMS.map(",
+               "const teamOpts = (sel, none) => (none ? `<option value=\"\"${sel ? '' : ' selected'}>No team</option>` : '') + OW_TEAMS.map(")
+    html = rep(html, '<select class="ow-sel" data-f="team">${teamOpts(r.team)}</select>', '<select class="ow-sel" data-f="team">${teamOpts(r.team, true)}</select>')
+    html = rep(html, '<select class="ow-sel" id="inv-team">${teamOpts(\'hawks\')}</select>', '<select class="ow-sel" id="inv-team">${teamOpts(OW_TEAMS[0] ? OW_TEAMS[0].id : \'\', true)}</select>')
+    html = rep(html, '<div class="ow-seats"><span>${used} of ${OW_SEATS} seats</span><div class="ow-bar"><i style="width:${used / OW_SEATS * 100}%"></i></div></div>',
+               '${OW_SEATS ? `<div class="ow-seats"><span>${used} of ${OW_SEATS} seats</span><div class="ow-bar"><i style="width:${Math.min(100, used / OW_SEATS * 100)}%"></i></div></div>` : ``}')
+    html = rep(html, '<div><b>${owEsc(top.name)}</b><small>Top team</small></div>', '<div><b>${top ? owEsc(top.name) : \'&mdash;\'}</b><small>Top team</small></div>')
+    html = rep(html, "if (big) drawSprite(big, OW_REPS.find(r => r.name === mtState.rep).look, { crop:'bust' });",
+               "const bigLook = big && OW_REPS.find(r => r.name === mtState.rep)?.look; if (bigLook) drawSprite(big, bigLook, { crop:'bust' });")
+    html = rep(html, '<div class="ow-h2">Quiz scores</div>', '<div class="ow-h2">${APP ? \'Units\' : \'Quiz scores\'}</div>')
+    html = rep(html, "${OW_BOSS.map((b, i) => `<div class=\"mt-line\"><span>${b}</span>${bar(r.boss[i])}</div>`).join('')}",
+               "${OW_BOSS.map((b, i) => `<div class=\"mt-line\"><span>${b}</span>${APP ? (r.boss[i] != null ? '<div class=\"ow-bar\"><i style=\"width:100%\"></i></div><span class=\"v\">Beat</span>' : '<div class=\"ow-bar\"></div><span class=\"v na\">&mdash;</span>') : bar(r.boss[i])}</div>`).join('')}")
+    html = rep(html, "${s.scheduled ? 'scheduled' : `read by ${s.read} of ${s.reach}`}", "${s.scheduled ? 'scheduled' : s.read == null ? 'sent' : `read by ${s.read} of ${s.reach}`}")
+
+    # ---- Vault rep page: no door list (Duncan), and Marshall's videos play from it ----
+    html = rep(html, """    <div class="vx-h"><span>DOORS</span><span>${ds.length}</span></div>
+    <div class="vx-box">${ds.map(""", """    ${APP ? '' : `<div class="vx-h"><span>DOORS</span><span>${ds.length}</span></div>`}
+    ${APP ? '' : `<div class="vx-box">${ds.map(""")
+    html = rep(html, """<span class="lk">${vxFmt(d.dur)}</span></button>`).join('')}</div>
+    <div class="vx-h"><span>VIDEOS</span><span></span></div>
+    <div class="vx-box"><div class="vx-empty"><span class="tv"></span><span>No videos from ${r.name.split(' ')[0]} yet. When they're uploaded, they show up right here.</span></div></div>`;""",
+               """<span class="lk">${vxFmt(d.dur)}</span></button>`).join('')}</div>`}
+    <div class="vx-h"><span>VIDEOS</span><span>${APP ? appVaultVideoCount(rid) || '' : ''}</span></div>
+    ${APP && appVaultVideoCount(rid) ? appVaultVideosHTML() : `<div class="vx-box"><div class="vx-empty"><span class="tv"></span><span>No videos from ${r.name.split(' ')[0]} yet. When they're uploaded, they show up right here.</span></div></div>`}`;""")
+    html = rep(html, "  $('vx-back').onclick = () => { vxRepOpen = null; vxRenderDays(); updateChatDock(); };\n  vxFaces(el);",
+               "  $('vx-back').onclick = () => { vxRepOpen = null; vxRenderDays(); updateChatDock(); };\n  vxFaces(el);\n  if (APP) appBindVaultVideos(el);")
+
+    # ---- power hour: the countdown bar stays, the pretend push on every open goes (the app sends the real one) ----
+    html = rep(html, "  if (on && !powerWasOn) {\n    pushNote('Power hour is live'", "  if (on && !powerWasOn && !APP) {\n    pushNote('Power hour is live'")
+
     # ---- the bridge itself, just before start-up runs ----
     html = rep(html, '// ============ INIT ============', bridge + '\n\n// ============ INIT ============')
 
@@ -283,6 +322,14 @@ appSafe('rep', initRep);
   .nav-head.away .nav-clip canvas{ transform:translateY(150%) scale(1.3); transition:transform 0.42s cubic-bezier(.5,0,.75,0) 0.1s; }
   /* My Team floats just above the nav bar's top edge, wherever that is */
   .mt-fab{ bottom:calc(var(--nav-gap, var(--nav-h, 64px)) + 16px) !important; }
+  .app-vid{ position:absolute; inset:0; z-index:95; background:#000; display:flex; flex-direction:column; }
+  .app-vid-top{ display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top, 0px) + 12px) 14px 12px; color:#EDEAE2; font:600 15px/1.25 'Barlow', sans-serif; }
+  .app-vid-top b{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .app-vid-x{ width:36px; height:36px; border-radius:50%; border:0; background:#EDEAE2; color:#0b0b0d; font-size:18px; display:grid; place-items:center; flex:none; }
+  .app-vid-box{ flex:1; display:grid; place-items:center; }
+  .app-vid-box iframe, .app-vid-box video{ width:100%; aspect-ratio:16/9; border:0; background:#000; }
+  .app-vid-wait{ color:#a39d90; font-size:14px; }
+  .vx-vgroup{ padding:10px 2px 4px; font:400 9px/1.4 'Press Start 2P', monospace; color:var(--g, #daae5d); letter-spacing:1px; text-transform:uppercase; }
   .lv-real-wait{ position:absolute; inset:0; display:grid; place-items:center; color:#a39d90; font-size:14px; }
 """
     i = html.index('</style>', html.index('<!DOCTYPE html>') if '<!DOCTYPE html>' in html else 0)

@@ -17,6 +17,7 @@ import { markVideoComplete } from '../services/training.service'
 import { askCoach, isCoachConnected } from '../services/coach.service'
 import { buildGameBoot, VideoIndex, youtubeEmbedUrl } from './boot'
 import { prepareGameFiles } from './files'
+import * as owner from './owner'
 
 /** Optional remote home for the Vault audio (ending in /); by default it plays from the copy in the app */
 const MEDIA_URL = process.env.EXPO_PUBLIC_VAULT_MEDIA_URL || null
@@ -158,6 +159,21 @@ export default function GameScreen() {
         case 'log':
           console.warn('[game]', payload?.where, payload?.msg, payload?.at)
           return null
+        case 'roster':
+          return owner.loadRoster()
+        case 'manageRep':
+          return owner.manageRep(payload)
+        case 'saveTeam':
+          return owner.saveTeam(payload)
+        case 'invite':
+          return owner.inviteRep({ ...payload, companyName: company?.name ?? null })
+        case 'notify':
+          return owner.notify(payload)
+        case 'sentList':
+          return owner.sentList()
+        case 'saveTraining':
+          if (!company?.id) throw new Error('Your account has no company')
+          return owner.saveTraining(company.id, payload)
         case 'notif':
           // Notification choices live in the native settings screen for now
           return null
