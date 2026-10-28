@@ -486,3 +486,9 @@ function appNotif(id, on, cb){
     showToast((e && e.message) || 'Couldn\'t save that', 'ph-bell-slash');
   });
 }
+
+// The Vault door goes up in the same frame the Vault page shows (the demo waited a tick, so the
+// page flashed for a frame before the door covered it). Registered after the page switch handler.
+document.querySelectorAll('.navbtn').forEach(b => b.addEventListener('click', () => {
+  if (b.dataset.page === 'recordings') appSafe('vault door', vxSync);
+}));

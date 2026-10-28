@@ -322,6 +322,8 @@ appSafe('rep', initRep);
   .nav-head.away .nav-clip canvas{ transform:translateY(150%) scale(1.3); transition:transform 0.42s cubic-bezier(.5,0,.75,0) 0.1s; }
   /* My Team floats just above the nav bar's top edge, wherever that is */
   .mt-fab{ bottom:calc(var(--nav-gap, var(--nav-h, 64px)) + 16px) !important; }
+  .topbar .brand img, .topbar .brand .slab-logo{ height:28px; }
+  .topbar .brand .x{ font-size:14px; }
   .fv-clock{ position:relative; height:22px; margin:0 0 8px; border-radius:11px; background:rgba(255,255,255,.08); overflow:hidden; }
   .fv-clock i{ position:absolute; inset:0; background:var(--accent, #daae5d); transform-origin:left; animation:fvClock linear forwards; }
   .fv-clock b{ position:relative; display:block; text-align:center; font-size:12px; line-height:22px; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.6); }
