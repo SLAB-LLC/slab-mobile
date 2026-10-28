@@ -975,14 +975,15 @@
   .lv-real{ position:relative; aspect-ratio:16/9; border-radius:14px; overflow:hidden; background:#000; border:1px solid rgba(255,255,255,.08); }
   .lv-real iframe, .lv-real video{ position:absolute; inset:0; width:100%; height:100%; border:0; background:#000; }
   .not-ace .ace-search, .not-ace .ace-shelf, .not-ace .ace-group{ display:none !important; }
-  /* Marshall lives in his round spot in the nav: the spot always shows and he's cut to it, so he
-     slides down into it when he leaves for chat or the Vault and back up into it when he returns */
+  /* Marshall stands in his round spot in the nav: the spot always shows, his top half pokes out above it
+     and below its middle he's cut to the circle, so he sinks into it when he leaves for chat or the Vault
+     and climbs back out when he returns */
   .nav-head .nav-slot, .nav-head.away .nav-slot, .nav-head.back .nav-slot{ opacity:1; transform:none; transition-delay:0s; }
   .nav-head::after{ display:none; }
   .nav-head .nav-clip{
-    -webkit-mask:radial-gradient(circle at 26px 34px, #000 13px, transparent 13.5px);
-    mask:radial-gradient(circle at 26px 34px, #000 13px, transparent 13.5px); }
-  .nav-head .nav-clip canvas{ filter:none; }
+    -webkit-mask:linear-gradient(#000, #000) top / 100% 34px no-repeat, radial-gradient(circle at 26px 34px, #000 13px, transparent 13.5px);
+    mask:linear-gradient(#000, #000) top / 100% 34px no-repeat, radial-gradient(circle at 26px 34px, #000 13px, transparent 13.5px); }
+  .nav-head .nav-clip canvas{ transform:translateY(-7px); }
   .nav-head.away .nav-clip canvas{ transition:transform 0.42s cubic-bezier(.5,0,.75,0) 0.1s; }
   /* My Team floats just above the nav bar's top edge, wherever that is */
   .mt-fab{ bottom:calc(var(--nav-gap, var(--nav-h, 64px)) + 16px) !important; }
@@ -9136,6 +9137,17 @@ if (APP) {
   const navGap = () => { const ph = $('phone'); if (navEl && ph) ph.style.setProperty('--nav-gap', Math.max(0, Math.round(ph.getBoundingClientRect().bottom - navEl.getBoundingClientRect().top)) + 'px'); };
   if (navEl && window.ResizeObserver) { const ro = new ResizeObserver(navGap); ro.observe(navEl, { box:'border-box' }); ro.observe($('phone')); }
   window.addEventListener('resize', navGap); navGap(); setTimeout(navGap, 500);
+  // Opening chat, Marshall climbs into the big box from below like he left the nav for it (the leftover
+  // swap class from picking a coach otherwise wins and he just fades in)
+  const dockBase = updateChatDock;
+  updateChatDock = function(){
+    const was = $('phone').classList.contains('chat-open');
+    dockBase();
+    if (was || !$('phone').classList.contains('chat-open')) return;
+    const dock = $('avatar-dock'), cv = dock && dock.querySelector('canvas');
+    if (!cv) return;
+    dock.classList.remove('swap'); cv.style.animation = 'none'; void cv.offsetWidth; cv.style.animation = '';
+  };
   // Monthly prize only for companies running one
   if (!APP.features.monthlyPrize) { const pz = document.querySelector('#page-leaderboard .prize'); if (pz) pz.style.display = 'none'; }
 }
