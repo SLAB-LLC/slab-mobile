@@ -975,11 +975,13 @@
   .lv-real{ position:relative; aspect-ratio:16/9; border-radius:14px; overflow:hidden; background:#000; border:1px solid rgba(255,255,255,.08); }
   .lv-real iframe, .lv-real video{ position:absolute; inset:0; width:100%; height:100%; border:0; background:#000; }
   .not-ace .ace-search, .not-ace .ace-shelf, .not-ace .ace-group{ display:none !important; }
-  /* Marshall sinks into his spot in the nav: the hole opens first, then he shrinks into it */
-  .nav-clip canvas{ transform-origin:50% 56%; transition:transform 0.3s cubic-bezier(.5,0,.75,0), opacity 0.2s ease-in; }
+  /* Marshall sinks into his spot in the nav the way the demo does it (slides down), but cut to the hole:
+     while he's leaving or coming back only the part above the hole's middle and inside the hole shows */
   .nav-head.away .nav-slot{ transition-delay:0s; }
-  .nav-head.away .nav-clip canvas{ transform:scale(0.08); opacity:0; transition:transform 0.38s cubic-bezier(.55,0,.8,.2) 0.12s, opacity 0.16s ease-in 0.34s; }
-  .nav-head.back .nav-clip canvas{ transition:transform 0.5s var(--ease-spring) 0.15s, opacity 0.12s ease-out 0.15s; }
+  .nav-head.away .nav-clip, .nav-head.back .nav-clip{
+    -webkit-mask:linear-gradient(#000, #000) top / 100% 34px no-repeat, radial-gradient(circle at 26px 34px, #000 13px, transparent 13.5px);
+    mask:linear-gradient(#000, #000) top / 100% 34px no-repeat, radial-gradient(circle at 26px 34px, #000 13px, transparent 13.5px); }
+  .nav-head.away .nav-clip canvas{ transition:transform 0.42s cubic-bezier(.5,0,.75,0) 0.1s; }
   .lv-real-wait{ position:absolute; inset:0; display:grid; place-items:center; color:#a39d90; font-size:14px; }
 </style>
 <style>
@@ -3223,8 +3225,9 @@ function updateProgressUI(){
     bar.innerHTML = categories.map((c, i) =>
       `<div class="unit-seg" style="flex:${c.subs.length}; --shine-delay:${(i * 0.12).toFixed(2)}s" title="${c.title}"><b></b></div>`).join('');
   }
+  let doneLeft = doneLessons;
   categories.forEach((c, i) => {
-    const done = c.subs.filter(s => s.status === 'done').length;
+    const done = Math.min(doneLeft, c.subs.length); doneLeft -= done;
     const seg = bar.children[i];
     seg.classList.toggle('full', done === c.subs.length);
     setTimeout(() => { seg.firstElementChild.style.width = (done / c.subs.length * 100) + '%'; }, 60 + i * 90);
@@ -9124,6 +9127,9 @@ if (APP) {
     }
     const bv = $('book-view'); if (bv) bv.setAttribute('aria-label', 'Book Library');
   }
+  // My Team sits above the nav bar, which is taller in the app (it pads for the home bar); keep its height current
+  const navEl = document.querySelector('.navbar');
+  if (navEl && window.ResizeObserver) new ResizeObserver(() => $('phone').style.setProperty('--nav-h', navEl.offsetHeight + 'px')).observe(navEl);
   // Monthly prize only for companies running one
   if (!APP.features.monthlyPrize) { const pz = document.querySelector('#page-leaderboard .prize'); if (pz) pz.style.display = 'none'; }
 }

@@ -188,6 +188,9 @@ if (APP) {
     }
     const bv = $('book-view'); if (bv) bv.setAttribute('aria-label', 'Book Library');
   }
+  // My Team sits above the nav bar, which is taller in the app (it pads for the home bar); keep its height current
+  const navEl = document.querySelector('.navbar');
+  if (navEl && window.ResizeObserver) new ResizeObserver(() => $('phone').style.setProperty('--nav-h', navEl.offsetHeight + 'px')).observe(navEl);
   // Monthly prize only for companies running one
   if (!APP.features.monthlyPrize) { const pz = document.querySelector('#page-leaderboard .prize'); if (pz) pz.style.display = 'none'; }
 }

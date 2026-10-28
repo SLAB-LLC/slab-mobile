@@ -276,7 +276,8 @@ export async function buildGameBoot(args: {
       features: {
         vaultUnlockXp: features.vaultUnlockXp,
         chatUnlockXp: features.chatUnlockXp,
-        monthlyPrize: features.monthlyPrize,
+        // Ace runs the monthly prize even if its config row predates the switch
+        monthlyPrize: features.monthlyPrize || ace,
         companyLessons: !!features.companyLessons,
       },
       brand: {

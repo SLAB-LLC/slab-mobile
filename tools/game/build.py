@@ -212,6 +212,9 @@ def main(src):
                "  GEAR_LETTERS.forEach((ch, i) => (GLYPH[ch] || GLYPH[' ']).forEach((row, y) => [...row].forEach((b, x) => { if (b === '1') g.fillRect(vx0 + i * 5 + x, 88 + y, 1, 1); })));")
 
     # ---- unlocks: the company's thresholds, not the demo's rookie/vet shortcut ----
+    # The progress bar fills from the left by lessons passed, whichever doors a vet took them at
+    html = rep(html, "  categories.forEach((c, i) => {\n    const done = c.subs.filter(s => s.status === 'done').length;\n    const seg = bar.children[i];",
+               "  let doneLeft = doneLessons;\n  categories.forEach((c, i) => {\n    const done = Math.min(doneLeft, c.subs.length); doneLeft -= done;\n    const seg = bar.children[i];")
     # Companies without their own training: every door stays locked (the Vault and chat stay open)
     html = rep(html, "function normalizePath(){\n", "function normalizePath(){\n  if (APP && !APP.labOpen) return;\n")
     html = rep(html, "  const target = active >= 0 ? active : street.stops.length - 1;",
@@ -268,11 +271,13 @@ appSafe('rep', initRep);
   .lv-real{ position:relative; aspect-ratio:16/9; border-radius:14px; overflow:hidden; background:#000; border:1px solid rgba(255,255,255,.08); }
   .lv-real iframe, .lv-real video{ position:absolute; inset:0; width:100%; height:100%; border:0; background:#000; }
   .not-ace .ace-search, .not-ace .ace-shelf, .not-ace .ace-group{ display:none !important; }
-  /* Marshall sinks into his spot in the nav: the hole opens first, then he shrinks into it */
-  .nav-clip canvas{ transform-origin:50% 56%; transition:transform 0.3s cubic-bezier(.5,0,.75,0), opacity 0.2s ease-in; }
+  /* Marshall sinks into his spot in the nav the way the demo does it (slides down), but cut to the hole:
+     while he's leaving or coming back only the part above the hole's middle and inside the hole shows */
   .nav-head.away .nav-slot{ transition-delay:0s; }
-  .nav-head.away .nav-clip canvas{ transform:scale(0.08); opacity:0; transition:transform 0.38s cubic-bezier(.55,0,.8,.2) 0.12s, opacity 0.16s ease-in 0.34s; }
-  .nav-head.back .nav-clip canvas{ transition:transform 0.5s var(--ease-spring) 0.15s, opacity 0.12s ease-out 0.15s; }
+  .nav-head.away .nav-clip, .nav-head.back .nav-clip{
+    -webkit-mask:linear-gradient(#000, #000) top / 100% 34px no-repeat, radial-gradient(circle at 26px 34px, #000 13px, transparent 13.5px);
+    mask:linear-gradient(#000, #000) top / 100% 34px no-repeat, radial-gradient(circle at 26px 34px, #000 13px, transparent 13.5px); }
+  .nav-head.away .nav-clip canvas{ transition:transform 0.42s cubic-bezier(.5,0,.75,0) 0.1s; }
   .lv-real-wait{ position:absolute; inset:0; display:grid; place-items:center; color:#a39d90; font-size:14px; }
 """
     i = html.index('</style>', html.index('<!DOCTYPE html>') if '<!DOCTYPE html>' in html else 0)
