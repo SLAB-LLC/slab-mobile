@@ -271,16 +271,16 @@ appSafe('rep', initRep);
   .lv-real{ position:relative; aspect-ratio:16/9; border-radius:14px; overflow:hidden; background:#000; border:1px solid rgba(255,255,255,.08); }
   .lv-real iframe, .lv-real video{ position:absolute; inset:0; width:100%; height:100%; border:0; background:#000; }
   .not-ace .ace-search, .not-ace .ace-shelf, .not-ace .ace-group{ display:none !important; }
-  /* Marshall stands in his round spot in the nav: the spot always shows, his top half pokes out above it
-     and below its middle he's cut to the circle, so he sinks into it when he leaves for chat or the Vault
-     and climbs back out when he returns */
+  /* Marshall is a bust in his round spot in the nav (Duncan's sketch): his shirt fills the circle to its
+     bottom edge and only the top of his head peeks out above it. He sinks into the circle when he leaves
+     for chat or the Vault and climbs back out when he returns */
   .nav-head .nav-slot, .nav-head.away .nav-slot, .nav-head.back .nav-slot{ opacity:1; transform:none; transition-delay:0s; }
   .nav-head::after{ display:none; }
   .nav-head .nav-clip{
-    -webkit-mask:linear-gradient(#000, #000) top / 100% 34px no-repeat, radial-gradient(circle at 26px 34px, #000 13px, transparent 13.5px);
-    mask:linear-gradient(#000, #000) top / 100% 34px no-repeat, radial-gradient(circle at 26px 34px, #000 13px, transparent 13.5px); }
-  .nav-head .nav-clip canvas{ transform:translateY(-7px); }
-  .nav-head.away .nav-clip canvas{ transition:transform 0.42s cubic-bezier(.5,0,.75,0) 0.1s; }
+    -webkit-mask:linear-gradient(#000, #000) top / 100% 28px no-repeat, radial-gradient(circle at 26px 34px, #000 13px, transparent 13.5px);
+    mask:linear-gradient(#000, #000) top / 100% 28px no-repeat, radial-gradient(circle at 26px 34px, #000 13px, transparent 13.5px); }
+  .nav-head .nav-clip canvas{ transform-origin:50% 100%; transform:translateY(2px) scale(1.3); }
+  .nav-head.away .nav-clip canvas{ transform:translateY(150%) scale(1.3); transition:transform 0.42s cubic-bezier(.5,0,.75,0) 0.1s; }
   /* My Team floats just above the nav bar's top edge, wherever that is */
   .mt-fab{ bottom:calc(var(--nav-gap, var(--nav-h, 64px)) + 16px) !important; }
   .lv-real-wait{ position:absolute; inset:0; display:grid; place-items:center; color:#a39d90; font-size:14px; }
