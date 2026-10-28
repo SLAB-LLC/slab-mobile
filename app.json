@@ -42,6 +42,19 @@
           "color": "#f39c12",
           "sounds": []
         }
+      ],
+      [
+        "expo-alternate-app-icons",
+        [
+          {
+            "name": "Ace",
+            "ios": "./assets/icon-ace.png",
+            "android": {
+              "foregroundImage": "./assets/icon-ace-foreground.png",
+              "backgroundColor": "#000000"
+            }
+          }
+        ]
       ]
     ],
     "updates": {
