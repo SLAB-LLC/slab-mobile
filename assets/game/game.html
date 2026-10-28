@@ -975,6 +975,11 @@
   .lv-real{ position:relative; aspect-ratio:16/9; border-radius:14px; overflow:hidden; background:#000; border:1px solid rgba(255,255,255,.08); }
   .lv-real iframe, .lv-real video{ position:absolute; inset:0; width:100%; height:100%; border:0; background:#000; }
   .not-ace .ace-search, .not-ace .ace-shelf, .not-ace .ace-group{ display:none !important; }
+  /* Marshall sinks into his spot in the nav: the hole opens first, then he shrinks into it */
+  .nav-clip canvas{ transform-origin:50% 56%; transition:transform 0.3s cubic-bezier(.5,0,.75,0), opacity 0.2s ease-in; }
+  .nav-head.away .nav-slot{ transition-delay:0s; }
+  .nav-head.away .nav-clip canvas{ transform:scale(0.08); opacity:0; transition:transform 0.38s cubic-bezier(.55,0,.8,.2) 0.12s, opacity 0.16s ease-in 0.34s; }
+  .nav-head.back .nav-clip canvas{ transition:transform 0.5s var(--ease-spring) 0.15s, opacity 0.12s ease-out 0.15s; }
   .lv-real-wait{ position:absolute; inset:0; display:grid; place-items:center; color:#a39d90; font-size:14px; }
 </style>
 <style>
@@ -2771,7 +2776,7 @@ const categories = [
 ];
 // The street keeps the standard levels unless the company runs its own; finished ones come from the XP ledger
 if (APP && APP.features.companyLessons && APP.lessons && APP.lessons.length) categories.splice(0, categories.length, ...APP.lessons);
-else if (APP) { const done = new Set(APP.doneLessons || []); categories.forEach(c => c.subs.forEach(s => { s.status = done.has(s.id || s.title) ? 'done' : 'locked'; })); }
+else if (APP) { const done = new Set(APP.doneLessons || []); categories.forEach(c => c.subs.forEach(s => { s.status = APP.labOpen && done.has(s.id || s.title) ? 'done' : 'locked'; })); }
 
 const repsData = {
   marshall: {
@@ -5551,7 +5556,7 @@ try {
   if (saved) { Object.assign(ME, saved); ME.look = Object.assign({ ...DEFAULT_LOOK }, saved.look); }
 } catch (e) {}
 function saveMe(){ try { localStorage.setItem('slabAce.rep', JSON.stringify(ME)); } catch (e) {} appSaveMe(); }
-if (APP) { ME.name = APP.me.name || ME.name; ME.email = APP.me.email; if (APP.me.look) { ME.look = Object.assign({ ...DEFAULT_LOOK }, APP.me.look); ME.onboarded = true; } else ME.onboarded = false; }
+if (APP) { ME.name = APP.me.name || ME.name; ME.email = APP.me.email; ME.level = APP.me.level || 'rookie'; if (APP.me.look) { ME.look = Object.assign({ ...DEFAULT_LOOK }, APP.me.look); ME.onboarded = true; } else ME.onboarded = false; }
 const meName = () => ME.name || 'Riley';
 
 function applyMe(){
@@ -6725,7 +6730,7 @@ function renderStreet(){
   // where the rep stands: their last door, or the next lesson
   const active = street.stops.findIndex(s => s.kind === 'lesson' && s.ref.status === 'active');
   street.activeIdx = active;
-  const target = active >= 0 ? active : street.stops.length - 1;
+  const target = active >= 0 ? active : APP && !APP.labOpen ? 0 : street.stops.length - 1;
   if (street.at < 0 || street.at >= street.stops.length) street.at = target;
   placeMe(street.stops[street.at].stand, 'down-0', false);
   parkRide(street.stops[street.at]);
@@ -7137,7 +7142,7 @@ async function onHouseTap(s){
   const st = stopStatus(s);
   closePopups();
   if (st === 'locked') {
-    showToast(s.kind === 'boss' ? 'Pass off every ' + s.unit + ' lesson first' : 'Pass off the lessons before this one first', 'ph-lock-simple');
+    showToast(APP && !APP.labOpen ? 'Your company’s training isn’t set up yet' : s.kind === 'boss' ? 'Pass off every ' + s.unit + ' lesson first' : 'Pass off the lessons before this one first', 'ph-lock-simple');
     haptic('wrong');
     s.el.classList.remove('nope'); void s.el.offsetWidth; s.el.classList.add('nope');
     return;
@@ -7904,7 +7909,7 @@ const OW_SENT = [
 ];
 const owState = { tab:'roster', filter:'all', q:'', open:null, inviting:false, teamOpen:null, aud:'all', audTeam:'hawks', audRep:'Marshall Hawks', when:'now' };
 const ROLE_KEY = 'slabAce.role';
-function demoRole(){ if (APP) return 'rep'; try { return localStorage.getItem(ROLE_KEY) || 'owner'; } catch (e) { return 'owner'; } }
+function demoRole(){ if (APP) return APP.me.role || 'rep'; try { return localStorage.getItem(ROLE_KEY) || 'owner'; } catch (e) { return 'owner'; } }
 function setDemoRole(r){ try { localStorage.setItem(ROLE_KEY, r); } catch (e) {} syncTeamFab(); }
 const owEsc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
 const owTeam = (id) => OW_TEAMS.find(t => t.id === id);
@@ -8166,6 +8171,10 @@ window.addEventListener('resize', syncTeamFab);
 // ---- demo role switch in the profile ----
 function roleCardHTML(){
   const r = demoRole();
+  if (APP) {
+    if (r !== 'owner') return '';
+    return `<div class="me-card me-role"><span class="ow-lab">Signed in as ${esc(APP.me.roleLabel || 'Owner')}</span><button class="ow-btn" id="me-owner" type="button">Open Owner view</button><button class="ow-btn" id="me-simple" type="button" style="background:#EDEAE2">Switch to Simple mode</button></div>`;
+  }
   return `<div class="me-card me-role"><span class="ow-lab">Demo: signed in as</span><div class="ow-seg" id="me-role">${[['rep', 'Rep'], ['manager', 'Manager'], ['owner', 'Owner']].map(([k, n]) => `<button class="${r === k ? 'on' : ''}" data-role="${k}" type="button">${n}</button>`).join('')}</div>
     <span class="ow-lab" style="margin-top:14px">Demo: your level (your manager sets this)</span><div class="ow-seg" id="me-level">${[['rookie', 'Rookie'], ['vet', 'Vet']].map(([k, n]) => `<button class="${(ME.level || 'rookie') === k ? 'on' : ''}" data-lv="${k}" type="button">${n}</button>`).join('')}</div>
     ${r === 'owner' ? '<button class="ow-btn" id="me-owner" type="button">Open Owner view</button>' : ''}<button class="ow-btn" id="me-simple" type="button" style="background:#EDEAE2">Switch to Simple mode</button></div>`;
@@ -8174,7 +8183,7 @@ function bindRoleCard(){
   document.querySelectorAll('#me-role [data-role]').forEach(b => b.onclick = () => { setDemoRole(b.dataset.role); renderProfile(true); });
   const o = $('me-owner'); if (o) o.onclick = openOwner;
   document.querySelectorAll('#me-level [data-lv]').forEach(b => b.onclick = () => { setLevel(b.dataset.lv); renderProfile(true); });
-  $('me-simple').onclick = () => setSimple(true);
+  if ($('me-simple')) $('me-simple').onclick = () => setSimple(true);
 }
 
 
@@ -8372,6 +8381,7 @@ books.forEach(b => { if (BOOK_BANK[b.t] && BOOK_BANK[b.t].q.length >= 3) b.quiz 
 // ============ v32: ROOKIE / VET ============
 const isVet = () => ME.level === 'vet';
 function normalizePath(){
+  if (APP && !APP.labOpen) return;
   // rookies walk the path in order: the first lesson not done is up next, the rest wait
   let found = false;
   categories.forEach(c => c.subs.forEach(s => {

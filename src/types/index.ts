@@ -72,7 +72,10 @@ export interface Salesperson {
 export interface UserProfile {
   id: string
   email?: string
-  role: 'user' | 'company_admin' | 'super_admin'
+  /** Same roles as the website: rep, manager, owner, SLAB admin (owner of every company) */
+  role: 'user' | 'manager' | 'company_admin' | 'super_admin'
+  /** Vets get every lesson, the Vault and chat open; set by owners on the website */
+  level?: 'rookie' | 'vet' | null
   company_id?: string
   full_name?: string
   display_name?: string

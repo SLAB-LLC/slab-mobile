@@ -50,6 +50,8 @@ export interface GameBoot {
     xp: number
     streakDays: number
     roleLabel: string
+    role: 'rep' | 'manager' | 'owner'
+    level: 'rookie' | 'vet'
     companyName: string | null
     look: Partial<RepLook> | null
   }
@@ -65,6 +67,8 @@ export interface GameBoot {
   media: string | null
   /** Which update the phone runs, shown under Sign out */
   build: string
+  /** False when the company has no training of its own yet: every door on the street stays locked */
+  labOpen: boolean
   /** The company's own lessons (only when features.companyLessons); otherwise the street keeps the standard levels */
   lessons: GameUnit[]
   /** Lessons the rep has finished, by the source id their XP was granted under */
@@ -79,9 +83,19 @@ export type VideoIndex = Record<string, { type: 'youtube' | 'upload'; youtubeUrl
 const ACE_GOLD = '#daae5d'
 
 const ROLE_LABELS: Record<UserProfile['role'], string> = {
-  user: 'Sales rep',
+  user: 'Rep',
+  manager: 'Manager',
   company_admin: 'Owner',
-  super_admin: 'SLAB admin',
+  // SLAB admins own every company
+  super_admin: 'Owner · SLAB admin',
+}
+
+/** The page's three views: rep, manager, owner */
+const PAGE_ROLES: Record<UserProfile['role'], 'rep' | 'manager' | 'owner'> = {
+  user: 'rep',
+  manager: 'manager',
+  company_admin: 'owner',
+  super_admin: 'owner',
 }
 
 /** Ace runs its own library and prize; matched the same way the SQL seed matches it */
@@ -253,7 +267,9 @@ export async function buildGameBoot(args: {
         email,
         xp: args.totalXp,
         streakDays: args.streakDays,
-        roleLabel: ROLE_LABELS[profile?.role ?? 'user'] ?? 'Sales rep',
+        roleLabel: ROLE_LABELS[profile?.role ?? 'user'] ?? 'Rep',
+        role: PAGE_ROLES[profile?.role ?? 'user'] ?? 'rep',
+        level: profile?.level === 'vet' ? 'vet' : 'rookie',
         companyName: company?.name ?? null,
         look: args.look,
       },
@@ -273,6 +289,8 @@ export async function buildGameBoot(args: {
       },
       media: args.media,
       build: args.build,
+      // Ace runs the standard levels; other companies open the street once their own lessons are in
+      labOpen: ace || (!!features.companyLessons && lessons.units.length > 0),
       lessons: lessons.units,
       doneLessons,
       leaders,

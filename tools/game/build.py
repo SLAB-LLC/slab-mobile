@@ -96,7 +96,7 @@ def main(src):
                '];\n'
                '// The street keeps the standard levels unless the company runs its own; finished ones come from the XP ledger\n'
                'if (APP && APP.features.companyLessons && APP.lessons && APP.lessons.length) categories.splice(0, categories.length, ...APP.lessons);\n'
-               'else if (APP) { const done = new Set(APP.doneLessons || []); categories.forEach(c => c.subs.forEach(s => { s.status = done.has(s.id || s.title) ? \'done\' : \'locked\'; })); }\n'
+               'else if (APP) { const done = new Set(APP.doneLessons || []); categories.forEach(c => c.subs.forEach(s => { s.status = APP.labOpen && done.has(s.id || s.title) ? \'done\' : \'locked\'; })); }\n'
                '\nconst repsData = {')
 
     # ---- lessons: real videos and quizzes ----
@@ -142,8 +142,18 @@ def main(src):
     # ---- the rep: name and look live in the database ----
     html = rep(html, "function saveMe(){ try { localStorage.setItem('slabAce.rep', JSON.stringify(ME)); } catch (e) {} }",
                "function saveMe(){ try { localStorage.setItem('slabAce.rep', JSON.stringify(ME)); } catch (e) {} appSaveMe(); }\n"
-               "if (APP) { ME.name = APP.me.name || ME.name; ME.email = APP.me.email; if (APP.me.look) { ME.look = Object.assign({ ...DEFAULT_LOOK }, APP.me.look); ME.onboarded = true; } else ME.onboarded = false; }")
-    html = rep(html, "function demoRole(){ try {", "function demoRole(){ if (APP) return 'rep'; try {")
+               "if (APP) { ME.name = APP.me.name || ME.name; ME.email = APP.me.email; ME.level = APP.me.level || 'rookie'; if (APP.me.look) { ME.look = Object.assign({ ...DEFAULT_LOOK }, APP.me.look); ME.onboarded = true; } else ME.onboarded = false; }")
+    html = rep(html, "function demoRole(){ try {", "function demoRole(){ if (APP) return APP.me.role || 'rep'; try {")
+    # Role and level come from the account; reps and managers get no test switches, owners keep Owner view
+    html = rep(html, "function roleCardHTML(){\n  const r = demoRole();\n",
+               "function roleCardHTML(){\n  const r = demoRole();\n"
+               "  if (APP) {\n"
+               "    if (r !== 'owner') return '';\n"
+               "    return `<div class=\"me-card me-role\"><span class=\"ow-lab\">Signed in as ${esc(APP.me.roleLabel || 'Owner')}</span>"
+               "<button class=\"ow-btn\" id=\"me-owner\" type=\"button\">Open Owner view</button>"
+               "<button class=\"ow-btn\" id=\"me-simple\" type=\"button\" style=\"background:#EDEAE2\">Switch to Simple mode</button></div>`;\n"
+               "  }\n")
+    html = rep(html, "  $('me-simple').onclick = () => setSimple(true);\n}", "  if ($('me-simple')) $('me-simple').onclick = () => setSimple(true);\n}")
 
     # ---- leaderboard: the company's real reps ----
     # (the swap itself happens in bridge.js, once DEFAULT_LOOK exists)
@@ -202,6 +212,12 @@ def main(src):
                "  GEAR_LETTERS.forEach((ch, i) => (GLYPH[ch] || GLYPH[' ']).forEach((row, y) => [...row].forEach((b, x) => { if (b === '1') g.fillRect(vx0 + i * 5 + x, 88 + y, 1, 1); })));")
 
     # ---- unlocks: the company's thresholds, not the demo's rookie/vet shortcut ----
+    # Companies without their own training: every door stays locked (the Vault and chat stay open)
+    html = rep(html, "function normalizePath(){\n", "function normalizePath(){\n  if (APP && !APP.labOpen) return;\n")
+    html = rep(html, "  const target = active >= 0 ? active : street.stops.length - 1;",
+               "  const target = active >= 0 ? active : APP && !APP.labOpen ? 0 : street.stops.length - 1;")
+    html = rep(html, "    showToast(s.kind === 'boss' ? 'Pass off every ' + s.unit + ' lesson first' : 'Pass off the lessons before this one first', 'ph-lock-simple');",
+               "    showToast(APP && !APP.labOpen ? 'Your company’s training isn’t set up yet' : s.kind === 'boss' ? 'Pass off every ' + s.unit + ' lesson first' : 'Pass off the lessons before this one first', 'ph-lock-simple');")
     html = rep(html, '  audioUnlockXP = isVet() ? 0 : 500;\n  chatUnlockXP = isVet() ? 0 : 200;',
                '  audioUnlockXP = isVet() ? 0 : APP ? APP.features.vaultUnlockXp : 500;\n'
                '  chatUnlockXP = isVet() ? 0 : APP ? APP.features.chatUnlockXp : 200;')
@@ -252,6 +268,11 @@ appSafe('rep', initRep);
   .lv-real{ position:relative; aspect-ratio:16/9; border-radius:14px; overflow:hidden; background:#000; border:1px solid rgba(255,255,255,.08); }
   .lv-real iframe, .lv-real video{ position:absolute; inset:0; width:100%; height:100%; border:0; background:#000; }
   .not-ace .ace-search, .not-ace .ace-shelf, .not-ace .ace-group{ display:none !important; }
+  /* Marshall sinks into his spot in the nav: the hole opens first, then he shrinks into it */
+  .nav-clip canvas{ transform-origin:50% 56%; transition:transform 0.3s cubic-bezier(.5,0,.75,0), opacity 0.2s ease-in; }
+  .nav-head.away .nav-slot{ transition-delay:0s; }
+  .nav-head.away .nav-clip canvas{ transform:scale(0.08); opacity:0; transition:transform 0.38s cubic-bezier(.55,0,.8,.2) 0.12s, opacity 0.16s ease-in 0.34s; }
+  .nav-head.back .nav-clip canvas{ transition:transform 0.5s var(--ease-spring) 0.15s, opacity 0.12s ease-out 0.15s; }
   .lv-real-wait{ position:absolute; inset:0; display:grid; place-items:center; color:#a39d90; font-size:14px; }
 """
     i = html.index('</style>', html.index('<!DOCTYPE html>') if '<!DOCTYPE html>' in html else 0)
