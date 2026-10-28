@@ -163,6 +163,12 @@ def main(src):
                "  if (APP) { if (APP.brand && APP.brand.isAce) await btCompany(); else { boot.classList.remove('live'); if (bootDone) { const f = bootDone; bootDone = null; f(); } } return; }\n"
                "  if (bootAuth.get()) { await btCompany(); return; }")
 
+    # ---- tour: steps can open another tab first, and the tour cleans up after itself ----
+    html = rep(html, "    const step = TOUR[i];\n    const target = document.querySelector(step.sel);",
+               "    const step = TOUR[i];\n    if (step.go) step.go();\n    const target = document.querySelector(step.sel);")
+    html = rep(html, "  const end = () => { coach.remove(); scrollToActiveLesson(true, 200); };",
+               "  const end = () => { coach.remove(); if (typeof tourDone === 'function') tourDone(); scrollToActiveLesson(true, 200); };")
+
     # ---- settings: account facts and actions go native ----
     html = rep(html, '<div><span>Role</span><b>Sales rep</b></div>',
                "<div><span>Role</span><b>${APP ? esc(APP.me.roleLabel) : 'Sales rep'}</b></div>")
