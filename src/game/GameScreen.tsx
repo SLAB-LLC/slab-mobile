@@ -174,6 +174,8 @@ export default function GameScreen() {
         case 'saveTraining':
           if (!company?.id) throw new Error('Your account has no company')
           return owner.saveTraining(company.id, payload)
+        case 'ai':
+          return owner.askAI(payload?.messages)
         case 'notif':
           // Notification choices live in the native settings screen for now
           return null
