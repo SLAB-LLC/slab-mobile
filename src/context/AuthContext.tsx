@@ -17,6 +17,9 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
+  /** True while the sign-in page finishes its ACCESS GRANTED moment; the app opens when it's released */
+  entryHeld: boolean
+  holdEntry: (held: boolean) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -26,6 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [company, setCompany] = useState<Company | null>(null)
   const [loading, setLoading] = useState(true)
+  const [entryHeld, setEntryHeld] = useState(false)
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -204,6 +208,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signIn: handleSignIn,
         signOut: handleSignOut,
         refreshProfile,
+        entryHeld,
+        holdEntry: setEntryHeld,
       }}
     >
       {children}

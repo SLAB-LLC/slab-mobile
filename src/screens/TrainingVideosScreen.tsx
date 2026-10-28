@@ -21,10 +21,12 @@ import * as trainingService from '../services/training.service'
 import { TrainingVideo } from '../types'
 import { colors } from '../theme/tokens'
 import { supabase } from '../utils/supabase'
+import { useXp } from '../xp'
 
 export default function TrainingVideosScreen() {
   const { user, profile } = useAuth()
   const { bgGradient } = useCompanyColors()
+  const { award } = useXp()
   const [videos, setVideos] = useState<TrainingVideo[]>([])
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
@@ -113,6 +115,7 @@ export default function TrainingVideosScreen() {
     try {
       await trainingService.markVideoComplete(videoId, user.id)
       setCompletedIds((prev) => new Set([...prev, videoId]))
+      award('lesson_complete', videoId, 'lesson complete')
     } catch (err) {
       console.error('Failed to mark video complete:', err)
     }

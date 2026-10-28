@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { useAuth } from '../context/AuthContext'
 import { getCompanyLeaderboard, LeaderboardEntry } from '../services/stats.service'
 import { colors } from '../theme/tokens'
+import { useCompanyColors } from '../hooks/useCompanyColors'
 
 const MEDAL_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32']
 const PODIUM_ORDER = [1, 0, 2] // render 2nd, 1st, 3rd left-to-right
@@ -156,6 +157,7 @@ const podiumStyles = StyleSheet.create({
 })
 
 export default function LeaderboardScreen() {
+  const { bgGradient } = useCompanyColors()
   const { user, company } = useAuth()
   const [entries, setEntries] = useState<LeaderboardEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -183,7 +185,7 @@ export default function LeaderboardScreen() {
 
   if (loading) {
     return (
-      <LinearGradient colors={['#000033', '#001199', '#0a1a5f']} style={styles.loadingContainer}>
+      <LinearGradient colors={bgGradient} style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.successGold} />
       </LinearGradient>
     )
@@ -191,7 +193,7 @@ export default function LeaderboardScreen() {
 
   return (
     <LinearGradient
-      colors={['#000033', '#001199', '#0a1a5f']}
+      colors={bgGradient}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.container}

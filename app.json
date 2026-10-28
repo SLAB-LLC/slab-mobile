@@ -2,7 +2,7 @@
   "expo": {
     "name": "SLAB Voice",
     "slug": "slab-voice",
-    "version": "1.0.5",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/slab-logo.png",
     "userInterfaceStyle": "light",

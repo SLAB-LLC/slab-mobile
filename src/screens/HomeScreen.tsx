@@ -18,10 +18,12 @@ import StreakDisplay from '../components/home/StreakDisplay'
 import CompanyRank from '../components/home/CompanyRank'
 import UsageStats from '../components/home/UsageStats'
 import { colors } from '../theme/tokens'
+import { useCompanyColors } from '../hooks/useCompanyColors'
 
 const logoImage = require('../../assets/slab-logo-thermal.png')
 
 export default function HomeScreen() {
+  const { bgGradient } = useCompanyColors()
   const { user, profile, company } = useAuth()
   const navigation = useNavigation<any>()
 
@@ -70,14 +72,12 @@ export default function HomeScreen() {
     fetchData()
   }
 
-  const primaryColor = company?.primary_color || '#001199'
-  const secondaryColor = company?.secondary_color || '#0a1a5f'
   const firstName = (profile?.display_name || profile?.full_name)?.split(' ')[0] || 'there'
 
   if (loading) {
     return (
       <LinearGradient
-        colors={['#000033', primaryColor, secondaryColor]}
+        colors={bgGradient}
         style={styles.loadingContainer}
       >
         <ActivityIndicator size="large" color={colors.successGold} />
@@ -87,7 +87,7 @@ export default function HomeScreen() {
 
   return (
     <LinearGradient
-      colors={['#000033', primaryColor, secondaryColor]}
+      colors={bgGradient}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.container}
@@ -129,7 +129,9 @@ export default function HomeScreen() {
             <CompanyRank
               rank={rank.rank}
               total={rank.total}
-              onPress={() => navigation.navigate('Leaderboard')}
+              onPress={() =>
+                navigation.navigate('MainDrawer', { screen: 'HomeTabs', params: { screen: 'Leaderboard' } })
+              }
             />
           </View>
         )}

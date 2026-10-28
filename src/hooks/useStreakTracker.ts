@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 import * as streakService from '../services/streak.service'
+import { useXp } from '../xp'
 
 const STREAK_THRESHOLD_SECONDS = 120 // 2 minutes of listening → log streak
 const HEARTBEAT_INTERVAL_MS = 60_000 // fire heartbeat every 60s while playing
@@ -8,7 +9,8 @@ const HEARTBEAT_INTERVAL_MS = 60_000 // fire heartbeat every 60s while playing
 /**
  * Tracks cumulative audio listening time and:
  *  1. Logs a streak activity once the user has listened for 2+ continuous minutes.
- *  2. Fires a heartbeat every 60s (updates daily_usage_stats so the minutes chart reflects mobile listening).
+ *  2. Fires a heartbeat every 60s (updates daily_usage_stats so the minutes chart reflects mobile listening)
+ *     and earns one Vault minute of XP (the server caps it per day).
  * Also supports manual triggers for transcript views and training playlists.
  */
 export function useStreakTracker(transcriptId?: string) {
@@ -20,6 +22,7 @@ export function useStreakTracker(transcriptId?: string) {
 
   const userId = user?.id
   const companyId = profile?.company_id
+  const { award } = useXp()
 
   const stopHeartbeat = useCallback(() => {
     if (heartbeatIntervalRef.current) {
@@ -33,8 +36,9 @@ export function useStreakTracker(transcriptId?: string) {
     if (heartbeatIntervalRef.current || !userId || !companyId) return
     heartbeatIntervalRef.current = setInterval(() => {
       streakService.recordHeartbeat(userId, companyId, 'audio_playing', '/mobile/audio')
+      award('vault_minute', null, 'listening', { quiet: true })
     }, HEARTBEAT_INTERVAL_MS)
-  }, [userId, companyId])
+  }, [userId, companyId, award])
 
   // Call this every time the audio player reports time while playing (e.g. every 250ms)
   const trackAudioTime = useCallback(() => {

@@ -6,6 +6,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   Platform,
+  Modal,
+  SafeAreaView,
 } from 'react-native'
 import {
   NavigationContainer,
@@ -24,46 +26,39 @@ import { useNotificationPrompt } from '../hooks/useNotificationPrompt'
 import BroadcastDetailScreen from '../screens/BroadcastDetailScreen'
 
 // Screens
-import LandingScreen from '../screens/LandingScreen'
-import LoginScreen from '../screens/LoginScreen'
+import LoginGameScreen from '../game/LoginGameScreen'
 import HomeScreen from '../screens/HomeScreen'
 import LeaderboardScreen from '../screens/LeaderboardScreen'
-import AudioHomeScreen from '../screens/AudioHomeScreen'
-import MemberProfileScreen from '../screens/MemberProfileScreen'
-import HighlightsScreen from '../screens/HighlightsScreen'
-import SecretsScreen from '../screens/SecretsScreen'
-import FavoritesScreen from '../screens/FavoritesScreen'
-import ObjectionsScreen from '../screens/ObjectionsScreen'
-import TrendingScreen from '../screens/TrendingScreen'
+import VaultScreen from '../screens/VaultScreen'
+import AskCoachScreen from '../screens/AskCoachScreen'
+import LibraryScreen from '../screens/LibraryScreen'
 import TranscriptDetailScreen from '../screens/TranscriptDetailScreen'
-import ChannelListScreen from '../screens/ChannelListScreen'
-import ChatRoomScreen from '../screens/ChatRoomScreen'
 import TrainingVideosScreen from '../screens/TrainingVideosScreen'
 import ProfileScreen from '../screens/ProfileScreen'
-import RecordAudioScreen from '../screens/RecordAudioScreen'
 import SupportScreen from '../screens/SupportScreen'
 import NotificationSettingsScreen from '../screens/NotificationSettingsScreen'
 import TermsOfServiceScreen from '../screens/TermsOfServiceScreen'
+import LockerScreen, { RepBuilder } from '../screens/LockerScreen'
+import GameScreen from '../game/GameScreen'
 
 // Layout
 import AppHeader from '../components/layout/AppHeader'
 import SideDrawer from '../components/layout/SideDrawer'
 
-import { colors } from '../theme/tokens'
+import { useTenantTheme, useLabels } from '../tenant'
+import { useMyLook } from '../avatar'
+import type { TabKey, TenantTheme } from '../tenant'
 
 const RootStack = createNativeStackNavigator<RootStackParamList>()
 const Tab = createBottomTabNavigator<MainTabParamList>()
 const InnerStack = createNativeStackNavigator()
-const HomeStack = createNativeStackNavigator()
-const AudioStack = createNativeStackNavigator()
-const ChatStack = createNativeStackNavigator()
 
 // Used to navigate from notification tap handlers (which run outside React tree)
 const navigationRef = createNavigationContainerRef<RootStackParamList>()
 
 /**
  * Route a tapped notification to the appropriate screen based on its data
- * payload. Currently handles broadcast and chat notifications. No-op when
+ * payload. Currently handles broadcast notifications. No-op when
  * navigation is not yet ready or the payload is unrelated.
  */
 function handleNotificationResponse(response: Notifications.NotificationResponse) {
@@ -73,81 +68,51 @@ function handleNotificationResponse(response: Notifications.NotificationResponse
   const broadcastId = data.broadcast_id
   if (typeof broadcastId === 'string' && broadcastId) {
     navigationRef.navigate('BroadcastDetail', { id: broadcastId })
-    return
-  }
-
-  if (data.type === 'chat' && typeof data.channelId === 'string' && data.channelId) {
-    const channelName = typeof data.channelName === 'string' ? data.channelName : 'Chat'
-    navigationRef.navigate('MainDrawer' as any, {
-      screen: 'HomeTabs',
-      params: {
-        screen: 'Chat',
-        params: {
-          screen: 'ChatRoom',
-          params: { channelId: data.channelId, channelName },
-        },
-      },
-    })
   }
 }
 
-// Shared back-header style — dark bg matching the gradient, no title, "Back" label
-const BACK_HEADER = {
-  headerShown: true,
-  title: '',
-  headerBackTitle: 'Back',
-  headerStyle: { backgroundColor: '#000033' },
-  headerTintColor: '#ffffff',
-  headerShadowVisible: false,
-} as const
-
-function HomeStackScreen() {
-  return (
-    <HomeStack.Navigator screenOptions={{ headerShown: false }}>
-      <HomeStack.Screen name="HomeMain" component={HomeScreen} />
-      <HomeStack.Screen name="Leaderboard" component={LeaderboardScreen} options={BACK_HEADER} />
-    </HomeStack.Navigator>
-  )
+// Shared back-header style — background matching the tenant theme, no title, "Back" label
+function backHeader(theme: TenantTheme) {
+  return {
+    headerShown: true,
+    title: '',
+    headerBackTitle: 'Back',
+    headerStyle: { backgroundColor: theme.colors.background },
+    headerTintColor: theme.colors.text,
+    headerShadowVisible: false,
+  } as const
 }
 
-function AudioStackScreen() {
-  return (
-    <AudioStack.Navigator screenOptions={{ headerShown: false }}>
-      <AudioStack.Screen name="AudioHome" component={AudioHomeScreen} />
-      <AudioStack.Screen name="MemberProfile" component={MemberProfileScreen} />
-      <AudioStack.Screen name="Highlights" component={HighlightsScreen} options={BACK_HEADER} />
-      <AudioStack.Screen name="Secrets" component={SecretsScreen} options={{ headerShown: false }} />
-      <AudioStack.Screen name="Favorites" component={FavoritesScreen} options={{ headerShown: false }} />
-      <AudioStack.Screen name="Objections" component={ObjectionsScreen} options={BACK_HEADER} />
-      <AudioStack.Screen name="Trending" component={TrendingScreen} options={BACK_HEADER} />
-    </AudioStack.Navigator>
-  )
+/** Back-header options for the current tenant */
+function useBackHeader() {
+  const theme = useTenantTheme()
+  return React.useMemo(() => backHeader(theme), [theme])
 }
 
-function ChatStackScreen() {
-  return (
-    <ChatStack.Navigator screenOptions={{ headerShown: false }}>
-      <ChatStack.Screen name="ChannelList" component={ChannelListScreen} />
-      <ChatStack.Screen name="ChatRoom" component={ChatRoomScreen} options={BACK_HEADER} />
-    </ChatStack.Navigator>
-  )
+// ─── Tab icons and label keys ─────────────────────────────────
+const TAB_LABEL_KEYS: Record<keyof MainTabParamList, TabKey> = {
+  Lab: 'lab',
+  Vault: 'vault',
+  Chat: 'chat',
+  Leaderboard: 'leaderboard',
+  Library: 'library',
 }
 
-// ─── Tab icons ────────────────────────────────────────────────
-const TAB_ICONS: Record<string, string> = {
-  Home: '\u{1F3E0}',
-  Audios: '\u{1F3A7}',
+const TAB_ICONS: Record<keyof MainTabParamList, string> = {
+  Lab: '\u{1F9EA}',
+  Vault: '\u{1F512}',
   Chat: '\u{1F4AC}',
-  Videos: '\u{1F3AC}',
+  Leaderboard: '\u{1F3C6}',
+  Library: '\u{1F4DA}',
 }
 
 // ─── Custom solid tab bar ──────────────────────────────────────
 function CustomTabBar({ state, navigation }: BottomTabBarProps) {
-  const { company } = useAuth()
-  const barColor = company?.secondary_color || '#0a1a5f'
+  const { colors } = useTenantTheme()
+  const labels = useLabels()
 
   return (
-    <View style={[tabStyles.container, { backgroundColor: barColor }]}>
+    <View style={[tabStyles.container, { backgroundColor: colors.tabBar }]}>
       {state.routes.map((route, index) => {
         const focused = state.index === index
         const isLast = index === state.routes.length - 1
@@ -161,12 +126,19 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
               activeOpacity={0.7}
             >
               {/* Gold indicator bar at top for active tab */}
-              <View style={[tabStyles.indicator, focused && tabStyles.indicatorActive]} />
+              <View
+                style={[tabStyles.indicator, focused && { backgroundColor: colors.accent }]}
+              />
               <Text style={[tabStyles.icon, focused && tabStyles.iconActive]}>
-                {TAB_ICONS[route.name] || '?'}
+                {TAB_ICONS[route.name as keyof MainTabParamList] || '?'}
               </Text>
-              <Text style={[tabStyles.label, focused && tabStyles.labelActive]}>
-                {route.name}
+              <Text
+                style={[
+                  tabStyles.label,
+                  { color: focused ? colors.text : colors.textMuted },
+                ]}
+              >
+                {labels.tabs[TAB_LABEL_KEYS[route.name as keyof MainTabParamList]] ?? route.name}
               </Text>
             </TouchableOpacity>
             {!isLast && <View style={tabStyles.divider} />}
@@ -199,9 +171,6 @@ const tabStyles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: 'transparent',
   },
-  indicatorActive: {
-    backgroundColor: colors.successGold,
-  },
   divider: {
     width: 1,
     marginVertical: 10,
@@ -217,10 +186,6 @@ const tabStyles = StyleSheet.create({
   label: {
     fontSize: 11,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.5)',
-  },
-  labelActive: {
-    color: '#fff',
   },
 })
 
@@ -240,10 +205,11 @@ function BottomTabs({ onMenuPress }: { onMenuPress: () => void }) {
         ),
       })}
     >
-      <Tab.Screen name="Home" component={HomeStackScreen} />
-      <Tab.Screen name="Audios" component={AudioStackScreen} />
-      <Tab.Screen name="Chat" component={ChatStackScreen} />
-      <Tab.Screen name="Videos" component={TrainingVideosScreen} />
+      <Tab.Screen name="Lab" component={TrainingVideosScreen} />
+      <Tab.Screen name="Vault" component={VaultScreen} />
+      <Tab.Screen name="Chat" component={AskCoachScreen} />
+      <Tab.Screen name="Leaderboard" component={LeaderboardScreen} />
+      <Tab.Screen name="Library" component={LibraryScreen} />
     </Tab.Navigator>
   )
 }
@@ -252,10 +218,14 @@ function BottomTabs({ onMenuPress }: { onMenuPress: () => void }) {
 function AuthenticatedShell() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const navigation = useNavigation<any>()
+  const { appStyle } = useTenantTheme()
 
   const handleDrawerNavigate = useCallback((screen: string) => {
     navigation.navigate(screen)
   }, [navigation])
+
+  // Game-style companies get the full Lab experience (the demo, in a web view)
+  if (appStyle === 'game') return <GameScreen />
 
   return (
     <View style={{ flex: 1 }}>
@@ -276,7 +246,12 @@ function AuthenticatedShell() {
 
 // ─── Root Navigator ────────────────────────────────────────────
 export default function AppNavigator() {
-  const { user, loading } = useAuth()
+  const { user, loading, entryHeld } = useAuth()
+  // Signed in and past the sign-in page's ACCESS GRANTED moment
+  const signedIn = !!user && !entryHeld
+  const theme = useTenantTheme()
+  const backHeaderOptions = useBackHeader()
+  const { hasLook } = useMyLook()
 
   // TOS acceptance gate — blocks app once user is authenticated.
   // null = checking, true = already accepted, false = needs to accept
@@ -302,7 +277,7 @@ export default function AppNavigator() {
   }, [user?.id])
 
   // Notification permission prompt — runs only after TOS is accepted
-  const promptReady = !!user && tosAccepted === true
+  const promptReady = signedIn && tosAccepted === true
   const { shouldShow: showNotifPrompt, dismissForToday, markAccepted: markNotifShown } =
     useNotificationPrompt(promptReady)
 
@@ -320,17 +295,17 @@ export default function AppNavigator() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.successGold} />
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.accent} />
       </View>
     )
   }
 
   // Authenticated but still checking TOS — show spinner to avoid flash
-  if (user && tosAccepted === null) {
+  if (signedIn && tosAccepted === null) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.successGold} />
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.accent} />
       </View>
     )
   }
@@ -338,39 +313,48 @@ export default function AppNavigator() {
   return (
     <NavigationContainer ref={navigationRef}>
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
-        {user ? (
+        {signedIn ? (
           <>
             <RootStack.Screen name="MainDrawer" component={AuthenticatedShell} />
-            <RootStack.Screen name="Profile" component={ProfileScreen} options={BACK_HEADER} />
-            <RootStack.Screen name="Support" component={SupportScreen} options={BACK_HEADER} />
-            <RootStack.Screen name="NotificationSettings" component={NotificationSettingsScreen} options={BACK_HEADER} />
+            <RootStack.Screen name="Profile" component={ProfileScreen} options={backHeaderOptions} />
+            <RootStack.Screen name="Support" component={SupportScreen} options={backHeaderOptions} />
+            <RootStack.Screen name="NotificationSettings" component={NotificationSettingsScreen} options={backHeaderOptions} />
+            <RootStack.Screen name="MyStats" component={HomeScreen} options={backHeaderOptions} />
+            <RootStack.Screen name="Locker" component={LockerScreen} options={backHeaderOptions} />
             <RootStack.Screen
               name="TranscriptDetail"
               component={TranscriptDetailScreen}
               options={{ headerShown: false }}
             />
-            <RootStack.Screen name="RecordAudio" component={RecordAudioScreen} options={BACK_HEADER} />
-            <RootStack.Screen name="TermsOfService" component={TermsOfServiceScreen} options={{ ...BACK_HEADER, headerBackTitle: 'Back' }} />
+            <RootStack.Screen name="TermsOfService" component={TermsOfServiceScreen} options={{ ...backHeaderOptions, headerBackTitle: 'Back' }} />
             <RootStack.Screen name="BroadcastDetail" component={BroadcastDetailScreen} options={{ headerShown: false }} />
           </>
         ) : (
           <>
-            <RootStack.Screen name="Landing" component={LandingScreen} />
-            <RootStack.Screen name="Login" component={LoginScreen} />
+            <RootStack.Screen name="Login" component={LoginGameScreen} />
           </>
         )}
       </RootStack.Navigator>
 
       {/* TOS acceptance gate — blocks app rendering until accepted */}
-      {user && tosAccepted === false && (
+      {signedIn && tosAccepted === false && (
         <TosAcceptanceModal
           visible
           onAccepted={() => setTosAccepted(true)}
         />
       )}
 
-      {/* Notification permission prompt — only after TOS, only if not granted */}
-      {user && tosAccepted === true && showNotifPrompt && (
+      {/* First run: build a pixel rep before anything else (after TOS) */}
+      {signedIn && tosAccepted === true && hasLook === false && theme.appStyle !== 'game' && (
+        <Modal visible animationType="slide" presentationStyle="fullScreen">
+          <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+            <RepBuilder firstRun />
+          </SafeAreaView>
+        </Modal>
+      )}
+
+      {/* Notification permission prompt — only after TOS and the rep, only if not granted */}
+      {signedIn && tosAccepted === true && hasLook !== false && showNotifPrompt && (
         <NotificationPromptModal
           visible
           onDismiss={dismissForToday}
@@ -386,6 +370,5 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.midnightBlue,
   },
 })

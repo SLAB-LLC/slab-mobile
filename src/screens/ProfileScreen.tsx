@@ -16,9 +16,13 @@ import * as FileSystem from 'expo-file-system/legacy'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../utils/supabase'
 import { colors } from '../theme/tokens'
+import { useNavigation } from '@react-navigation/native'
+import { PixelSprite, useMyLook } from '../avatar'
 
 export default function ProfileScreen() {
   const { user, profile, company, loading, signOut, refreshProfile } = useAuth()
+  const navigation = useNavigation<any>()
+  const { look } = useMyLook()
 
   const displayName = profile?.display_name || ''
   const [nameInput, setNameInput] = useState(displayName)
@@ -193,6 +197,16 @@ export default function ProfileScreen() {
         <Text style={styles.tapHint}>Tap to change photo</Text>
       </View>
 
+      {/* Pixel rep */}
+      <TouchableOpacity style={[styles.card, styles.repCard]} onPress={() => navigation.navigate('Locker')} activeOpacity={0.85}>
+        <PixelSprite look={look} size={88} />
+        <View style={styles.repText}>
+          <Text style={styles.sectionTitle}>Your Rep</Text>
+          <Text style={styles.repSub}>Change your look and gear in the locker</Text>
+        </View>
+        <Text style={[styles.repArrow, { color: accentColor }]}>{'\u203A'}</Text>
+      </TouchableOpacity>
+
       {/* Read-only info */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Account Info</Text>
@@ -338,6 +352,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e5e7eb',
   },
+  repCard: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  repText: { flex: 1 },
+  repSub: { fontSize: 13, color: '#6b7280', marginTop: -8 },
+  repArrow: { fontSize: 30, fontWeight: '300' },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',

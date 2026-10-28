@@ -17,6 +17,7 @@ import { RouteProp, useRoute, useNavigation } from '@react-navigation/native'
 import { Broadcast, getBroadcast } from '../services/broadcasts.service'
 import { RootStackParamList } from '../types'
 import { colors } from '../theme/tokens'
+import { useCompanyColors } from '../hooks/useCompanyColors'
 
 type RouteProps = RouteProp<RootStackParamList, 'BroadcastDetail'>
 type AudioPlayer = ReturnType<typeof createAudioPlayer>
@@ -29,6 +30,7 @@ const CATEGORY_META: Record<string, { label: string; icon: string; color: string
 }
 
 export default function BroadcastDetailScreen() {
+  const { bgGradient } = useCompanyColors()
   const route = useRoute<RouteProps>()
   const navigation = useNavigation<any>()
   const { width } = useWindowDimensions()
@@ -93,7 +95,7 @@ export default function BroadcastDetailScreen() {
 
   return (
     <LinearGradient
-      colors={['#000033', '#001199', '#0a1a5f']}
+      colors={bgGradient}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.container}

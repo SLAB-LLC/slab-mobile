@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
+import { useCompanyColors } from '../hooks/useCompanyColors'
 
 const SUPPORT_EMAIL = 'duncan@slabtraining.com'
 const SUPPORT_PHONE = '2082126891'
@@ -52,9 +53,10 @@ const CONTACT_OPTIONS = [
 ]
 
 export default function SupportScreen() {
+  const { bgGradient } = useCompanyColors()
   return (
     <LinearGradient
-      colors={['#000033', '#001199', '#0a1a5f']}
+      colors={bgGradient}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.container}

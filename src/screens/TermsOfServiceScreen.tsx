@@ -7,14 +7,16 @@ import {
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { TOS_SECTIONS, TOS_LAST_UPDATED } from '../data/termsOfService'
+import { useCompanyColors } from '../hooks/useCompanyColors'
 
 const LAST_UPDATED = TOS_LAST_UPDATED
 const SECTIONS = TOS_SECTIONS
 
 export default function TermsOfServiceScreen() {
+  const { bgGradient } = useCompanyColors()
   return (
     <LinearGradient
-      colors={['#000033', '#001199', '#0a1a5f']}
+      colors={bgGradient}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.container}

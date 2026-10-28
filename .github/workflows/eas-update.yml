@@ -14,12 +14,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
@@ -33,3 +33,10 @@ jobs:
 
       - name: Publish update
         run: eas update --branch production --message "${{ github.event.inputs.message }}" --non-interactive
+
+      # What the phones see: which branch the production channel serves, and the builds it serves
+      - name: Show channel and recent builds
+        continue-on-error: true
+        run: |
+          eas channel:view production --non-interactive
+          eas build:list --platform ios --limit 3 --non-interactive --json | node -e 'const b=JSON.parse(require("fs").readFileSync(0,"utf8")); for (const x of b) console.log(x.id, x.status, "channel=" + x.channel, "runtime=" + x.runtimeVersion, "version=" + x.appVersion + " (" + x.appBuildVersion + ")", x.gitCommitHash, x.createdAt)'

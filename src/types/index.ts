@@ -1,49 +1,23 @@
 // Navigation types
 export type RootStackParamList = {
-  Landing: undefined
   Login: undefined
   MainDrawer: undefined
+  Profile: undefined
+  Support: undefined
+  NotificationSettings: undefined
+  MyStats: undefined
+  Locker: undefined
   TranscriptDetail: { id: string }
-  RecordAudio: undefined
   TermsOfService: undefined
   BroadcastDetail: { id: string }
 }
 
-export type DrawerParamList = {
-  MainTabs: undefined
-  Profile: undefined
-  Support: undefined
-  NotificationSettings: undefined
-}
-
 export type MainTabParamList = {
-  Home: undefined
-  Audios: undefined
+  Lab: undefined
+  Vault: undefined
   Chat: undefined
-  Videos: undefined
-}
-
-// Stack param lists for each tab
-export type HomeStackParamList = {
-  Dashboard: undefined
   Leaderboard: undefined
-}
-
-export type AudioStackParamList = {
-  AudioHome: undefined
-  MemberProfile: { memberId: string }
-  Calendar: { memberId: string }
-  TranscriptDetail: { id: string }
-  Highlights: { memberId: string }
-  Secrets: { memberId: string }
-  Favorites: undefined
-  Objections: undefined
-  Trending: undefined
-}
-
-export type ChatStackParamList = {
-  ChannelList: undefined
-  ChatRoom: { channelId: string }
+  Library: undefined
 }
 
 export type VideoStackParamList = {
@@ -66,6 +40,8 @@ export interface Transcript {
   area_type?: string
   estimated_duration_hours?: number
   upload_notes?: string
+  /** Day the recording was made (YYYY-MM-DD), when known */
+  recording_date?: string | null
   // Transcript data from backend processing
   transcript_redacted?: {
     text: string
@@ -96,7 +72,10 @@ export interface Salesperson {
 export interface UserProfile {
   id: string
   email?: string
-  role: 'user' | 'company_admin' | 'super_admin'
+  /** Same roles as the website: rep, manager, owner, SLAB admin (owner of every company) */
+  role: 'user' | 'manager' | 'company_admin' | 'super_admin'
+  /** Vets get every lesson, the Vault and chat open; set by owners on the website */
+  level?: 'rookie' | 'vet' | null
   company_id?: string
   full_name?: string
   display_name?: string

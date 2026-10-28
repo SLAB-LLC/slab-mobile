@@ -13,7 +13,7 @@ import {
   Dimensions,
 } from 'react-native'
 import { useAuth } from '../../context/AuthContext'
-import { colors } from '../../theme/tokens'
+import { useTenantTheme } from '../../tenant'
 
 const logoImage = require('../../../assets/slab-logo-thermal.png')
 const DRAWER_WIDTH = 280
@@ -65,7 +65,7 @@ export default function SideDrawer({ visible, onClose, onNavigate }: SideDrawerP
   const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current
   const overlayAnim = useRef(new Animated.Value(0)).current
 
-  const secondaryColor = company?.secondary_color || '#0a1a5f'
+  const { colors, cobrand, brandName } = useTenantTheme()
 
   useEffect(() => {
     if (visible) {
@@ -117,6 +117,8 @@ export default function SideDrawer({ visible, onClose, onNavigate }: SideDrawerP
 
   const items: DrawerItem[] = [
     { label: 'Profile', icon: '\u{1F464}', screen: 'Profile' },
+    { label: 'Your Rep', icon: '\u{1F9CD}', screen: 'Locker' },
+    { label: 'My Stats', icon: '\u{1F4C8}', screen: 'MyStats' },
     { label: 'Support', icon: '\u{1F4AC}', screen: 'Support' },
     { label: 'Notifications', icon: '\u{1F514}', screen: 'NotificationSettings' },
     { label: 'Terms of Service', icon: '\u{1F4CB}', screen: 'TermsOfService' },
@@ -147,20 +149,27 @@ export default function SideDrawer({ visible, onClose, onNavigate }: SideDrawerP
         style={[styles.drawer, { transform: [{ translateX: slideAnim }] }]}
       >
         {/* Header */}
-        <View style={[styles.header, { backgroundColor: secondaryColor }]}>
+        <View style={[styles.header, { backgroundColor: colors.header }]}>
           {profile?.profile_picture_url ? (
-            <Image source={{ uri: profile.profile_picture_url }} style={styles.avatarImage} />
+            <Image
+              source={{ uri: profile.profile_picture_url }}
+              style={[styles.avatarImage, { borderColor: colors.accent }]}
+            />
           ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarInitials}>
+            <View style={[styles.avatarPlaceholder, { backgroundColor: colors.accent }]}>
+              <Text style={[styles.avatarInitials, { color: colors.onAccent }]}>
                 {displayName
                   ? displayName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
                   : '?'}
               </Text>
             </View>
           )}
-          <Text style={styles.userName}>{displayName || 'User'}</Text>
-          {company && <Text style={styles.companyName}>{company.name}</Text>}
+          <Text style={[styles.userName, { color: colors.text }]}>{displayName || 'User'}</Text>
+          {company && (
+            <Text style={[styles.companyName, { color: colors.accent }]}>
+              {cobrand || brandName}
+            </Text>
+          )}
         </View>
 
         {/* Menu items */}
@@ -230,29 +239,24 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     marginBottom: 12,
     borderWidth: 2,
-    borderColor: colors.successGold,
   },
   avatarPlaceholder: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: colors.successGold,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
   avatarInitials: {
-    color: '#000',
     fontSize: 22,
     fontWeight: '700',
   },
   userName: {
-    color: '#fff',
     fontSize: 18,
     fontWeight: '700',
   },
   companyName: {
-    color: colors.successGold,
     fontSize: 14,
     marginTop: 4,
   },

@@ -15,7 +15,6 @@ import { RouteProp, useRoute, useNavigation } from '@react-navigation/native'
 import { useAuth } from '../context/AuthContext'
 import * as transcriptsService from '../services/transcripts.service'
 import * as conversationsService from '../services/conversations.service'
-import * as favoritesService from '../services/favorites.service'
 import * as upvotesService from '../services/upvotes.service'
 import { RootStackParamList, Conversation } from '../types'
 import AdvancedAudioPlayer, {
@@ -27,7 +26,7 @@ import ConversationFilters from '../components/transcripts/ConversationFilters'
 import { colors, spacing, borderRadius } from '../theme/tokens'
 import { useStreakTracker } from '../hooks/useStreakTracker'
 import { useScreenCaptureProtection } from '../hooks/useScreenCaptureProtection'
-import ShareToChatModal from '../components/chat/ShareToChatModal'
+import { useCompanyColors } from '../hooks/useCompanyColors'
 
 type TranscriptDetailRouteProp = RouteProp<RootStackParamList, 'TranscriptDetail'>
 
@@ -38,6 +37,7 @@ const CATEGORY_MAP: Record<string, string> = {
 }
 
 export default function TranscriptDetailScreen() {
+  const { bgGradient } = useCompanyColors()
   const route = useRoute<TranscriptDetailRouteProp>()
   const navigation = useNavigation()
   const { id } = route.params
@@ -57,11 +57,8 @@ export default function TranscriptDetailScreen() {
     'all' | 'interactions' | 'pitches' | 'sales'
   >('all')
   const [selectedObjection, setSelectedObjection] = useState('all')
-  const [favoritedIds, setFavoritedIds] = useState<Set<string>>(new Set())
   const [upvotedIds, setUpvotedIds] = useState<Set<string>>(new Set())
   const [upvoteCounts, setUpvoteCounts] = useState<Record<string, number>>({})
-  const [shareModalVisible, setShareModalVisible] = useState(false)
-  const [shareConversation, setShareConversation] = useState<Conversation | null>(null)
   const [transcriptExpanded, setTranscriptExpanded] = useState(false)
 
   useEffect(() => {
@@ -70,11 +67,10 @@ export default function TranscriptDetailScreen() {
     logTranscriptView()
   }, [id])
 
-  // Fetch favorites and upvotes when conversations load
+  // Fetch upvotes when conversations load
   useEffect(() => {
     if (conversations.length > 0 && user?.id) {
       const ids = conversations.map((c) => c.id)
-      favoritesService.getFavoritedConversationIds(user.id, ids).then(setFavoritedIds)
       upvotesService.getUserUpvotedIds(user.id, ids).then(setUpvotedIds)
       upvotesService.getUpvoteCounts(ids).then(setUpvoteCounts)
     }
@@ -162,27 +158,6 @@ export default function TranscriptDetailScreen() {
     }
   }, [conversations])
 
-  const handleShareToChat = useCallback((conversation: Conversation) => {
-    setShareConversation(conversation)
-    setShareModalVisible(true)
-  }, [])
-
-  const handleToggleFavorite = useCallback(async (conversationId: string, isFavorited: boolean) => {
-    if (!user?.id || !profile?.company_id) return
-    const newState = await favoritesService.toggleFavorite(
-      user.id,
-      profile.company_id,
-      conversationId,
-      isFavorited
-    )
-    setFavoritedIds((prev) => {
-      const next = new Set(prev)
-      if (newState) next.add(conversationId)
-      else next.delete(conversationId)
-      return next
-    })
-  }, [user?.id, profile?.company_id])
-
   const handleToggleUpvote = useCallback(async (conversationId: string, isUpvoted: boolean) => {
     if (!user?.id) return
     const newState = await upvotesService.toggleUpvote(user.id, conversationId, isUpvoted)
@@ -245,7 +220,7 @@ export default function TranscriptDetailScreen() {
 
   if (loading) {
     return (
-      <LinearGradient colors={['#000033', '#001155', '#0a1a5f']} style={styles.centered}>
+      <LinearGradient colors={bgGradient} style={styles.centered}>
         <ActivityIndicator size="large" color={colors.successGold} />
       </LinearGradient>
     )
@@ -253,7 +228,7 @@ export default function TranscriptDetailScreen() {
 
   if (error || !transcript) {
     return (
-      <LinearGradient colors={['#000033', '#001155', '#0a1a5f']} style={styles.centered}>
+      <LinearGradient colors={bgGradient} style={styles.centered}>
         <Text style={styles.errorText}>{error || 'Transcript not found'}</Text>
         <TouchableOpacity style={styles.retryBtn} onPress={() => fetchTranscript()}>
           <Text style={styles.retryText}>Retry</Text>
@@ -279,7 +254,7 @@ export default function TranscriptDetailScreen() {
         }
       >
         {/* Dark header with stats */}
-        <LinearGradient colors={['#000033', '#001155']} style={styles.header}>
+        <LinearGradient colors={[bgGradient[0], bgGradient[1]]} style={styles.header}>
           {/* Back + Share row */}
           <View style={styles.headerTopRow}>
             <TouchableOpacity
@@ -396,12 +371,9 @@ export default function TranscriptDetailScreen() {
                 key={conversation.id}
                 conversation={conversation}
                 onPress={() => handleConversationPress(conversation)}
-                isFavorited={favoritedIds.has(conversation.id)}
-                onToggleFavorite={handleToggleFavorite}
                 isUpvoted={upvotedIds.has(conversation.id)}
                 upvoteCount={upvoteCounts[conversation.id] || 0}
                 onToggleUpvote={handleToggleUpvote}
-                onShare={handleShareToChat}
               />
             ))}
           </View>
@@ -434,21 +406,6 @@ export default function TranscriptDetailScreen() {
             onPlayingChange={handlePlayingChange}
           />
         </View>
-      )}
-
-      {/* Share to Chat Modal */}
-      {shareConversation && (
-        <ShareToChatModal
-          visible={shareModalVisible}
-          onClose={() => {
-            setShareModalVisible(false)
-            setShareConversation(null)
-          }}
-          transcriptId={id}
-          conversationTitle={`${transcript.salesperson_name} - Conversation #${shareConversation.conversation_number}`}
-          timestampStart={shareConversation.start_time}
-          timestampEnd={shareConversation.end_time}
-        />
       )}
     </View>
   )
