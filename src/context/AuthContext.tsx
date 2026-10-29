@@ -6,6 +6,7 @@ import { UserProfile, Company } from '../types'
 import { registerPushTokenSilently, deactivatePushToken } from '../services/notifications.service'
 import { startSession, endSession } from '../services/activitySession.service'
 import { recordHeartbeat } from '../services/streak.service'
+import { SOLO_COMPANY_SLUG } from '../tenant/defaults'
 
 const HEARTBEAT_INTERVAL_MS = 60_000
 
@@ -59,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Silently re-register push token if permission already granted
       registerPushTokenSilently(userId)
 
-      // Fetch company if user has one (a SLAB admin can switch theirs to none)
+      // Fetch company if user has one (a SLAB admin can switch theirs to solo)
       if (!profileData?.company_id) setCompany(null)
       else {
         const { data: companyData, error: companyError } = await supabase
@@ -71,7 +72,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (companyError) {
           console.error('Error fetching company:', companyError)
         } else {
-          setCompany(companyData)
+          // SLAB's house company holds the reps with no company: the app runs them solo
+          setCompany(companyData?.slug === SOLO_COMPANY_SLUG ? null : companyData)
         }
       }
     } catch (error) {

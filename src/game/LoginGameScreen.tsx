@@ -6,6 +6,7 @@ import * as Haptics from 'expo-haptics'
 import { otaStatus } from '../utils/otaUpdates'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../utils/supabase'
+import { SOLO_COMPANY_SLUG } from '../tenant/defaults'
 // The old native login, if the page can't be put in place
 import LoginScreenFallback from '../screens/LoginScreen'
 import { prepareLoginPage } from './files'
@@ -71,8 +72,8 @@ export default function LoginGameScreen() {
           const { data: auth } = await supabase.auth.getUser()
           const { data: profile } = await supabase.from('user_profiles').select('company_id').eq('id', auth.user?.id ?? '').maybeSingle()
           if (!profile?.company_id) return { company: null }
-          const { data: company } = await supabase.from('companies').select('name').eq('id', profile.company_id).maybeSingle()
-          return { company: company?.name ?? null }
+          const { data: company } = await supabase.from('companies').select('name, slug').eq('id', profile.company_id).maybeSingle()
+          return { company: company && company.slug !== SOLO_COMPANY_SLUG ? company.name : null }
         }
         case 'enter':
           release()

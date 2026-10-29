@@ -75,3 +75,9 @@ export const DEFAULT_TENANT_CONFIG: TenantConfig = {
     },
   },
 }
+
+/**
+ * Every account needs a company, so reps who aren't with one live in SLAB's own house company.
+ * The app treats that company as no company at all: solo mode, SLAB colors, company features locked.
+ */
+export const SOLO_COMPANY_SLUG = 'slab-internal'
