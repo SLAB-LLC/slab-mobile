@@ -669,3 +669,48 @@ if (appSolo()) {
     if (!seen && ME.onboarded && !document.querySelector('.coach, #onboard')) openSoloWelcome();
   }, 1200);
 }
+
+// ============ SLAB ADMINS: VIEW THE APP AS ANY COMPANY ============
+// A super admin picks a company (or none, for solo) in their profile; the account moves there
+// (admin_switch_company) and the app reloads as that company's reps see it.
+if (APP && APP.me.superAdmin) {
+  const baseRoleCard = roleCardHTML;
+  roleCardHTML = function(){
+    return `<div class="me-card me-role"><span class="ow-lab">SLAB admin · viewing the app as</span>
+      <button class="ow-btn" id="me-switch-co" type="button">${esc(APP.me.companyName || 'No company (solo)')} &middot; Switch</button></div>` + baseRoleCard();
+  };
+  const baseRenderProfile = renderProfile;
+  renderProfile = function(keep){
+    baseRenderProfile(keep);
+    const b = $('me-switch-co'); if (b) b.onclick = () => { haptic('tap'); openCompanySwitch(); };
+  };
+}
+function openCompanySwitch(){
+  const old = $('co-wrap'); if (old) old.remove();
+  const wrap = document.createElement('div');
+  wrap.className = 'ss-wrap co-wrap'; wrap.id = 'co-wrap';
+  wrap.innerHTML = `<div class="ss-backdrop" data-close></div>
+    <div class="streak-sheet co-sheet" role="dialog" aria-modal="true" aria-labelledby="co-h">
+      <div class="ss-grab" aria-hidden="true"></div>
+      <h2 id="co-h">View the app as</h2>
+      <p class="ss-sub">Your account moves to that company until you switch back. XP you earn counts there.</p>
+      <div class="co-list" id="co-list"><div class="co-wait">Loading companies...</div></div>
+    </div>`;
+  $('phone').appendChild(wrap);
+  requestAnimationFrame(() => wrap.classList.add('show'));
+  const close = () => { wrap.classList.remove('show'); setTimeout(() => wrap.remove(), 320); };
+  wrap.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', close));
+  appCall('companies').then(list => {
+    const rows = [{ id:'', name:'No company (solo)' }, ...(list || [])];
+    $('co-list').innerHTML = rows.map(c => {
+      const on = c.id === '' ? APP.me.solo : !APP.me.solo && c.name === APP.me.companyName;
+      return `<button class="co-row${on ? ' on' : ''}" type="button" data-co="${esc(c.id || '')}"><span>${esc(c.name || 'Company')}</span>${on ? '<i class="ph-fill ph-check-circle" aria-hidden="true"></i>' : ''}</button>`;
+    }).join('');
+    $('co-list').querySelectorAll('[data-co]').forEach(b => b.addEventListener('click', () => {
+      if (b.classList.contains('on')) { close(); return; }
+      haptic('tap');
+      $('co-list').innerHTML = '<div class="co-wait">Switching...</div>';
+      appCall('switchCompany', { id: b.dataset.co || null }).catch(e => { showToast((e && e.message) || 'Couldn’t switch', 'ph-warning'); close(); });
+    }));
+  }).catch(e => { $('co-list').innerHTML = `<div class="co-wait">${esc((e && e.message) || 'Couldn’t load companies')}</div>`; });
+}

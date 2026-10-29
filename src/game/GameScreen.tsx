@@ -50,7 +50,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
  */
 export default function GameScreen() {
   const navigation = useNavigation<any>()
-  const { user, profile, company, signOut } = useAuth()
+  const { user, profile, company, signOut, refreshProfile } = useAuth()
   const theme = useTenantTheme()
   const features = useFeatures()
   const { ready: tenantReady } = useTenant()
@@ -76,12 +76,14 @@ export default function GameScreen() {
       .catch((err) => setFailed(String(err?.message || err)))
   }, [])
 
-  // Start data, built once per sign-in after XP and the rep's look are known
+  // Start data, built once per sign-in (and per company a SLAB admin switches to) after XP and the
+  // rep's look are known
   const ready = !!user?.id && xpLoaded && hasLook !== null && tenantReady
   const bootFor = useRef<string | null>(null)
+  const bootKey = `${user?.id}:${company?.id ?? 'none'}`
   useEffect(() => {
-    if (!ready || !user?.id || bootFor.current === user.id) return
-    bootFor.current = user.id
+    if (!ready || !user?.id || bootFor.current === bootKey) return
+    bootFor.current = bootKey
     buildGameBoot({
       userId: user.id,
       email: user.email ?? null,
@@ -101,7 +103,7 @@ export default function GameScreen() {
         setBootScript(`window.SLAB_APP = ${JSON.stringify(boot).replace(/</g, '\\u003c')}; true;`)
       })
       .catch((err) => setFailed(String(err?.message || err)))
-  }, [ready, user?.id])
+  }, [ready, bootKey])
 
   // The home screen icon follows the company (Ace gets the gold Ace logo)
   useEffect(() => {
@@ -189,6 +191,20 @@ export default function GameScreen() {
         case 'saveTraining':
           if (!company?.id) throw new Error('Your account has no company')
           return owner.saveTraining(company.id, payload)
+        case 'companies': {
+          const { data, error } = await supabase.rpc('admin_companies')
+          if (error) throw new Error(error.message)
+          return data ?? []
+        }
+        case 'switchCompany': {
+          if ((payload?.id ?? null) === (company?.id ?? null)) return null
+          const { error } = await supabase.rpc('admin_switch_company', { p_company_id: payload?.id ?? null })
+          if (error) throw new Error(error.message)
+          // The page reloads with the new company's look, features and data
+          setBootScript(null)
+          await refreshProfile()
+          return null
+        }
         case 'ai':
           return owner.askAI(payload?.messages)
         case 'notif': {
@@ -213,7 +229,7 @@ export default function GameScreen() {
           throw new Error(`Unknown request: ${type}`)
       }
     },
-    [user?.id, profile, company, theme, engine, saveLook, signOut, navigation, refreshXp]
+    [user?.id, profile, company, theme, engine, saveLook, signOut, navigation, refreshXp, refreshProfile]
   )
 
   const onMessage = useCallback(

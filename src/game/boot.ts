@@ -60,6 +60,8 @@ export interface GameBoot {
     companyName: string | null
     /** Not registered with a company: company features are locked and show why */
     solo: boolean
+    /** SLAB admin: may switch which company the app shows (admin_switch_company) */
+    superAdmin: boolean
     look: Partial<RepLook> | null
   }
   features: { vaultUnlockXp: number; chatUnlockXp: number; monthlyPrize: boolean; companyLessons: boolean }
@@ -342,10 +344,12 @@ export async function buildGameBoot(args: {
         xp: args.totalXp,
         streakDays: args.streakDays,
         roleLabel: ROLE_LABELS[profile?.role ?? 'user'] ?? 'Rep',
-        role: PAGE_ROLES[profile?.role ?? 'user'] ?? 'rep',
+        // Solo shows exactly what a rep without a company sees, even to a SLAB admin
+        role: solo ? 'rep' : PAGE_ROLES[profile?.role ?? 'user'] ?? 'rep',
         level: profile?.level === 'vet' ? 'vet' : 'rookie',
         companyName: company?.name ?? null,
         solo,
+        superAdmin: profile?.role === 'super_admin',
         look: args.look,
       },
       features: {

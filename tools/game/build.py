@@ -409,6 +409,12 @@ appSafe('rep', initRep);
   .solo-locked{ display:flex; align-items:center; gap:8px; margin:0 0 16px; font-size:12.5px; color:var(--text-dim); line-height:1.35; }
   .solo-locked i{ font-size:16px; flex:none; }
   .solo-sheet .btn{ width:100%; margin-top:6px; }
+  /* SLAB admins: view the app as any company */
+  .co-list{ display:flex; flex-direction:column; gap:6px; }
+  .co-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:48px; padding:0 14px; border-radius:var(--r-ctl); border:1px solid var(--hairline); background:var(--bg); color:var(--text); font:600 15px/1.2 'Barlow', sans-serif; text-align:left; cursor:pointer; }
+  .co-row.on{ border-color:var(--amber); }
+  .co-row i{ color:var(--amber); font-size:18px; }
+  .co-wait{ padding:18px 0; text-align:center; color:var(--text-dim); font-size:14px; }
 """
     i = html.index('</style>', html.index('<!DOCTYPE html>') if '<!DOCTYPE html>' in html else 0)
     html = html[:i] + css + html[i:]
