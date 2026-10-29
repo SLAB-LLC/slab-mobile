@@ -110,6 +110,62 @@ def vault_live(html):
     return html
 
 
+def slab_pack(html):
+    """SLAB's own merch for reps without a company; src/avatar/engine.ts carries the same edits"""
+    L = 'GEAR_LETTERS'
+    gear = (
+        "// SLAB's own merch, for reps without a company: the SLAB S where Ace's A goes, orange for gold, and two lab pieces\n"
+        f"const SLAB_PACK = {L}.join('') === 'SLAB';\n"
+        "if (SLAB_PACK) {\n"
+        "  const rn = (slot, id, name) => { const g = GEAR[slot].find(x => x.id === id); if (g) g.name = name; };\n"
+        "  rn('top', 'blazer', 'Orange SLAB blazer'); rn('hat', 'snapback', 'Orange snapback'); rn('shoes', 'gold', 'Orange kicks');\n"
+        "  GEAR.top.splice(GEAR.top.findIndex(x => x.id === 'varsity'), 0, { id:'labcoat', name:'SLAB lab coat', xp:1000 });\n"
+        "  GEAR.extra.splice(GEAR.extra.findIndex(x => x.id === 'shades'), 0, { id:'goggles', name:'Lab goggles', xp:450 });\n"
+        "}\n"
+        "const ALL_GEAR = ")
+    tops = (
+        "TOPS.labcoat = { body:'#efeee8', sleeve:'long', back:true };\n"
+        "if (SLAB_PACK) TOPS.blazer = { body:ACE_GOLD, sleeve:'long' };\n"
+        "const PANTS = {")
+    mark = (
+        "\n// The chest and cap mark: Ace's A for Ace, otherwise the company's first letter (SLAB gets a chunkier S on caps)\n"
+        f"const gearMark = () => {L}.join('') === 'ACE' ? null : (GLYPH[{L}[0]] || null);\n"
+        "const capMarkRows = () => { const m = gearMark(); if (!m) return ['0110', '1001', '1111', '1001'];\n"
+        f"  if ({L}[0] === 'S') return ['0111', '1100', '0011', '1110']; return [m[0], m[1], m[2], m[4]].map(r => r + '0'); }};\n")
+    logo_old = "const logoA = (x, y, c) => { D(x + 1, y, c); D(x, y + 1, c); D(x + 2, y + 1, c); Dspan(y + 2, x, x + 2, c); D(x, y + 3, c); D(x + 2, y + 3, c); };"
+    logo_new = ("const logoA = (x, y, c) => { const m = gearMark(); if (m) { m.forEach((row, ry) => [...row].forEach((v, rx) => { if (v === '1') D(x + rx, y - 1 + ry, c); })); return; }"
+                " D(x + 1, y, c); D(x, y + 1, c); D(x + 2, y + 1, c); Dspan(y + 2, x, x + 2, c); D(x, y + 3, c); D(x + 2, y + 3, c); };")
+    labcoat = (
+        "      case 'labcoat': for (let y = t; y <= t + 5; y++) { const k = Math.max(0, y - t - 3); Dspan(y, 16 + k, 19 - k, ACE_BLACK); }"
+        " for (let y = t; y <= t + 6; y++) { const k = Math.max(0, y - t - 4); D(15 + k, y, d); D(20 - k, y, d); }"
+        " for (let y = t + 7; y <= t + 12; y++) D(17, y, d); D(18, t + 8, '#b9b8b2'); D(18, t + 11, '#b9b8b2');"
+        " Dspan(t + 5, 11, 13, d); D(12, t + 3, ACE_GOLD); D(12, t + 4, ACE_GOLD); logoA(21, t + 3, ACE_GOLD); Dspan(t + 10, 11, 14, d); Dspan(t + 10, 20, 23, d); break;\n"
+        "      case 'robe':")
+    goggles_front = ("    if (look.extra === 'goggles') { const gl = '#d6ecf5'; [ex0, ex1].forEach(x0 => { Dspan(y + 9, x0 - 1, x0 + 3, ACE_GOLD); Dspan(y + 12, x0 - 1, x0 + 3, ACE_GOLD);"
+                     " D(x0 - 1, y + 10, ACE_GOLD); D(x0 - 1, y + 11, ACE_GOLD); D(x0 + 3, y + 10, ACE_GOLD); D(x0 + 3, y + 11, ACE_GOLD);"
+                     " Dspan(y + 10, x0, x0 + 2, gl); Dspan(y + 11, x0, x0 + 2, gl); D(x0, y + 10, '#ffffff'); }); Dspan(y + 10, ex0 + 4, ex1 - 2, ACE_GOLD); }\n"
+                     "    if (look.extra === 'shades' || look.extra === 'both') { [ex0, ex1]")
+    goggles_side = ("    if (look.extra === 'goggles') { Dspan(y + 9, 15, 19, ACE_BLACK); Dspan(y + 9, 20, 24, ACE_GOLD); D(20, y + 10, ACE_GOLD); D(20, y + 11, ACE_GOLD);"
+                    " Dspan(y + 10, 21, 24, '#d6ecf5'); Dspan(y + 11, 21, 24, '#d6ecf5'); Dspan(y + 12, 20, 24, ACE_GOLD); D(21, y + 10, '#ffffff'); }\n"
+                    "    if (look.extra === 'shades' || look.extra === 'both') { Dspan(y + 9, 15, 24")
+    cap_old = "D(17 + dx, y - 1, lg); D(18 + dx, y - 1, lg); D(16 + dx, y, lg); D(19 + dx, y, lg); Dspan(y + 1, 16 + dx, 19 + dx, lg); D(16 + dx, y + 2, lg); D(19 + dx, y + 2, lg);"
+    cap_new = "capMarkRows().forEach((row, ry) => [...row].forEach((v, rx) => { if (v === '1') D(16 + dx + rx, y - 1 + ry, lg); }));"
+    for old, new in [
+        ("const ALL_GEAR = ", gear),
+        ("const PANTS = {", tops),
+        (logo_old, logo_new),
+        ("logoA(16, t + 3, top.logo); D(19, t + 3, top.logo);", "logoA(16, t + 3, top.logo); if (!gearMark()) D(19, t + 3, top.logo);"),
+        ("logoA(16, t + 3, ACE_GOLD); D(19, t + 3, ACE_GOLD);", "logoA(16, t + 3, ACE_GOLD); if (!gearMark()) D(19, t + 3, ACE_GOLD);"),
+        ("      case 'robe':", labcoat),
+        ("    if (look.extra === 'shades' || look.extra === 'both') { [ex0, ex1]", goggles_front),
+        ("    if (look.extra === 'shades' || look.extra === 'both') { Dspan(y + 9, 15, 24", goggles_side),
+        (cap_old, cap_new),
+    ]:
+        html = rep(html, old, new)
+    html = rep(html, "const RARITY = { crown:1,", "const RARITY = { labcoat:8, goggles:25, crown:1,")
+    return html, mark
+
+
 def main(src):
     html = open(src, encoding='utf-8').read()
 
@@ -244,6 +300,8 @@ def main(src):
                "const GEAR_X0 = Math.round(17.5 - (GEAR_LETTERS.length * 4 - 1) / 2);")
     html = rep(html, "const GLYPH = { A:['010','101','111','101','101'], C:['011','100','100','100','011'], E:['111','100','110','100','111'] };",
                'const GLYPH = ' + font + ';')
+    html, mark = slab_pack(html)
+    html = rep(html, 'const GLYPH = ' + font + ';', 'const GLYPH = ' + font + ';' + mark)
     html = rep(html, "['A', 'C', 'E'].forEach((ch, i) => GLYPH[ch].forEach((row, ry) => [...row].forEach((v, rx) => { if (v === '1') D(12 + i * 4 + rx, t + 3 + ry, c); })));",
                "GEAR_LETTERS.forEach((ch, i) => (GLYPH[ch] || GLYPH[' ']).forEach((row, ry) => [...row].forEach((v, rx) => { if (v === '1') D(GEAR_X0 + i * 4 + rx, t + 3 + ry, c); })));")
 

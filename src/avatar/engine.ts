@@ -114,6 +114,14 @@ const GEAR = {
     { id:'scooter', name:B + ' e-scooter',    xp:1500 },
   ],
 };
+// SLAB's own merch, for reps without a company: the SLAB S where Ace's A goes, orange for gold, and two lab pieces
+const SLAB_PACK = LETTERS.join('') === 'SLAB';
+if (SLAB_PACK) {
+  const rn = (slot, id, name) => { const g = GEAR[slot].find(x => x.id === id); if (g) g.name = name; };
+  rn('top', 'blazer', 'Orange SLAB blazer'); rn('hat', 'snapback', 'Orange snapback'); rn('shoes', 'gold', 'Orange kicks');
+  GEAR.top.splice(GEAR.top.findIndex(x => x.id === 'varsity'), 0, { id:'labcoat', name:'SLAB lab coat', xp:1000 });
+  GEAR.extra.splice(GEAR.extra.findIndex(x => x.id === 'shades'), 0, { id:'goggles', name:'Lab goggles', xp:450 });
+}
 const ALL_GEAR = Object.entries(GEAR).flatMap(([slot, list]) => list.filter(g => g.xp > 0).map(g => ({ ...g, slot }))).sort((a, b) => a.xp - b.xp);
 
 const DEFAULT_LOOK = { skin:2, eyes:0, hair:'short', hairColor:1, face:'none', top:'tee', hat:'none', pants:'black', shoes:'sneaker', extra:'none', ride:'none' };
@@ -136,11 +144,18 @@ const TOPS = {
   tank:     { body:'#eeeeea', sleeve:'none' },
   sweater:  { body:'#4c6b5a', sleeve:'long' },
 };
+TOPS.labcoat = { body:'#efeee8', sleeve:'long', back:true };
+if (SLAB_PACK) TOPS.blazer = { body:ACE_GOLD, sleeve:'long' };
 const PANTS = { black:'#2a2b33', khaki:'#b59b6b', jeans:'#3d5a86', shorts:'#a8916a', joggers:'#1f1f25', sweats:'#8b8f98', slacks:'#5a5048' };
 const SHOES = { sneaker:'#f1f0ea', runner:'#26262c', boots:'#5a3d26', gold:ACE_GOLD, slippers:'#a07a6a', loafers:'#4a2e22' };
 
 // 3x5 pixel letters for the back of company gear
 const GLYPH = GLYPHS_3X5;
+
+// The chest and cap mark: Ace's A for Ace, otherwise the company's first letter (SLAB gets a chunkier S on caps)
+const gearMark = () => LETTERS.join('') === 'ACE' ? null : (GLYPH[LETTERS[0]] || null);
+const capMarkRows = () => { const m = gearMark(); if (!m) return ['0110', '1001', '1111', '1001'];
+  if (LETTERS[0] === 'S') return ['0111', '1100', '0011', '1110']; return [m[0], m[1], m[2], m[4]].map(r => r + '0'); };
 
 function composeSprite(look, pose, mood){
   const W = SPR_W, H = SPR_H;
@@ -401,6 +416,7 @@ function composeSprite(look, pose, mood){
     if (look.face === 'beard') { for (let yy = y + 12; yy <= y + 16; yy++) { const a = yy < y + 15 ? 9 : 11, b = yy < y + 15 ? 26 : 24; for (let x = a; x <= b; x++) { if (yy === y + 15 && x >= 16 && x <= 19) continue; if (yy < y + 14 && x > a + 1 && x < b - 1) continue; D(x + dx, yy, fh); } } Dspan(y + 17, 13 + dx, 22 + dx, fh); Dspan(y + 14, 15 + dx, 20 + dx, hairD); }
     // glasses + shades + readers
     const ex0 = ex[0], ex1 = ex[1];
+    if (look.extra === 'goggles') { const gl = '#d6ecf5'; [ex0, ex1].forEach(x0 => { Dspan(y + 9, x0 - 1, x0 + 3, ACE_GOLD); Dspan(y + 12, x0 - 1, x0 + 3, ACE_GOLD); D(x0 - 1, y + 10, ACE_GOLD); D(x0 - 1, y + 11, ACE_GOLD); D(x0 + 3, y + 10, ACE_GOLD); D(x0 + 3, y + 11, ACE_GOLD); Dspan(y + 10, x0, x0 + 2, gl); Dspan(y + 11, x0, x0 + 2, gl); D(x0, y + 10, '#ffffff'); }); Dspan(y + 10, ex0 + 4, ex1 - 2, ACE_GOLD); }
     if (look.extra === 'shades' || look.extra === 'both') { [ex0, ex1].forEach(x0 => { Dspan(y + 9, x0 - 1, x0 + 3, '#101014'); Dspan(y + 10, x0 - 1, x0 + 3, '#101014'); Dspan(y + 11, x0, x0 + 2, '#101014'); D(x0, y + 10, '#7fa7d1'); }); Dspan(y + 9, ex0 + 4, ex1 - 2, '#101014'); }
     if (look.extra === 'glasses' || look.extra === 'readers') {
       const f = look.extra === 'readers' ? '#7a5a3a' : '#22222a';
@@ -432,6 +448,7 @@ function composeSprite(look, pose, mood){
     if (look.face === 'beard') { for (let yy = y + 11; yy <= y + 17; yy++) for (let x = 15; x <= 25; x++) { if (part[yy] && part[yy][x] === 'skin' && !(yy === y + 14 && x >= 22)) { if (yy < y + 13 && x > 17 && x < 24) continue; D(x, yy, fh); } } }
     if (look.face === 'mustache' || look.face === 'goatee') { Dspan(y + 13, 22, 25, fh); if (look.face === 'goatee') Dspan(y + 15, 22, 24, fh); }
     if (look.face === 'stubble') for (let yy = y + 13; yy <= y + 16; yy++) for (let x = 17; x <= 24; x++) if ((x + yy) % 2 === 0 && part[yy][x] === 'skin') D(x, yy, skinDD);
+    if (look.extra === 'goggles') { Dspan(y + 9, 15, 19, ACE_BLACK); Dspan(y + 9, 20, 24, ACE_GOLD); D(20, y + 10, ACE_GOLD); D(20, y + 11, ACE_GOLD); Dspan(y + 10, 21, 24, '#d6ecf5'); Dspan(y + 11, 21, 24, '#d6ecf5'); Dspan(y + 12, 20, 24, ACE_GOLD); D(21, y + 10, '#ffffff'); }
     if (look.extra === 'shades' || look.extra === 'both') { Dspan(y + 9, 15, 24, '#101014'); Dspan(y + 10, 21, 24, '#101014'); Dspan(y + 11, 21, 23, '#101014'); D(22, y + 10, '#7fa7d1'); }
     if (look.extra === 'glasses' || look.extra === 'readers') { const f = look.extra === 'readers' ? '#7a5a3a' : '#22222a'; Dspan(y + 9, 16, 24, f); D(20, y + 10, f); D(20, y + 11, f); D(24, y + 10, f); D(24, y + 11, f); Dspan(y + 12, 20, 24, f); }
     if (look.extra === 'curlers') [[13, -1], [18, -2], [22, -1]].forEach(([x, yy]) => { D(x, y + yy, '#e88aa8'); D(x + 1, y + yy, '#e88aa8'); });
@@ -440,17 +457,18 @@ function composeSprite(look, pose, mood){
   // ================= tops (details) =================
   function topFront(t){
     const d = shadow(body, 0.35), l = light(body, 0.25);
-    const logoA = (x, y, c) => { D(x + 1, y, c); D(x, y + 1, c); D(x + 2, y + 1, c); Dspan(y + 2, x, x + 2, c); D(x, y + 3, c); D(x + 2, y + 3, c); };
+    const logoA = (x, y, c) => { const m = gearMark(); if (m) { m.forEach((row, ry) => [...row].forEach((v, rx) => { if (v === '1') D(x + rx, y - 1 + ry, c); })); return; } D(x + 1, y, c); D(x, y + 1, c); D(x + 2, y + 1, c); Dspan(y + 2, x, x + 2, c); D(x, y + 3, c); D(x + 2, y + 3, c); };
     switch (look.top) {
-      case 'tee': Dspan(t, 15, 20, shadow(body, 0.1)); Dspan(t, 16, 19, skinD); logoA(16, t + 3, top.logo); D(19, t + 3, top.logo); break;
+      case 'tee': Dspan(t, 15, 20, shadow(body, 0.1)); Dspan(t, 16, 19, skinD); logoA(16, t + 3, top.logo); if (!gearMark()) D(19, t + 3, top.logo); break;
       case 'polo': Dspan(t, 14, 15, ACE_BLACK); Dspan(t, 20, 21, ACE_BLACK); Dspan(t, 16, 19, skinD); D(17, t + 1, skinD); D(18, t + 1, skinD); D(17, t + 2, ACE_BLACK); D(18, t + 3, ACE_BLACK); D(22, t + 3, ACE_BLACK); D(21, t + 3, ACE_BLACK); break;
       case 'oxford': Dspan(t, 15, 16, '#ffffff'); Dspan(t, 19, 20, '#ffffff'); Dspan(t, 17, 18, skinD); for (let y = t + 1; y <= t + 12; y++) D(17, y, shadow(body, 0.18)); for (let y = t + 3; y <= t + 11; y += 3) D(18, y, '#b8c0cc'); D(13, t + 3, shadow(body, 0.22)); D(14, t + 3, shadow(body, 0.22)); break;
       case 'crew': Dspan(t, 14, 21, shadow(body, 0.25)); Dspan(t + 12, 11, 24, shadow(body, 0.25)); break;
       case 'zip': Dspan(t, 13, 22, shadow(body, 0.3)); Dspan(t - 1, 14, 21, shadow(body, 0.3)); for (let y = t; y <= t + 6; y++) D(17, y, ACE_GOLD); D(17, t + 7, '#fff2c0'); D(13, t + 3, ACE_GOLD); D(14, t + 3, ACE_GOLD); break;
       case 'vest': for (let y = t + 1; y <= t + 12; y++) { D(17, y, shadow(body, 0.4)); } for (let y = t + 3; y <= t + 12; y += 3) Dspan(y, 11, 24, shadow(body, 0.3)); Dspan(t, 14, 21, '#e9eef5'); D(13, t + 2, ACE_GOLD); D(14, t + 2, ACE_GOLD); break;
-      case 'hoodie': Dspan(t - 1, 12, 23, shadow(body, 0.2)); Dspan(t, 12, 23, light(body, 0.08)); D(15, t + 1, ACE_GOLD); D(15, t + 2, ACE_GOLD); D(20, t + 1, ACE_GOLD); D(20, t + 2, ACE_GOLD); Dspan(t + 8, 13, 22, shadow(body, 0.3)); for (let y = t + 9; y <= t + 10; y++) { D(13, y, shadow(body, 0.3)); D(22, y, shadow(body, 0.3)); } logoA(16, t + 3, ACE_GOLD); D(19, t + 3, ACE_GOLD); break;
+      case 'hoodie': Dspan(t - 1, 12, 23, shadow(body, 0.2)); Dspan(t, 12, 23, light(body, 0.08)); D(15, t + 1, ACE_GOLD); D(15, t + 2, ACE_GOLD); D(20, t + 1, ACE_GOLD); D(20, t + 2, ACE_GOLD); Dspan(t + 8, 13, 22, shadow(body, 0.3)); for (let y = t + 9; y <= t + 10; y++) { D(13, y, shadow(body, 0.3)); D(22, y, shadow(body, 0.3)); } logoA(16, t + 3, ACE_GOLD); if (!gearMark()) D(19, t + 3, ACE_GOLD); break;
       case 'varsity': Dspan(t, 13, 22, ACE_GOLD); Dspan(t + 12, 11, 24, ACE_GOLD); for (let y = t + 1; y <= t + 11; y++) D(17, y, shadow(body, 0.3)); for (let y = t + 2; y <= t + 11; y += 3) D(18, y, ACE_GOLD); logoA(12, t + 3, ACE_GOLD); break;
       case 'blazer': for (let y = t; y <= t + 7; y++) Dspan(y, 16, 19, '#f2f2f2'); D(17, t + 1, '#1a1a1f'); D(18, t + 1, '#1a1a1f'); for (let y = t + 2; y <= t + 6; y++) { D(17, y, '#1a1a1f'); D(18, y, '#1a1a1f'); } for (let y = t; y <= t + 6; y++) { D(15, y, d); D(20, y, d); } D(16, t + 9, '#1a1a1f'); D(16, t + 11, '#1a1a1f'); D(22, t + 3, '#ffffff'); D(23, t + 3, '#d2402f'); break;
+      case 'labcoat': for (let y = t; y <= t + 5; y++) { const k = Math.max(0, y - t - 3); Dspan(y, 16 + k, 19 - k, ACE_BLACK); } for (let y = t; y <= t + 6; y++) { const k = Math.max(0, y - t - 4); D(15 + k, y, d); D(20 - k, y, d); } for (let y = t + 7; y <= t + 12; y++) D(17, y, d); D(18, t + 8, '#b9b8b2'); D(18, t + 11, '#b9b8b2'); Dspan(t + 5, 11, 13, d); D(12, t + 3, ACE_GOLD); D(12, t + 4, ACE_GOLD); logoA(21, t + 3, ACE_GOLD); Dspan(t + 10, 11, 14, d); Dspan(t + 10, 20, 23, d); break;
       case 'robe': for (let y = t; y <= t + 4; y++) Dspan(y, 16, 19 - Math.max(0, y - t - 2), skin); Dspan(t + 7, 10, 25, d); D(15, t + 8, d); D(20, t + 8, d); for (let y = t + 1; y <= t + 12; y++) D(15 + (y > t + 6 ? 1 : 0), y, d); break;
       case 'flannel': for (let y = t; y <= t + 12; y++) for (let x = 10; x <= 25; x++) if (part[y] && part[y][x] === 'top' && (x % 4 === 0 || y % 4 === 0)) D(x, y, (x % 4 === 0 && y % 4 === 0) ? '#2a0f0d' : '#5a1a16'); for (let y = t + 1; y <= t + 12; y++) D(17, y, '#7a2620'); break;
       case 'cardigan': for (let y = t; y <= t + 12; y++) Dspan(y, 16, 19, '#e9e2d4'); for (let y = t + 3; y <= t + 11; y += 3) D(15, y, '#d8c49a'); break;
@@ -482,7 +500,7 @@ function composeSprite(look, pose, mood){
     if (hat === 'cap' || hat === 'snapback' || hat === 'back') {
       sp(Hat, y - 3, 13, 22); sp(Hat, y - 2, 11, 24); sp(Hat, y - 1, 10, 25); sp(Hat, y, 9, 26); sp(Hat, y + 1, 9, 26); sp(Hat, y + 2, 9, 26);
       if (hat === 'back') { sp(Hat, y + 3, 9, 26); Dspan(y + 3, 15 + dx, 20 + dx, OUTLINE); D(15 + dx, y + 2, OUTLINE); D(20 + dx, y + 2, OUTLINE); Dspan(y + 2, 16 + dx, 19 + dx, skin); }
-      else { sp(Brim, y + 3, 8, 27); sp(Brim, y + 4, 10, 25); const lg = hat === 'cap' ? ACE_GOLD : ACE_BLACK; D(17 + dx, y - 1, lg); D(18 + dx, y - 1, lg); D(16 + dx, y, lg); D(19 + dx, y, lg); Dspan(y + 1, 16 + dx, 19 + dx, lg); D(16 + dx, y + 2, lg); D(19 + dx, y + 2, lg); }
+      else { sp(Brim, y + 3, 8, 27); sp(Brim, y + 4, 10, 25); const lg = hat === 'cap' ? ACE_GOLD : ACE_BLACK; capMarkRows().forEach((row, ry) => [...row].forEach((v, rx) => { if (v === '1') D(16 + dx + rx, y - 1 + ry, lg); })); }
     }
     if (hat === 'beanie') { sp(Hat, y - 4, 14, 21); sp(Hat, y - 3, 12, 23); sp(Hat, y - 2, 10, 25); sp(Hat, y - 1, 9, 26); sp(Hat, y, 9, 26); sp(Brim, y + 1, 8, 27); sp(Brim, y + 2, 8, 27); sp(Brim, y + 3, 8, 27); Dspan(y + 1, 8 + dx, 27 + dx, ACE_GOLD); for (let x = 9; x <= 26; x += 2) D(x + dx, y + 2, shadow(ACE_BLACK, 0.3)); D(17 + dx, y - 5, ACE_GOLD); D(18 + dx, y - 5, ACE_GOLD); }
     if (hat === 'bucket') { sp(Hat, y - 3, 12, 23); sp(Hat, y - 2, 11, 24); sp(Hat, y - 1, 10, 25); sp(Hat, y, 10, 25); sp(Hat, y + 1, 10, 25); sp(Brim, y + 2, 7, 28); sp(Brim, y + 3, 6, 29); Dspan(y + 1, 10 + dx, 25 + dx, '#8a7650'); }
