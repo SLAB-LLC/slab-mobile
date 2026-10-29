@@ -388,6 +388,7 @@ appSafe('rep', initRep);
   .lb-scope button{ display:flex; align-items:center; justify-content:center; gap:6px; min-height:40px; border:0; border-radius:9px; background:none; color:var(--text-dim); font:600 14px/1 'Barlow', sans-serif; cursor:pointer; }
   .lb-scope button.on{ background:var(--amber); color:#0b0b0d; }
   .lb-scope button i{ font-size:15px; }
+  .lb-scope .lb-globe{ width:17px; height:17px; flex:none; }
   .lb-co{ display:block; font-size:11.5px; font-weight:500; color:var(--text-dim); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   /* Solo: no company yet */
   .solo .navbtn.solo-lock{ opacity:.45; }

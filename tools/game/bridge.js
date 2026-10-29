@@ -577,8 +577,8 @@ function lbSetScope(scope){
 if (APP) {
   const list = $('leaderboard');
   list.insertAdjacentHTML('beforebegin', `<div class="lb-scope" id="lb-scope" role="tablist" aria-label="Which leaderboard">
-    <button type="button" role="tab" data-scope="company">${appSolo() ? '<i class="ph-fill ph-lock-simple" aria-hidden="true"></i>' : ''}My company</button>
-    <button type="button" role="tab" data-scope="global">Everyone</button></div>`);
+    <button type="button" role="tab" data-scope="company">${appSolo() ? '<i class="ph-fill ph-lock-simple" aria-hidden="true"></i>' : ''}My Company</button>
+    <button type="button" role="tab" data-scope="global"><svg class="lb-globe" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 12h18M12 3c2.6 2.5 3.9 5.5 3.9 9s-1.3 6.5-3.9 9c-2.6-2.5-3.9-5.5-3.9-9s1.3-6.5 3.9-9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Global</button></div>`);
   $('lb-scope').addEventListener('click', (e) => {
     const b = e.target.closest('[data-scope]'); if (!b || b.dataset.scope === lbScope) return;
     if (b.dataset.scope === 'company' && appSolo()) { haptic('wrong'); showToast(NO_COMPANY, 'ph-lock-simple'); return; }
@@ -622,7 +622,7 @@ if (appSolo()) {
     { sel:'#vx .vx-reps', go: tourVault, text:'This is the Vault: real pitches, full days of top reps knocking doors. Pick a rep and listen door by door while you drive. Marshall’s page has his videos too.' },
     { sel:'#vx .vx-seg button[data-v="reels"]', go: tourVault, text:'Reels is a feed of the best moments: closes, objections, switchovers. Tune it to hear exactly what you need to work on.' },
     { sel:'.nav-marshall', go: () => tourGo('courses'), text:'Tap Marshall to ask him anything: objections, price, what to say at the door.' },
-    { sel:'#lb-scope', go: () => tourGo('leaderboard'), text:'The global leaderboard: every SLAB rep, ranked by XP. See where you stack up.' },
+    { sel:'#lb-scope', go: () => tourGo('leaderboard'), text:'Tap Global to see every SLAB rep, ranked by XP. See where you stack up.' },
     { sel:'.navbtn[data-page="library"]', go: () => tourGo('courses'), text:'The Lab, boss fights and the Library come with a company. When yours signs up, they unlock.' },
     { sel:'#me-btn', go: () => tourGo('courses'), text:'Tap your rep anytime to change your gear and check when power hour starts.' },
   );
