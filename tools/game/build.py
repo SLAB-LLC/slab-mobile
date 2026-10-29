@@ -150,7 +150,7 @@ def slab_pack(html):
                     "    if (look.extra === 'shades' || look.extra === 'both') { Dspan(y + 9, 15, 24")
     cap_old = "D(17 + dx, y - 1, lg); D(18 + dx, y - 1, lg); D(16 + dx, y, lg); D(19 + dx, y, lg); Dspan(y + 1, 16 + dx, 19 + dx, lg); D(16 + dx, y + 2, lg); D(19 + dx, y + 2, lg);"
     cap_new = "capMarkRows().forEach((row, ry) => [...row].forEach((v, rx) => { if (v === '1') D(16 + dx + rx, y - 1 + ry, lg); }));"
-    for old, new in [
+    for edit in [
         ("const ALL_GEAR = ", gear),
         ("const PANTS = {", tops),
         (logo_old, logo_new),
@@ -159,9 +159,19 @@ def slab_pack(html):
         ("      case 'robe':", labcoat),
         ("    if (look.extra === 'shades' || look.extra === 'both') { [ex0, ex1]", goggles_front),
         ("    if (look.extra === 'shades' || look.extra === 'both') { Dspan(y + 9, 15, 24", goggles_side),
-        (cap_old, cap_new),
+        (cap_old, cap_new, 1),
+        ('    legsFront(liftL, liftR);\n    const t = torso();', '    legsFront(liftL, liftR);\n    const t = torso();\n    coatTails(t);', 2),
+        ('  function shoeDetails(view){', "  // the lab coat hangs to the knees: open at the front below the waist, closed at the back\n  function coatTails(t){\n    if (look.top !== 'labcoat') return;\n    for (let y = t + 13; y <= t + 18; y++) { span(Top, y, 10, 16); span(Top, y, 19, 25); if (dir === 'up' || y <= t + 14) span(Top, y, 17, 18); }\n  }\n  function shoeDetails(view){", 1),
+        ('span(Top, t, 14, 21); for (let y = t + 1; y <= t + 12; y++) span(Top, y, 13, 22);', "span(Top, t, 14, 21); for (let y = t + 1; y <= t + 12; y++) span(Top, y, 13, 22);\n    if (look.top === 'labcoat') for (let y = t + 13; y <= t + 18; y++) span(Top, y, 12, 22);", 1),
+        ('  function topBack(t){', "  function topBack(t){\n    if (look.top === 'labcoat') for (let y = t + 14; y <= t + 18; y++) D(17, y, shadow(body, 0.3));", 1),
+        ('    const d = shadow(body, 0.35), l = light(body, 0.25);\n', "    const d = shadow(body, 0.35), l = light(body, 0.25);\n    // the SLAB box logo: an orange block with the S cut out\n    const slabBox = (x, y) => { for (let yy = y; yy <= y + 6; yy++) Dspan(yy, x, x + 4, ACE_GOLD); GLYPH.S.forEach((row, ry) => [...row].forEach((v, rx) => { if (v === '1') D(x + 1 + rx, y + 1 + ry, ACE_BLACK); })); };\n", 1),
+        ('logoA(16, t + 3, top.logo); if (!gearMark()) D(19, t + 3, top.logo);', 'if (SLAB_PACK) slabBox(15, t + 2); else { logoA(16, t + 3, top.logo); if (!gearMark()) D(19, t + 3, top.logo); }', 1),
+        ('logoA(16, t + 3, ACE_GOLD); if (!gearMark()) D(19, t + 3, ACE_GOLD);', 'if (SLAB_PACK) slabBox(15, t + 3); else { logoA(16, t + 3, ACE_GOLD); if (!gearMark()) D(19, t + 3, ACE_GOLD); }', 1),
+        (' for (let y = t + 7; y <= t + 12; y++) D(17, y, d);', ' for (let y = t + 7; y <= t + 14; y++) D(17, y, d);', 1),
+        ('Dspan(t + 10, 11, 14, d); Dspan(t + 10, 20, 23, d);', 'Dspan(t + 14, 11, 14, d); Dspan(t + 14, 21, 24, d); Dspan(t + 18, 10, 16, d); Dspan(t + 18, 19, 25, d);', 1),
     ]:
-        html = rep(html, old, new)
+        old, new, count = (*edit, 1)[:3]
+        html = rep(html, old, new, count)
     html = rep(html, "const RARITY = { crown:1,", "const RARITY = { labcoat:8, goggles:25, crown:1,")
     return html, mark
 
