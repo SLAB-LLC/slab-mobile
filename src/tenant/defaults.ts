@@ -1,10 +1,10 @@
 import type { TenantConfig } from './types'
 
 /**
- * SLAB's own look and rules. Used as-is for companies with no
- * `company_app_config` row, and as the base every row is merged over.
- * Colors match the app's original navy and gold so existing companies see
- * no change until they are configured.
+ * SLAB's own look and rules. Used as-is for reps with no company and for
+ * companies with no `company_app_config` row, and as the base every row is
+ * merged over. SLAB's colors are orange, black and white (the website's
+ * orange, #F4711E).
  */
 export const DEFAULT_TENANT_CONFIG: TenantConfig = {
   theme: {
@@ -14,18 +14,18 @@ export const DEFAULT_TENANT_CONFIG: TenantConfig = {
     wordmarkUrl: null,
     statusBar: 'light',
     colors: {
-      background: '#000033',
-      backgroundGradient: ['#000033', '#001155', '#0a1a5f'],
+      background: '#000000',
+      backgroundGradient: ['#000000', '#0b0b0b', '#141414'],
       surface: 'rgba(255,255,255,0.06)',
       surfaceRaised: 'rgba(255,255,255,0.12)',
-      accent: '#f39c12',
-      accentSoft: 'rgba(243,156,18,0.15)',
-      accentLine: 'rgba(243,156,18,0.2)',
+      accent: '#F4711E',
+      accentSoft: 'rgba(244,113,30,0.15)',
+      accentLine: 'rgba(244,113,30,0.25)',
       onAccent: '#000000',
       text: '#ffffff',
-      textMuted: 'rgba(255,255,255,0.5)',
-      header: '#0a1a5f',
-      tabBar: '#0a1a5f',
+      textMuted: 'rgba(255,255,255,0.55)',
+      header: '#000000',
+      tabBar: '#000000',
       danger: '#EF4444',
       success: '#10B981',
     },

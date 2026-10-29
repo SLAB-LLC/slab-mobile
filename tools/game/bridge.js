@@ -379,7 +379,19 @@ if (APP) {
 
   // Company branding: accent color and co-brand line from the tenant config
   const accent = APP.brand && APP.brand.accent;
-  if (accent && !APP.brand.isAce) document.documentElement.style.setProperty('--amber', accent);
+  if (accent && !APP.brand.isAce) {
+    // the accent's dim fill, hairline and light tint follow it (SLAB's own is orange)
+    const m = /^#?([0-9a-f]{6})$/i.exec(accent.trim()), rs = document.documentElement.style;
+    rs.setProperty('--amber', accent);
+    rs.setProperty('--ace-gold', accent);
+    if (m) {
+      const n = parseInt(m[1], 16), c = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+      const mix = (to, t) => '#' + c.map(v => Math.round(v + (to - v) * t).toString(16).padStart(2, '0')).join('');
+      rs.setProperty('--amber-dim', mix(12, 0.8));
+      rs.setProperty('--amber-line', `rgba(${c.join(',')},0.38)`);
+      rs.setProperty('--amber-soft', mix(255, 0.35));
+    }
+  }
   if (APP.brand && APP.brand.cobrand) {
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {
@@ -531,3 +543,129 @@ runTour = function(){
   TOUR.forEach(t => { if (!t.go) t.go = () => tourGo('courses'); });
   baseRunTour();
 };
+
+// ============ LEADERBOARD: MY COMPANY OR EVERYONE ============
+// Every rep can flip between their company's board and the global one (global_leaderboard, every
+// SLAB rep by total XP). Reps without a company only have the global board.
+const NO_COMPANY = 'You’re not registered with a company';
+const appSolo = () => !!(APP && APP.me.solo);
+const lbFill = (l) => ({ props:0, lessons:0, bosses:0, books:0, badges:[], ...l, look: Object.assign({ ...DEFAULT_LOOK }, l.look || {}) });
+const lbBoards = APP ? { company: leaders.slice(), global: APP.globalLeaders ? APP.globalLeaders.map(lbFill) : null } : null;
+let lbScope = 'company';
+if (APP) {
+  try { if (localStorage.getItem('slab.lbScope') === 'global') lbScope = 'global'; } catch (e) {}
+  if (appSolo()) lbScope = 'global';
+  if (!lbBoards.global) lbScope = 'company';
+}
+function lbSetScope(scope){
+  lbScope = scope;
+  try { localStorage.setItem('slab.lbScope', scope); } catch (e) {}
+  const board = lbBoards[scope] || lbBoards.company;
+  // the rep's own row keeps its live XP and look whichever board shows
+  leaders.splice(0, leaders.length, ...board);
+  if (!leaders.some(l => l.you)) leaders.push(lbFill({ name: APP.me.name, streak: APP.me.streakDays, xp: currentXP, you:true }));
+  const pz = document.querySelector('#page-leaderboard .prize');
+  if (pz) pz.style.display = scope === 'global' || !APP.features.monthlyPrize ? 'none' : '';
+  const sub = document.querySelector('#page-leaderboard .page-sub');
+  if (sub) sub.textContent = scope === 'global' ? 'Every SLAB rep, ranked by total XP' : 'Your company, ranked by total XP';
+  document.querySelectorAll('#lb-scope button').forEach(b => {
+    const on = b.dataset.scope === scope;
+    b.classList.toggle('on', on); b.setAttribute('aria-selected', on);
+  });
+  renderLeaderboard(false);
+}
+if (APP) {
+  const list = $('leaderboard');
+  list.insertAdjacentHTML('beforebegin', `<div class="lb-scope" id="lb-scope" role="tablist" aria-label="Which leaderboard">
+    <button type="button" role="tab" data-scope="company">${appSolo() ? '<i class="ph-fill ph-lock-simple" aria-hidden="true"></i>' : ''}My company</button>
+    <button type="button" role="tab" data-scope="global">Everyone</button></div>`);
+  $('lb-scope').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-scope]'); if (!b || b.dataset.scope === lbScope) return;
+    if (b.dataset.scope === 'company' && appSolo()) { haptic('wrong'); showToast(NO_COMPANY, 'ph-lock-simple'); return; }
+    if (b.dataset.scope === 'global' && !lbBoards.global) { showToast('The global leaderboard isn\u2019t live yet', 'ph-trophy'); return; }
+    haptic('tap'); lbSetScope(b.dataset.scope);
+  });
+  // On the global board each rep shows their company
+  const baseRenderLb = renderLeaderboard;
+  renderLeaderboard = function(changed){
+    baseRenderLb(changed);
+    if (lbScope !== 'global') return;
+    document.querySelectorAll('#leaderboard .lb-row').forEach(row => {
+      const l = leaders.find(x => x.name === row.dataset.name), n = row.querySelector('.lb-name');
+      if (l && n && !l.you) n.insertAdjacentHTML('beforeend', `<small class="lb-co">${esc(l.company || 'Solo')}</small>`);
+    });
+  };
+  lbSetScope(lbScope);
+}
+
+// ============ SOLO: NO COMPANY YET ============
+// Reps who aren't registered with a company get the Vault, Ask Marshall, Marshall's videos and the
+// global leaderboard. The Lab (and its boss fights) and the Library stay locked, and say why when tapped.
+if (appSolo()) {
+  document.documentElement.classList.add('solo');
+  document.querySelectorAll('.navbtn[data-page="library"]').forEach(b => b.classList.add('solo-lock'));
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.navbtn[data-page="library"]')) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    haptic('wrong'); showToast(NO_COMPANY, 'ph-lock-simple');
+  }, true);
+  const stats = document.querySelector('#page-courses .stats');
+  if (stats) stats.insertAdjacentHTML('afterend', `<button class="solo-banner" id="solo-banner" type="button">
+    <i class="ph-fill ph-lock-simple" aria-hidden="true"></i>
+    <span><b>${NO_COMPANY}</b>The Lab opens when you join one. Your Vault, Marshall and the global leaderboard are open now.</span>
+    <i class="ph ph-caret-right" aria-hidden="true"></i></button>`);
+  const sb = $('solo-banner'); if (sb) sb.addEventListener('click', () => { haptic('tap'); openSoloWelcome(); });
+
+  // The walkthrough: what's theirs, then a tour of it
+  TOUR.splice(0, TOUR.length,
+    { sel:'#xp-pill', go: () => tourGo('courses'), text:'This is your XP. Every minute in the Vault and every question you ask Marshall adds to it, and more XP unlocks more gear.' },
+    { sel:'#vx .vx-reps', go: tourVault, text:'This is the Vault: real pitches, full days of top reps knocking doors. Pick a rep and listen door by door while you drive. Marshall’s page has his videos too.' },
+    { sel:'#vx .vx-seg button[data-v="reels"]', go: tourVault, text:'Reels is a feed of the best moments: closes, objections, switchovers. Tune it to hear exactly what you need to work on.' },
+    { sel:'.nav-marshall', go: () => tourGo('courses'), text:'Tap Marshall to ask him anything: objections, price, what to say at the door.' },
+    { sel:'#lb-scope', go: () => tourGo('leaderboard'), text:'The global leaderboard: every SLAB rep, ranked by XP. See where you stack up.' },
+    { sel:'.navbtn[data-page="library"]', go: () => tourGo('courses'), text:'The Lab, boss fights and the Library come with a company. When yours signs up, they unlock.' },
+    { sel:'#me-btn', go: () => tourGo('courses'), text:'Tap your rep anytime to change your gear and check when power hour starts.' },
+  );
+}
+const SOLO_SEEN = 'slab.soloWelcome';
+function openSoloWelcome(){
+  closeSoloWelcome();
+  try { localStorage.setItem(SOLO_SEEN, '1'); } catch (e) {}
+  const wrap = document.createElement('div');
+  wrap.className = 'ss-wrap solo-wrap'; wrap.id = 'solo-wrap';
+  const item = (icon, title, text) => `<li><i class="ph-fill ${icon}" aria-hidden="true"></i><span><b>${title}</b>${text}</span></li>`;
+  wrap.innerHTML = `<div class="ss-backdrop" data-close></div>
+    <div class="streak-sheet solo-sheet" role="dialog" aria-modal="true" aria-labelledby="solo-h">
+      <div class="ss-grab" aria-hidden="true"></div>
+      <div class="solo-kick">NO COMPANY YET</div>
+      <h2 class="solo-h" id="solo-h">Here’s what’s yours</h2>
+      <p class="solo-p">You’re not registered with a company, but you can start training now.</p>
+      <ul class="solo-list">
+        ${item('ph-headphones', 'Real pitches', 'Full days of top reps in the Vault, door by door.')}
+        ${item('ph-chat-teardrop-text', 'Ask Marshall', 'Objections, price, what to say. Ask anything.')}
+        ${item('ph-play-circle', 'Marshall’s videos', 'On his page in the Vault.')}
+        ${item('ph-trophy', 'Global leaderboard', 'Every SLAB rep, ranked by XP.')}
+      </ul>
+      <div class="solo-locked"><i class="ph-fill ph-lock-simple" aria-hidden="true"></i>The Lab, boss fights and the Library unlock when you join a company.</div>
+      <button class="btn btn-primary" id="solo-tour" type="button">Show me around</button>
+      <button class="btn btn-quiet" type="button" data-close>Not now</button>
+    </div>`;
+  $('phone').appendChild(wrap);
+  requestAnimationFrame(() => wrap.classList.add('show'));
+  wrap.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeSoloWelcome()));
+  $('solo-tour').addEventListener('click', () => { closeSoloWelcome(); setTimeout(runTour, 380); });
+}
+function closeSoloWelcome(){
+  const w = $('solo-wrap'); if (!w) return;
+  w.classList.remove('show'); setTimeout(() => w.remove(), 320);
+}
+if (appSolo()) {
+  // New reps build their rep first and their onboarding ends on the tour; reps who already have a
+  // look see the welcome once
+  const baseTour = runTour;
+  runTour = function(){ try { localStorage.setItem(SOLO_SEEN, '1'); } catch (e) {} baseTour(); };
+  setTimeout(() => {
+    let seen = false; try { seen = !!localStorage.getItem(SOLO_SEEN); } catch (e) {}
+    if (!seen && ME.onboarded && !document.querySelector('.coach, #onboard')) openSoloWelcome();
+  }, 1200);
+}

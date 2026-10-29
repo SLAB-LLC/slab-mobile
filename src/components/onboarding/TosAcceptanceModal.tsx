@@ -82,7 +82,7 @@ export default function TosAcceptanceModal({ visible, onAccepted }: TosAcceptanc
       statusBarTranslucent
     >
       <LinearGradient
-        colors={['#000033', '#001199', '#0a1a5f']}
+        colors={['#000000', '#0b0b0b', '#141414']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.container}
