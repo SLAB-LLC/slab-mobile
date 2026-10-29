@@ -4861,6 +4861,11 @@ function composeSprite(look, pose, mood){
     if (look.pants === 'joggers') for (let y = by + 1; y <= 45; y++) { D(11, y, ACE_GOLD); D(24, y, ACE_GOLD); }
     return { by };
   }
+  // the lab coat hangs to the knees: open at the front below the waist, closed at the back
+  function coatTails(t){
+    if (look.top !== 'labcoat') return;
+    for (let y = t + 13; y <= t + 18; y++) { span(Top, y, 10, 16); span(Top, y, 19, 25); if (dir === 'up' || y <= t + 14) span(Top, y, 17, 18); }
+  }
   function shoeDetails(view){
     // soles and accents, found from where the shoes landed
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
@@ -5096,18 +5101,20 @@ function composeSprite(look, pose, mood){
   // ================= tops (details) =================
   function topFront(t){
     const d = shadow(body, 0.35), l = light(body, 0.25);
+    // the SLAB box logo: an orange block with the S cut out
+    const slabBox = (x, y) => { for (let yy = y; yy <= y + 6; yy++) Dspan(yy, x, x + 4, ACE_GOLD); GLYPH.S.forEach((row, ry) => [...row].forEach((v, rx) => { if (v === '1') D(x + 1 + rx, y + 1 + ry, ACE_BLACK); })); };
     const logoA = (x, y, c) => { const m = gearMark(); if (m) { m.forEach((row, ry) => [...row].forEach((v, rx) => { if (v === '1') D(x + rx, y - 1 + ry, c); })); return; } D(x + 1, y, c); D(x, y + 1, c); D(x + 2, y + 1, c); Dspan(y + 2, x, x + 2, c); D(x, y + 3, c); D(x + 2, y + 3, c); };
     switch (look.top) {
-      case 'tee': Dspan(t, 15, 20, shadow(body, 0.1)); Dspan(t, 16, 19, skinD); logoA(16, t + 3, top.logo); if (!gearMark()) D(19, t + 3, top.logo); break;
+      case 'tee': Dspan(t, 15, 20, shadow(body, 0.1)); Dspan(t, 16, 19, skinD); if (SLAB_PACK) slabBox(15, t + 2); else { logoA(16, t + 3, top.logo); if (!gearMark()) D(19, t + 3, top.logo); } break;
       case 'polo': Dspan(t, 14, 15, ACE_BLACK); Dspan(t, 20, 21, ACE_BLACK); Dspan(t, 16, 19, skinD); D(17, t + 1, skinD); D(18, t + 1, skinD); D(17, t + 2, ACE_BLACK); D(18, t + 3, ACE_BLACK); D(22, t + 3, ACE_BLACK); D(21, t + 3, ACE_BLACK); break;
       case 'oxford': Dspan(t, 15, 16, '#ffffff'); Dspan(t, 19, 20, '#ffffff'); Dspan(t, 17, 18, skinD); for (let y = t + 1; y <= t + 12; y++) D(17, y, shadow(body, 0.18)); for (let y = t + 3; y <= t + 11; y += 3) D(18, y, '#b8c0cc'); D(13, t + 3, shadow(body, 0.22)); D(14, t + 3, shadow(body, 0.22)); break;
       case 'crew': Dspan(t, 14, 21, shadow(body, 0.25)); Dspan(t + 12, 11, 24, shadow(body, 0.25)); break;
       case 'zip': Dspan(t, 13, 22, shadow(body, 0.3)); Dspan(t - 1, 14, 21, shadow(body, 0.3)); for (let y = t; y <= t + 6; y++) D(17, y, ACE_GOLD); D(17, t + 7, '#fff2c0'); D(13, t + 3, ACE_GOLD); D(14, t + 3, ACE_GOLD); break;
       case 'vest': for (let y = t + 1; y <= t + 12; y++) { D(17, y, shadow(body, 0.4)); } for (let y = t + 3; y <= t + 12; y += 3) Dspan(y, 11, 24, shadow(body, 0.3)); Dspan(t, 14, 21, '#e9eef5'); D(13, t + 2, ACE_GOLD); D(14, t + 2, ACE_GOLD); break;
-      case 'hoodie': Dspan(t - 1, 12, 23, shadow(body, 0.2)); Dspan(t, 12, 23, light(body, 0.08)); D(15, t + 1, ACE_GOLD); D(15, t + 2, ACE_GOLD); D(20, t + 1, ACE_GOLD); D(20, t + 2, ACE_GOLD); Dspan(t + 8, 13, 22, shadow(body, 0.3)); for (let y = t + 9; y <= t + 10; y++) { D(13, y, shadow(body, 0.3)); D(22, y, shadow(body, 0.3)); } logoA(16, t + 3, ACE_GOLD); if (!gearMark()) D(19, t + 3, ACE_GOLD); break;
+      case 'hoodie': Dspan(t - 1, 12, 23, shadow(body, 0.2)); Dspan(t, 12, 23, light(body, 0.08)); D(15, t + 1, ACE_GOLD); D(15, t + 2, ACE_GOLD); D(20, t + 1, ACE_GOLD); D(20, t + 2, ACE_GOLD); Dspan(t + 8, 13, 22, shadow(body, 0.3)); for (let y = t + 9; y <= t + 10; y++) { D(13, y, shadow(body, 0.3)); D(22, y, shadow(body, 0.3)); } if (SLAB_PACK) slabBox(15, t + 3); else { logoA(16, t + 3, ACE_GOLD); if (!gearMark()) D(19, t + 3, ACE_GOLD); } break;
       case 'varsity': Dspan(t, 13, 22, ACE_GOLD); Dspan(t + 12, 11, 24, ACE_GOLD); for (let y = t + 1; y <= t + 11; y++) D(17, y, shadow(body, 0.3)); for (let y = t + 2; y <= t + 11; y += 3) D(18, y, ACE_GOLD); logoA(12, t + 3, ACE_GOLD); break;
       case 'blazer': for (let y = t; y <= t + 7; y++) Dspan(y, 16, 19, '#f2f2f2'); D(17, t + 1, '#1a1a1f'); D(18, t + 1, '#1a1a1f'); for (let y = t + 2; y <= t + 6; y++) { D(17, y, '#1a1a1f'); D(18, y, '#1a1a1f'); } for (let y = t; y <= t + 6; y++) { D(15, y, d); D(20, y, d); } D(16, t + 9, '#1a1a1f'); D(16, t + 11, '#1a1a1f'); D(22, t + 3, '#ffffff'); D(23, t + 3, '#d2402f'); break;
-      case 'labcoat': for (let y = t; y <= t + 5; y++) { const k = Math.max(0, y - t - 3); Dspan(y, 16 + k, 19 - k, ACE_BLACK); } for (let y = t; y <= t + 6; y++) { const k = Math.max(0, y - t - 4); D(15 + k, y, d); D(20 - k, y, d); } for (let y = t + 7; y <= t + 12; y++) D(17, y, d); D(18, t + 8, '#b9b8b2'); D(18, t + 11, '#b9b8b2'); Dspan(t + 5, 11, 13, d); D(12, t + 3, ACE_GOLD); D(12, t + 4, ACE_GOLD); logoA(21, t + 3, ACE_GOLD); Dspan(t + 10, 11, 14, d); Dspan(t + 10, 20, 23, d); break;
+      case 'labcoat': for (let y = t; y <= t + 5; y++) { const k = Math.max(0, y - t - 3); Dspan(y, 16 + k, 19 - k, ACE_BLACK); } for (let y = t; y <= t + 6; y++) { const k = Math.max(0, y - t - 4); D(15 + k, y, d); D(20 - k, y, d); } for (let y = t + 7; y <= t + 14; y++) D(17, y, d); D(18, t + 8, '#b9b8b2'); D(18, t + 11, '#b9b8b2'); Dspan(t + 5, 11, 13, d); D(12, t + 3, ACE_GOLD); D(12, t + 4, ACE_GOLD); logoA(21, t + 3, ACE_GOLD); Dspan(t + 14, 11, 14, d); Dspan(t + 14, 21, 24, d); Dspan(t + 18, 10, 16, d); Dspan(t + 18, 19, 25, d); break;
       case 'robe': for (let y = t; y <= t + 4; y++) Dspan(y, 16, 19 - Math.max(0, y - t - 2), skin); Dspan(t + 7, 10, 25, d); D(15, t + 8, d); D(20, t + 8, d); for (let y = t + 1; y <= t + 12; y++) D(15 + (y > t + 6 ? 1 : 0), y, d); break;
       case 'flannel': for (let y = t; y <= t + 12; y++) for (let x = 10; x <= 25; x++) if (part[y] && part[y][x] === 'top' && (x % 4 === 0 || y % 4 === 0)) D(x, y, (x % 4 === 0 && y % 4 === 0) ? '#2a0f0d' : '#5a1a16'); for (let y = t + 1; y <= t + 12; y++) D(17, y, '#7a2620'); break;
       case 'cardigan': for (let y = t; y <= t + 12; y++) Dspan(y, 16, 19, '#e9e2d4'); for (let y = t + 3; y <= t + 11; y += 3) D(15, y, '#d8c49a'); break;
@@ -5117,6 +5124,7 @@ function composeSprite(look, pose, mood){
     if (look.extra === 'chain' || look.extra === 'both') { [[14, t], [15, t + 1], [16, t + 2], [17, t + 2], [18, t + 2], [19, t + 2], [20, t + 1], [21, t]].forEach(([x, y]) => D(x, y, '#f3cf72')); D(17, t + 3, '#f3cf72'); D(18, t + 3, '#c79a32'); D(17, t + 4, '#c79a32'); }
   }
   function topBack(t){
+    if (look.top === 'labcoat') for (let y = t + 14; y <= t + 18; y++) D(17, y, shadow(body, 0.3));
     if (look.top === 'hoodie') { Dspan(t, 13, 22, light(body, 0.1)); Dspan(t + 1, 14, 21, light(body, 0.1)); Dspan(t + 2, 15, 20, shadow(body, 0.2)); }
     else if (look.top === 'varsity') { Dspan(t + 12, 11, 24, ACE_GOLD); }
     else if (look.top === 'flannel') for (let y = t; y <= t + 12; y++) for (let x = 10; x <= 25; x++) if (part[y] && part[y][x] === 'top' && (x % 4 === 0 || y % 4 === 0)) D(x, y, '#5a1a16');
@@ -5176,6 +5184,7 @@ function composeSprite(look, pose, mood){
     const liftL = step === 1 ? 2 : 0, liftR = step === 3 ? 2 : 0;
     legsFront(liftL, liftR);
     const t = torso();
+    coatTails(t);
     const sw = act === 'idle' && step ? (step === 1 ? 0 : 0) : 0;
     if (act === 'crossed') {
       box(ArmL, 7, t + 1, 9, t + 5); box(ArmR, 26, t + 1, 28, t + 5);
@@ -5205,6 +5214,7 @@ function composeSprite(look, pose, mood){
     const liftL = step === 1 ? 2 : 0, liftR = step === 3 ? 2 : 0;
     legsFront(liftL, liftR);
     const t = torso();
+    coatTails(t);
     armDown(7, ArmL, HandL, t, 0);
     if (act === 'knock') {
       // right arm raised to the door, fist taps forward on frame 1
@@ -5243,6 +5253,7 @@ function composeSprite(look, pose, mood){
     // torso
     const t = 22 + bob;
     span(Top, t, 14, 21); for (let y = t + 1; y <= t + 12; y++) span(Top, y, 13, 22);
+    if (look.top === 'labcoat') for (let y = t + 13; y <= t + 18; y++) span(Top, y, 12, 22);
     if (top.sleeve === 'none') box(Skin, 16, t, 19, t + 2);
     // near arm
     const len = top.sleeve === 'short' ? 4 : top.sleeve === 'none' ? 0 : 11;
