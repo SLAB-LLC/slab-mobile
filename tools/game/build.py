@@ -10,6 +10,7 @@ assets/game/login.html (the demo's opening and CRT login), the sign-in page src/
 Every patch asserts its anchor appears exactly once, so a demo change that moves code fails loudly here
 instead of shipping a half-wired page. Fix the anchor and run it again.
 """
+import base64
 import os
 import re
 import sys
@@ -264,8 +265,26 @@ def main(src):
 
     # ---- boot: the app already signed them in ----
     html = rep(html, "  if (bootAuth.get()) { await btCompany(); return; }",
-               "  if (APP) { if (APP.brand && APP.brand.isAce) await btCompany(); else { boot.classList.remove('live'); if (bootDone) { const f = bootDone; bootDone = null; f(); } } return; }\n"
+               "  if (APP) {\n"
+               "    if (APP.brand && APP.brand.isAce) { await btCompany(); return; }\n"
+               "    // SLAB's own reps open on the website's intro: the logo glitches in, then the screen slides up\n"
+               "    if (APP.me && APP.me.solo) {\n"
+               "      const img = intro.querySelector('img'), tag = intro.querySelector('.bt-tag');\n"
+               "      $('bt-login').hidden = true; img.style.opacity = 0; tag.style.opacity = 0;\n"
+               "      intro.classList.add('bt-on');\n"
+               "      await btSleep(250); await btFlicker(img); await btSleep(350); tag.style.opacity = 1; await btSleep(550);\n"
+               "      await btWipe(intro);\n"
+               "    }\n"
+               "    boot.classList.remove('live'); if (bootDone) { const f = bootDone; bootDone = null; f(); }\n"
+               "    return;\n"
+               "  }\n"
                "  if (bootAuth.get()) { await btCompany(); return; }")
+
+    # ---- Rylan's own portrait in the Vault (the demo shows him with Austin's sheet) ----
+    rylan = base64.b64encode(open(os.path.join(HERE, 'rylan-sprite.webp'), 'rb').read()).decode()
+    html = rep(html, "const avatarSheets = { marshall: IMG.marshallSprite, austin: IMG.austinSprite };",
+               "const avatarSheets = { marshall: IMG.marshallSprite, austin: IMG.austinSprite, rylan: 'data:image/webp;base64," + rylan + "' };")
+    html = rep(html, "const VX_AVK = { m:'marshall', r:'austin' };", "const VX_AVK = { m:'marshall', r:'rylan' };")
 
     # ---- tour: steps can open another tab first, and the tour cleans up after itself ----
     html = rep(html, "    const step = TOUR[i];\n    const target = document.querySelector(step.sel);",
