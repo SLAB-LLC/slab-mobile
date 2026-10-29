@@ -59,8 +59,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Silently re-register push token if permission already granted
       registerPushTokenSilently(userId)
 
-      // Fetch company if user has one
-      if (profileData?.company_id) {
+      // Fetch company if user has one (a SLAB admin can switch theirs to none)
+      if (!profileData?.company_id) setCompany(null)
+      else {
         const { data: companyData, error: companyError } = await supabase
           .from('companies')
           .select('*')

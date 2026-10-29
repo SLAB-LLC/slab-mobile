@@ -57,7 +57,7 @@ export default function NotificationPromptModal({
     >
       <View style={styles.backdrop}>
         <LinearGradient
-          colors={['#0a1a5f', '#001199']}
+          colors={['#141414', '#000000']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.card}

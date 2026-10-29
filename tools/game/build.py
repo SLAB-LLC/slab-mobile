@@ -210,7 +210,7 @@ def main(src):
     html = rep(html, '<div><span>Role</span><b>Sales rep</b></div>',
                "<div><span>Role</span><b>${APP ? esc(APP.me.roleLabel) : 'Sales rep'}</b></div>")
     html = rep(html, '<div><span>Company</span><b>Ace Cooperatives</b></div>',
-               "<div><span>Company</span><b>${APP ? esc(APP.me.companyName || '') : 'Ace Cooperatives'}</b></div>")
+               "<div><span>Company</span><b>${APP ? esc(APP.me.companyName || 'Not registered yet') : 'Ace Cooperatives'}</b></div>")
     html = rep(html, "    if (id === 'push' && !on) showToast('Push notifications are off on this phone', 'ph-bell-slash');\n",
                "    if (APP) { appNotif(id, on, cb); return; }\n"
                "    if (id === 'push' && !on) showToast('Push notifications are off on this phone', 'ph-bell-slash');\n")
@@ -263,7 +263,7 @@ def main(src):
     html = rep(html, "  const target = active >= 0 ? active : street.stops.length - 1;",
                "  const target = active >= 0 ? active : APP && !APP.labOpen ? 0 : street.stops.length - 1;")
     html = rep(html, "    showToast(s.kind === 'boss' ? 'Pass off every ' + s.unit + ' lesson first' : 'Pass off the lessons before this one first', 'ph-lock-simple');",
-               "    showToast(APP && !APP.labOpen ? 'Your company’s training isn’t set up yet' : s.kind === 'boss' ? 'Pass off every ' + s.unit + ' lesson first' : 'Pass off the lessons before this one first', 'ph-lock-simple');")
+               "    showToast(APP && !APP.labOpen ? (APP.me.solo ? 'You’re not registered with a company' : 'Your company’s training isn’t set up yet') : s.kind === 'boss' ? 'Pass off every ' + s.unit + ' lesson first' : 'Pass off the lessons before this one first', 'ph-lock-simple');")
     html = rep(html, '  audioUnlockXP = isVet() ? 0 : 500;\n  chatUnlockXP = isVet() ? 0 : 200;',
                '  audioUnlockXP = isVet() ? 0 : APP ? APP.features.vaultUnlockXp : 500;\n'
                '  chatUnlockXP = isVet() ? 0 : APP ? APP.features.chatUnlockXp : 200;')
@@ -383,6 +383,39 @@ appSafe('rep', initRep);
   .app-vid-wait{ color:#a39d90; font-size:14px; }
   .vx-vgroup{ padding:10px 2px 4px; font:400 9px/1.4 'Press Start 2P', monospace; color:var(--g, #daae5d); letter-spacing:1px; text-transform:uppercase; }
   .lv-real-wait{ position:absolute; inset:0; display:grid; place-items:center; color:#a39d90; font-size:14px; }
+  /* Leaderboard: my company or everyone */
+  .lb-scope{ display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:4px; margin:0 0 14px; background:var(--surface); border:1px solid var(--hairline); border-radius:var(--r-ctl); }
+  .lb-scope button{ display:flex; align-items:center; justify-content:center; gap:6px; min-height:40px; border:0; border-radius:9px; background:none; color:var(--text-dim); font:600 14px/1 'Barlow', sans-serif; cursor:pointer; }
+  .lb-scope button.on{ background:var(--amber); color:#0b0b0d; }
+  .lb-scope button i{ font-size:15px; }
+  .lb-scope .lb-globe{ width:17px; height:17px; flex:none; }
+  .lb-co{ display:block; font-size:11.5px; font-weight:500; color:var(--text-dim); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* Solo: no company yet */
+  .solo .navbtn.solo-lock{ opacity:.45; }
+  /* the Vault door is drawn in Ace gold; SLAB's is orange */
+  .solo .vx-door .dr canvas{ filter:hue-rotate(-18deg) saturate(1.5); }
+  .solo-banner{ display:flex; align-items:center; gap:12px; width:calc(100% - 32px); margin:4px 16px 10px; padding:12px 14px; border-radius:var(--r-card); border:1px solid var(--amber-line); background:var(--amber-dim); color:var(--text); text-align:left; font:inherit; cursor:pointer; position:relative; z-index:3; }
+  .solo-banner > i:first-child{ font-size:20px; color:var(--amber); flex:none; }
+  .solo-banner > i:last-child{ color:var(--text-dim); flex:none; }
+  .solo-banner span{ flex:1; font-size:12.5px; line-height:1.35; color:var(--text-dim); }
+  .solo-banner b{ display:block; font-size:14.5px; color:var(--text); margin-bottom:2px; }
+  .solo-kick{ font:700 11px/1 'Barlow', sans-serif; letter-spacing:.16em; color:var(--amber); margin:4px 0 8px; }
+  .solo-sheet .solo-h{ font-size:26px; margin:0 0 6px; }
+  .solo-p{ margin:0 0 14px; font-size:14px; line-height:1.4; color:var(--text-dim); }
+  .solo-list{ list-style:none; margin:0 0 12px; padding:0; display:flex; flex-direction:column; gap:6px; }
+  .solo-list li{ display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:var(--r-ctl); border:1px solid var(--hairline); background:var(--bg); }
+  .solo-list li i{ font-size:22px; color:var(--amber); flex:none; }
+  .solo-list li span{ display:flex; flex-direction:column; font-size:12.5px; color:var(--text-dim); line-height:1.35; }
+  .solo-list li b{ font-size:14.5px; color:var(--text); }
+  .solo-locked{ display:flex; align-items:center; gap:8px; margin:0 0 16px; font-size:12.5px; color:var(--text-dim); line-height:1.35; }
+  .solo-locked i{ font-size:16px; flex:none; }
+  .solo-sheet .btn{ width:100%; margin-top:6px; }
+  /* SLAB admins: view the app as any company */
+  .co-list{ display:flex; flex-direction:column; gap:6px; }
+  .co-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:48px; padding:0 14px; border-radius:var(--r-ctl); border:1px solid var(--hairline); background:var(--bg); color:var(--text); font:600 15px/1.2 'Barlow', sans-serif; text-align:left; cursor:pointer; }
+  .co-row.on{ border-color:var(--amber); }
+  .co-row i{ color:var(--amber); font-size:18px; }
+  .co-wait{ padding:18px 0; text-align:center; color:var(--text-dim); font-size:14px; }
 """
     i = html.index('</style>', html.index('<!DOCTYPE html>') if '<!DOCTYPE html>' in html else 0)
     html = html[:i] + css + html[i:]

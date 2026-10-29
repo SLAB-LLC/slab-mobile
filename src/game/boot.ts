@@ -43,6 +43,8 @@ export interface GameLeader {
   xp: number
   you?: boolean
   look?: Partial<RepLook> | null
+  /** Global leaderboard only: the rep's company, null for solo reps */
+  company?: string | null
 }
 
 export interface GameBoot {
@@ -56,6 +58,10 @@ export interface GameBoot {
     role: 'rep' | 'manager' | 'owner'
     level: 'rookie' | 'vet'
     companyName: string | null
+    /** Not registered with a company: company features are locked and show why */
+    solo: boolean
+    /** SLAB admin: may switch which company the app shows (admin_switch_company) */
+    superAdmin: boolean
     look: Partial<RepLook> | null
   }
   features: { vaultUnlockXp: number; chatUnlockXp: number; monthlyPrize: boolean; companyLessons: boolean }
@@ -79,6 +85,8 @@ export interface GameBoot {
   /** Lessons the rep has finished, by the source id their XP was granted under */
   doneLessons: string[]
   leaders: GameLeader[]
+  /** Every rep in SLAB ranked by total XP (global_leaderboard), the rep always included; null if it couldn't load */
+  globalLeaders: GameLeader[] | null
   /** Marshall's videos for his page in the Vault (Ace's training videos), grouped by playlist */
   vaultVideos: { title: string; videos: { id: string; title: string; duration: number | null }[] }[]
   /** The owner's Training tab settings, or null for the defaults */
@@ -209,6 +217,42 @@ async function loadLessons(companyId: string, userId: string): Promise<{ units: 
   return { units, videos: index }
 }
 
+/** Every rep in SLAB, ranked by total XP (slabtech sql/solo-mode-migration.sql) */
+async function loadGlobalLeaders(): Promise<GameLeader[] | null> {
+  const { data, error } = await supabase.rpc('global_leaderboard', { p_limit: 50 })
+  if (error) {
+    // Function not migrated yet: the page keeps the company board only
+    console.warn('Global leaderboard unavailable:', error.message)
+    return null
+  }
+  return ((data ?? []) as any[]).map((r) => ({
+    name: r.name || 'Rep',
+    streak: r.streak ?? 0,
+    xp: r.total_xp ?? 0,
+    you: !!r.is_me,
+    look: r.look ?? null,
+    company: r.company_name ?? null,
+  }))
+}
+
+/** Marshall's videos for reps outside Ace (Ace reps read them straight from their own library) */
+async function loadMarshallVideos(): Promise<{ groups: GameBoot['vaultVideos']; videos: VideoIndex }> {
+  const { data, error } = await supabase.rpc('marshall_videos')
+  if (error) {
+    console.warn("Marshall's videos unavailable:", error.message)
+    return { groups: [], videos: {} }
+  }
+  const groups: GameBoot['vaultVideos'] = []
+  const videos: VideoIndex = {}
+  for (const v of (data ?? []) as any[]) {
+    videos[v.id] = { type: v.video_type, youtubeUrl: v.youtube_url, storagePath: v.storage_path }
+    let g = groups.find((x) => x.title === v.playlist)
+    if (!g) groups.push((g = { title: v.playlist, videos: [] }))
+    g.videos.push({ id: v.id, title: v.title, duration: v.duration ?? null })
+  }
+  return { groups, videos }
+}
+
 /** Every lesson the rep has been paid XP for; the standard levels are granted under their titles */
 async function loadDoneLessons(userId: string): Promise<string[]> {
   const { data } = await supabase.from('xp_events').select('source_id').eq('user_id', userId).eq('reason', 'lesson_complete')
@@ -272,10 +316,12 @@ export async function buildGameBoot(args: {
   const { userId, email, profile, company, theme, features } = args
   const name = profile?.display_name || profile?.full_name || (email ? email.split('@')[0] : 'Rep')
   const ace = isAceCompany(company)
+  // No company: the Vault, Ask Marshall, Marshall's videos and the global leaderboard; the rest stays locked
+  const solo = !company
   const gear = gearBrand(theme)
   const meRow: GameLeader = { name, streak: args.streakDays, xp: args.totalXp, you: true }
 
-  const [lessons, leaders, doneLessons, notif, vault] = await Promise.all([
+  const [lessons, leaders, doneLessons, notif, vault, globalLeaders, soloVideos] = await Promise.all([
     // Ace's training videos are Marshall's: they play from his page in the Vault even while the street runs the standard levels
     company && (features.companyLessons || ace) ? loadLessons(company.id, userId).catch(() => ({ units: [], videos: {} })) : Promise.resolve({ units: [], videos: {} }),
     company
@@ -284,10 +330,12 @@ export async function buildGameBoot(args: {
     loadDoneLessons(userId).catch(() => [] as string[]),
     loadNotif(userId),
     loadVault().catch(() => null),
+    loadGlobalLeaders().catch(() => null),
+    solo ? loadMarshallVideos().catch(() => ({ groups: [], videos: {} })) : Promise.resolve({ groups: [], videos: {} }),
   ])
 
   return {
-    videos: lessons.videos,
+    videos: { ...lessons.videos, ...soloVideos.videos },
     boot: {
       me: {
         id: userId,
@@ -296,13 +344,17 @@ export async function buildGameBoot(args: {
         xp: args.totalXp,
         streakDays: args.streakDays,
         roleLabel: ROLE_LABELS[profile?.role ?? 'user'] ?? 'Rep',
-        role: PAGE_ROLES[profile?.role ?? 'user'] ?? 'rep',
+        // Solo shows exactly what a rep without a company sees, even to a SLAB admin
+        role: solo ? 'rep' : PAGE_ROLES[profile?.role ?? 'user'] ?? 'rep',
         level: profile?.level === 'vet' ? 'vet' : 'rookie',
         companyName: company?.name ?? null,
+        solo,
+        superAdmin: profile?.role === 'super_admin',
         look: args.look,
       },
       features: {
-        vaultUnlockXp: features.vaultUnlockXp,
+        // Solo reps have no lessons to earn XP from, so their Vault is open from the start
+        vaultUnlockXp: solo ? 0 : features.vaultUnlockXp,
         chatUnlockXp: features.chatUnlockXp,
         // Ace runs the monthly prize even if its config row predates the switch
         monthlyPrize: features.monthlyPrize || ace,
@@ -324,9 +376,10 @@ export async function buildGameBoot(args: {
       lessons: features.companyLessons ? lessons.units : [],
       vaultVideos: ace
         ? lessons.units.map((u) => ({ title: u.title, videos: u.subs.map((v) => ({ id: v.id, title: v.title, duration: v.video.duration })) }))
-        : [],
+        : soloVideos.groups,
       doneLessons,
       leaders,
+      globalLeaders,
       training: features.training ?? null,
       notif,
     },

@@ -27,7 +27,10 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   const { company } = useAuth()
   const companyId = company?.id ?? null
   const [row, setRow] = useState<ConfigRow | null>(null)
-  const [ready, setReady] = useState(false)
+  // Which company the applied config belongs to: ready turns false in the same render the company
+  // changes (a SLAB admin switching), so nothing builds on the previous company's config
+  const [readyFor, setReadyFor] = useState<string | null | undefined>(undefined)
+  const ready = readyFor === companyId
 
   const fetchRow = async (id: string, cancelled: () => boolean) => {
     const { data, error } = await supabase
@@ -49,9 +52,9 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setRow(null)
-    setReady(false)
+    setReadyFor(undefined)
     if (!companyId) {
-      setReady(true)
+      setReadyFor(null)
       return
     }
     let cancelled = false
@@ -63,7 +66,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       })
       .catch(() => {})
       .finally(() => {
-        if (!cancelled) setReady(true)
+        if (!cancelled) setReadyFor(companyId)
         fetchRow(companyId, isCancelled)
       })
 
