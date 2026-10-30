@@ -16,9 +16,12 @@ export interface VaultPerson {
   color: string
 }
 
+/** One published day; `prefix` is its audio folder, and each door keeps its published number as `orig` */
+export type VaultDay = VaultPerson & { who: string; prefix: string; days: any[] }
+
 export interface VaultData {
   people: VaultPerson[]
-  reps: (VaultPerson & { who: string; days: any[] })[]
+  reps: VaultDay[]
   clips: any[]
   /** The day the "start here" button opens */
   start: string
@@ -50,19 +53,49 @@ function dayLabels(date: string | null): { t: string; date: string } {
   }
 }
 
+const DAY_COLUMNS = 'id, rep_name, recording_date, area, minutes, doors, clips, audio_prefix'
+
+async function signAll(rows: any[]): Promise<Map<string, string>> {
+  const paths = rows.flatMap((r: any) => (r.doors as any[]).map((d) => `${r.audio_prefix}/${d.src}`))
+  const { data: signed } = await supabase.storage.from('vault-audio').createSignedUrls(paths, LINK_SECONDS)
+  return new Map((signed ?? []).filter((s) => s.path && s.signedUrl).map((s) => [s.path as string, s.signedUrl]))
+}
+
+/** A published day as a Vault entry, with its clips renumbered to match */
+function toDay(r: any, p: VaultPerson, id: string, url: Map<string, string>): { day: VaultDay; clips: any[] } {
+  const doors = (r.doors as any[])
+    .map((d) => ({ ...d, orig: d.n, src: url.get(`${r.audio_prefix}/${d.src}`) }))
+    .filter((d) => d.src)
+  // The page finds a door by its number, so keep them 1..n in order
+  const renumber = new Map(doors.map((d, k) => [d.n, k + 1]))
+  doors.forEach((d) => { d.n = renumber.get(d.n) })
+  const day: VaultDay = { ...p, id, who: p.id, prefix: r.audio_prefix, days: [{ ...dayLabels(r.recording_date), area: r.area ? r.area[0].toUpperCase() + r.area.slice(1) : '', mins: Number(r.minutes), doors }] }
+  const clips = (r.clips as any[]).filter((c) => renumber.has(c.door)).map((c) => ({ ...c, rep: id, door: renumber.get(c.door) }))
+  return { day, clips }
+}
+
+let extraDays = 0
+
+/** One day by its audio folder, for a door the coach points at that isn't among the featured days */
+export async function loadVaultDay(prefix: string): Promise<VaultDay | null> {
+  const { data: r } = await supabase.from('vault_days').select(DAY_COLUMNS).eq('audio_prefix', prefix).maybeSingle()
+  if (!r) return null
+  const p = person(r.rep_name, 0)
+  // Ids stay plain (the page puts them in attributes); the featured days use their position
+  const { day } = toDay(r, p, `${p.id}~more${++extraDays}`, await signAll([r]))
+  return day.days[0].doors.length ? day : null
+}
+
 export async function loadVault(): Promise<VaultData | null> {
   const { data: rows, error } = await supabase
     .from('vault_days')
-    .select('id, rep_name, recording_date, area, minutes, doors, clips, audio_prefix')
+    .select(DAY_COLUMNS)
     .eq('featured', true)
     .order('recording_date', { ascending: false, nullsFirst: false })
     .limit(MAX_DAYS)
   if (error || !rows?.length) return null
 
-  const paths = rows.flatMap((r: any) => (r.doors as any[]).map((d) => `${r.audio_prefix}/${d.src}`))
-  const { data: signed } = await supabase.storage.from('vault-audio').createSignedUrls(paths, LINK_SECONDS)
-  const url = new Map((signed ?? []).filter((s) => s.signedUrl).map((s) => [s.path, s.signedUrl]))
-
+  const url = await signAll(rows)
   const people: VaultPerson[] = []
   const reps: VaultData['reps'] = []
   const clips: any[] = []
@@ -70,17 +103,9 @@ export async function loadVault(): Promise<VaultData | null> {
     const base = person(r.rep_name, people.length)
     let p = people.find((x) => x.id === base.id)
     if (!p) people.push((p = base))
-    const id = `${p.id}~${i}`
-    const doors = (r.doors as any[])
-      .map((d) => ({ ...d, src: url.get(`${r.audio_prefix}/${d.src}`) }))
-      .filter((d) => d.src)
-    // The page finds a door by its number, so keep them 1..n in order
-    const renumber = new Map(doors.map((d, k) => [d.n, k + 1]))
-    doors.forEach((d) => { d.n = renumber.get(d.n) })
-    reps.push({ ...p, id, who: p.id, days: [{ ...dayLabels(r.recording_date), area: r.area ? r.area[0].toUpperCase() + r.area.slice(1) : '', mins: Number(r.minutes), doors }] })
-    for (const c of r.clips as any[]) {
-      if (renumber.has(c.door)) clips.push({ ...c, rep: id, door: renumber.get(c.door) })
-    }
+    const got = toDay(r, p, `${p.id}~${i}`, url)
+    reps.push(got.day)
+    clips.push(...got.clips)
   })
   const days = reps.filter((r) => r.days[0].doors.length)
   if (!days.length) return null
