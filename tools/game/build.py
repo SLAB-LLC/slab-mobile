@@ -168,13 +168,21 @@ def main(src):
 
     # ---- Ask Marshall: real coach replies ----
     html = rep(html, "  const reply = rep.replies[Math.floor(Math.random() * rep.replies.length)];\n",
-               "  let reply = rep.replies[Math.floor(Math.random() * rep.replies.length)], replyConnected = false;\n"
-               "  const replyReady = APP ? appCoachReply(text).then(r => { reply = r.reply; replyConnected = r.connected; }) : Promise.resolve();\n")
+               "  let reply = rep.replies[Math.floor(Math.random() * rep.replies.length)], replyConnected = false, replyClips = [];\n"
+               "  const replyReady = APP ? appCoachReply(text).then(r => { reply = r.reply; replyConnected = r.connected; replyClips = r.clips; }) : Promise.resolve();\n")
     html = rep(html, "  setTimeout(() => {\n    if (token !== replyToken) return;\n    avatar.set('talking');",
                "  replyReady.then(() => setTimeout(() => {\n    if (token !== replyToken) return;\n    avatar.set('talking');")
     html = rep(html, "      container.insertAdjacentHTML('beforeend', exampleChipHtml(rep, exampleTrack));\n",
-               "      if (!APP) container.insertAdjacentHTML('beforeend', exampleChipHtml(rep, exampleTrack));\n")
+               "      if (!APP) container.insertAdjacentHTML('beforeend', exampleChipHtml(rep, exampleTrack));\n"
+               # The doors the answer drew on, as links to the full pitch in the Vault (bridge.js)
+               "      else if (replyClips.length) container.insertAdjacentHTML('beforeend', appPitchLinks(replyClips));\n")
     html = rep(html, "    type();\n  }, 1500);\n}", "    type();\n  }, APP ? 300 : 1500));\n}")
+    # Real answers come as short lists and run long: keep their line breaks, and type long ones faster
+    html = rep(html, "    bubble.className = 'bubble bot';\n    container.appendChild(bubble);\n",
+               "    bubble.className = 'bubble bot';\n    bubble.style.whiteSpace = 'pre-line';\n    container.appendChild(bubble);\n"
+               "    const pace = reply.length > 300 ? 300 / reply.length : 1;\n")
+    html = rep(html, "      setTimeout(type, /[.!?]/.test(ch) ? 260 : /[,:]/.test(ch) ? 160 : 26);",
+               "      setTimeout(type, (/[.!?]/.test(ch) ? 260 : /[,:]/.test(ch) ? 160 : 26) * pace);")
 
     # ---- the rep: name and look live in the database ----
     html = rep(html, "function saveMe(){ try { localStorage.setItem('slabAce.rep', JSON.stringify(ME)); } catch (e) {} }",

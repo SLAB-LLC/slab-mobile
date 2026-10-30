@@ -14,7 +14,8 @@ import type { RepLook } from '../avatar'
 import { supabase } from '../utils/supabase'
 import { grantXp } from '../services/xp.service'
 import { markVideoComplete } from '../services/training.service'
-import { askCoach, isCoachConnected } from '../services/coach.service'
+import { askCoachWithClips, isCoachConnected } from '../services/coach.service'
+import { loadVaultDay } from './vault'
 import { buildGameBoot, VideoIndex, youtubeEmbedUrl } from './boot'
 import { prepareGameFiles } from './files'
 import * as owner from './owner'
@@ -145,15 +146,18 @@ export default function GameScreen() {
           return data.signedUrl
         }
         case 'coach': {
-          const answer = await askCoach(payload?.messages ?? [], {
+          const answer = await askCoachWithClips(payload?.messages ?? [], {
             coachName: theme.coach.name,
             userId: user?.id ?? '',
             userName: profile?.display_name || profile?.full_name || null,
             companyId: company?.id ?? null,
             companyName: company?.name ?? null,
           })
-          return { reply: answer, connected: isCoachConnected() }
+          return { ...answer, connected: isCoachConnected() }
         }
+        case 'vaultDay':
+          // A door the coach linked to that isn't among the featured days
+          return loadVaultDay(String(payload?.prefix ?? ''))
         case 'saveLook':
           await saveLook(normalizeLook(engine, payload?.look as Partial<RepLook>))
           return null
