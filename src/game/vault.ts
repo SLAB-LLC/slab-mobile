@@ -58,7 +58,7 @@ const DAY_COLUMNS = 'id, rep_name, recording_date, area, minutes, doors, clips, 
 async function signAll(rows: any[]): Promise<Map<string, string>> {
   const paths = rows.flatMap((r: any) => (r.doors as any[]).map((d) => `${r.audio_prefix}/${d.src}`))
   const { data: signed } = await supabase.storage.from('vault-audio').createSignedUrls(paths, LINK_SECONDS)
-  return new Map((signed ?? []).filter((s) => s.signedUrl).map((s) => [s.path, s.signedUrl]))
+  return new Map((signed ?? []).filter((s) => s.path && s.signedUrl).map((s) => [s.path as string, s.signedUrl]))
 }
 
 /** A published day as a Vault entry, with its clips renumbered to match */
