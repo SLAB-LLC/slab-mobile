@@ -135,9 +135,44 @@ function appCoachReply(text){
   return appCall('coach', { messages: appCoachHistory.slice(-40) }).then(r => {
     const reply = (r && r.reply) || 'Marshall could not answer right now. Try again in a minute.';
     appCoachHistory.push({ role:'assistant', content:reply });
-    return { reply, connected: !!(r && r.connected) };
-  }).catch(() => ({ reply:'Marshall could not answer right now. Try again in a minute.', connected:false }));
+    return { reply, connected: !!(r && r.connected), clips: (r && r.clips) || [] };
+  }).catch(() => ({ reply:'Marshall could not answer right now. Try again in a minute.', connected:false, clips:[] }));
 }
+
+// The doors an answer drew on, each a link that opens the full pitch in the Vault at the moment cited
+const appPitches = [];
+function appPitchLinks(clips){
+  return clips.map(c => {
+    const k = appPitches.push(c) - 1;
+    return `<button class="example-chip pitch-link" type="button" data-pk="${k}">
+      <span class="play-btn" aria-hidden="true"><i class="ph-fill ph-play"></i></span>
+      <span><span class="example-label">Listen to the full pitch</span><span class="example-title">${esc(c.title)}</span></span>
+    </button>`;
+  }).join('');
+}
+async function appOpenPitch(c){
+  if (currentXP < audioUnlockXP) { haptic('wrong'); showToast(`The Vault opens at ${audioUnlockXP} XP.`, 'ph-lock-simple'); return; }
+  let r = VX.reps.find(x => x.prefix === c.prefix);
+  if (!r) {
+    // Not one of the featured days the Vault loaded: fetch that day and add it
+    r = await appCall('vaultDay', { prefix: c.prefix }).catch(() => null);
+    if (!r) { showToast("That door isn't in the Vault yet.", 'ph-warning'); return; }
+    VX.reps.push(r);
+    if (VX.people && !VX.people.some(p => p.id === r.who)) VX.people.push({ id:r.who, name:r.name, ini:r.ini, color:r.color });
+  }
+  const k = r.days[0].doors.findIndex(d => d.orig === c.door);
+  if (k < 0) { showToast("That door isn't in the Vault yet.", 'ph-warning'); return; }
+  haptic('tap');
+  vxOpened = true;   // straight to the door, no Vault entrance
+  tourGo('recordings');
+  vxOpenDay(r.id, k + 1, Math.max(0, c.st - 2));
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('.pitch-link');
+  if (b) appSafe('pitch link', () => appOpenPitch(appPitches[+b.dataset.pk]));
+});
+document.head.insertAdjacentHTML('beforeend', '<style>.pitch-link{ font:inherit; color:inherit; text-align:left; cursor:pointer; }'
+  + ' .pitch-link .play-btn{ display:grid; place-items:center; border-radius:50%; background:var(--amber); color:#14161b; flex:none; }</style>');
 
 const libName = () => APP && !(APP.brand && APP.brand.isAce) ? 'Book Library' : 'Ace Library';
 
