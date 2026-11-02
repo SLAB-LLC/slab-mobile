@@ -30,8 +30,10 @@ export interface VaultData {
 /** The pack's reps keep the ids the page's faces and tags are keyed by */
 const KNOWN: Record<string, VaultPerson> = {
   Marshall: { id: 'm', name: 'Marshall Hawks', ini: 'MH', color: '#daae5d' },
-  Rylan: { id: 'r', name: 'Rylan', ini: 'RY', color: '#7fd1c7' },
 }
+/** Reps whose days stay out of the Vault (Duncan, 2026-11-02: Marshall only, so trainees hear one style) */
+const HIDDEN = /^rylan\b/i
+const shown = (r: any) => !HIDDEN.test(r.rep_name ?? '')
 const COLORS = ['#6ea8ff', '#e0664f', '#b48ef0', '#8fcf6a']
 /** Signed links last the whole session */
 const LINK_SECONDS = 12 * 3600
@@ -79,7 +81,7 @@ let extraDays = 0
 /** One day by its audio folder, for a door the coach points at that isn't among the featured days */
 export async function loadVaultDay(prefix: string): Promise<VaultDay | null> {
   const { data: r } = await supabase.from('vault_days').select(DAY_COLUMNS).eq('audio_prefix', prefix).maybeSingle()
-  if (!r) return null
+  if (!r || !shown(r)) return null
   const p = person(r.rep_name, 0)
   // Ids stay plain (the page puts them in attributes); the featured days use their position
   const { day } = toDay(r, p, `${p.id}~more${++extraDays}`, await signAll([r]))
@@ -93,13 +95,14 @@ export async function loadVault(): Promise<VaultData | null> {
     .eq('featured', true)
     .order('recording_date', { ascending: false, nullsFirst: false })
     .limit(MAX_DAYS)
-  if (error || !rows?.length) return null
+  const keep = (rows ?? []).filter(shown)
+  if (error || !keep.length) return null
 
-  const url = await signAll(rows)
+  const url = await signAll(keep)
   const people: VaultPerson[] = []
   const reps: VaultData['reps'] = []
   const clips: any[] = []
-  rows.forEach((r: any, i: number) => {
+  keep.forEach((r: any, i: number) => {
     const base = person(r.rep_name, people.length)
     let p = people.find((x) => x.id === base.id)
     if (!p) people.push((p = base))

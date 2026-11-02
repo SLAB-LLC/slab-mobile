@@ -111,6 +111,34 @@ def vault_live(html):
     return html
 
 
+# Reps kept out of the Vault (Duncan, 2026-11-02: Marshall said a second rep's style would confuse trainees)
+HIDDEN_REPS = ('Rylan',)
+
+
+def drop_hidden_reps(html):
+    """Takes the hidden reps' days and reels out of the pack, and out of live days at run time"""
+    import json
+    m = re.search(r'const VX_DATA = (\{.*?\});\n', html, re.S)
+    assert m, 'VX_DATA not found'
+    data = json.loads(m.group(1))
+    gone = {r['id'] for r in data['reps'] if r['name'].split()[0] in HIDDEN_REPS}
+    data['reps'] = [r for r in data['reps'] if r['id'] not in gone]
+    data['clips'] = [c for c in data['clips'] if c['rep'] not in gone]
+    html = html[:m.start(1)] + json.dumps(data, ensure_ascii=False, separators=(',', ':')) + html[m.end(1):]
+    hide = '|'.join(HIDDEN_REPS)
+    html = rep(html, 'VX.people = VX.people || VX.reps;\n',
+               'VX.people = VX.people || VX.reps;\n'
+               f'const VX_HIDE = /^({hide})\\b/i;\n'
+               'VX.people = VX.people.filter(p => !VX_HIDE.test(p.name));\n'
+               'VX.reps = VX.reps.filter(r => VX.people.some(p => p.id === r.who));\n'
+               'VX.clips = VX.clips.filter(c => VX.reps.some(r => r.id === c.rep));\n'
+               'if (VX.start && !VX.reps.some(r => r.id === VX.start)) VX.start = VX.reps[0] && VX.reps[0].id;\n')
+    html = rep(html, 'if (APP && APP.vault) vxS.tune.reps = VX.people.map(p => p.id);',
+               'if (APP && APP.vault) vxS.tune.reps = VX.people.map(p => p.id);\n'
+               'vxS.tune.reps = vxS.tune.reps.filter(id => VX.people.some(p => p.id === id));')
+    return html
+
+
 def slab_pack(html):
     """SLAB's own merch for reps without a company; src/avatar/engine.ts carries the same edits"""
     L = 'GEAR_LETTERS'
@@ -442,6 +470,7 @@ appSafe('rep', initRep);
     html = rep(html, "  if (on && !powerWasOn) {\n    pushNote('Power hour is live'", "  if (on && !powerWasOn && !APP) {\n    pushNote('Power hour is live'")
 
     html = vault_live(html)
+    html = drop_hidden_reps(html)
 
     # ---- the bridge itself, just before start-up runs ----
     html = rep(html, '// ============ INIT ============', bridge + '\n\n// ============ INIT ============')
