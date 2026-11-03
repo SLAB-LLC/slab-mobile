@@ -132,7 +132,14 @@ def hide_reps_for_ace(html):
                'if (APP && APP.vault) vxS.tune.reps = VX.people.map(p => p.id);\n'
                'vxS.tune.reps = vxS.tune.reps.filter(id => VX.people.some(p => p.id === id));\n'
                "if (!vxS.tune.reps.length) vxS.tune.reps = VX.people.map(p => p.id);")
-    return html
+    return vault_one_rep_centered(html)
+
+
+def vault_one_rep_centered(html):
+    """With one rep (Ace's Vault), his card sits centered under "Listen to the Best" instead of in the left column"""
+    return rep(html, '.vx-reps{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }',
+               '.vx-reps{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }\n'
+               '.vx-reps > .vx-rc:only-child{ grid-column:1 / -1; justify-self:center; width:calc(50% - 6px); }')
 
 def chat_mic(html):
     """The mic button beside the chat box; tools/game/bridge.js wires it when the phone can listen (APP.voice)"""
