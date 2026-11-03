@@ -8,6 +8,7 @@ import type { Company, UserProfile } from '../types'
 import type { RepLook } from '../avatar'
 import { gearBrand } from '../avatar'
 import { loadVault, VaultData } from './vault'
+import { voiceAvailable } from './voice'
 
 /**
  * Builds window.SLAB_APP, the data the game page (assets/game/game.html, built by
@@ -78,6 +79,8 @@ export interface GameBoot {
   vault: VaultData | null
   /** Which update the phone runs, shown under Sign out */
   build: string
+  /** The phone can turn speech into chat text (src/game/voice.ts): the chat shows a mic */
+  voice: boolean
   /** False when the company has no training of its own yet: every door on the street stays locked */
   labOpen: boolean
   /** The company's own lessons (only when features.companyLessons); otherwise the street keeps the standard levels */
@@ -329,7 +332,7 @@ export async function buildGameBoot(args: {
       : Promise.resolve([meRow]),
     loadDoneLessons(userId).catch(() => [] as string[]),
     loadNotif(userId),
-    loadVault().catch(() => null),
+    loadVault(ace).catch(() => null),
     loadGlobalLeaders().catch(() => null),
     solo ? loadMarshallVideos().catch(() => ({ groups: [], videos: {} })) : Promise.resolve({ groups: [], videos: {} }),
   ])
@@ -371,6 +374,7 @@ export async function buildGameBoot(args: {
       media: args.media,
       vault,
       build: args.build,
+      voice: voiceAvailable(),
       // Ace runs the standard levels; other companies open the street once their own lessons are in
       labOpen: ace || (!!features.companyLessons && lessons.units.length > 0),
       lessons: features.companyLessons ? lessons.units : [],

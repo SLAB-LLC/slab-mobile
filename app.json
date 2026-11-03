@@ -17,9 +17,10 @@
       "bundleIdentifier": "com.slabvoice.mobile",
       "buildNumber": "5",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "This app needs access to your microphone to record and transcribe audio.",
+        "NSMicrophoneUsageDescription": "SLAB uses your microphone so you can talk to Ask Marshall instead of typing.",
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload audio files.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSSpeechRecognitionUsageDescription": "SLAB turns what you say into text so you can talk to Ask Marshall."
       }
     },
     "android": {
@@ -55,6 +56,13 @@
             }
           }
         ]
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "SLAB uses your microphone so you can talk to Ask Marshall instead of typing.",
+          "speechRecognitionPermission": "SLAB turns what you say into text so you can talk to Ask Marshall."
+        }
       ]
     ],
     "updates": {

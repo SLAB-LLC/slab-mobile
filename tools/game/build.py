@@ -111,6 +111,44 @@ def vault_live(html):
     return html
 
 
+# Reps kept out of Ace's Vault (Duncan, 2026-11-03: Marshall said a second rep's style would confuse Ace's
+# reps). Other companies and solo reps keep them. src/game/vault.ts applies the same rule to live days.
+ACE_HIDDEN_REPS = ('Rylan',)
+
+
+def hide_reps_for_ace(html):
+    """Hides ACE_HIDDEN_REPS' days and reels when the signed-in company is Ace (and in the Ace demo itself)"""
+    hide = '|'.join(ACE_HIDDEN_REPS)
+    html = rep(html, 'VX.people = VX.people || VX.reps;\n',
+               'VX.people = VX.people || VX.reps;\n'
+               'if (!APP || (APP.brand && APP.brand.isAce)) {\n'
+               f'  const VX_HIDE = /^({hide})\\b/i;\n'
+               '  VX.people = VX.people.filter(p => !VX_HIDE.test(p.name));\n'
+               '  VX.reps = VX.reps.filter(r => VX.people.some(p => p.id === r.who));\n'
+               '  VX.clips = VX.clips.filter(c => VX.reps.some(r => r.id === c.rep));\n'
+               '  if (VX.start && !VX.reps.some(r => r.id === VX.start)) VX.start = VX.reps[0] && VX.reps[0].id;\n'
+               '}\n')
+    html = rep(html, 'if (APP && APP.vault) vxS.tune.reps = VX.people.map(p => p.id);',
+               'if (APP && APP.vault) vxS.tune.reps = VX.people.map(p => p.id);\n'
+               'vxS.tune.reps = vxS.tune.reps.filter(id => VX.people.some(p => p.id === id));\n'
+               "if (!vxS.tune.reps.length) vxS.tune.reps = VX.people.map(p => p.id);")
+    return html
+
+def chat_mic(html):
+    """The mic button beside the chat box; tools/game/bridge.js wires it when the phone can listen (APP.voice)"""
+    inp = '      <input type="text" id="chat-text-input" placeholder="Ask anything..." aria-label="Message" autocomplete="off">\n'
+    html = rep(html, inp, inp + '      <button class="chat-mic" id="chat-mic-btn" type="button" aria-label="Talk" hidden><i class="ph-fill ph-microphone" aria-hidden="true"></i></button>\n')
+    html = rep(html, '  .chat-send:active{ transform:scale(0.92); }\n',
+               '  .chat-send:active{ transform:scale(0.92); }\n'
+               '  .chat-mic{ width:46px; height:46px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center;'
+               ' background:var(--surface); color:var(--amber); border:1px solid var(--border); font-size:20px; cursor:pointer;'
+               ' transition:transform 0.15s var(--ease-spring), background 0.2s ease, color 0.2s ease; }\n'
+               '  .chat-mic[hidden]{ display:none; }\n'
+               '  .chat-mic:active{ transform:scale(0.92); }\n'
+               '  .chat-mic.on{ background:#e0453a; color:#fff; border-color:#e0453a; animation:mic-pulse 1.2s ease-in-out infinite; }\n'
+               '  @keyframes mic-pulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(224,69,58,.45); } 50%{ box-shadow:0 0 0 8px rgba(224,69,58,0); } }\n')
+    return html
+
 def slab_pack(html):
     """SLAB's own merch for reps without a company; src/avatar/engine.ts carries the same edits"""
     L = 'GEAR_LETTERS'
@@ -442,6 +480,8 @@ appSafe('rep', initRep);
     html = rep(html, "  if (on && !powerWasOn) {\n    pushNote('Power hour is live'", "  if (on && !powerWasOn && !APP) {\n    pushNote('Power hour is live'")
 
     html = vault_live(html)
+    html = hide_reps_for_ace(html)
+    html = chat_mic(html)
 
     # ---- the bridge itself, just before start-up runs ----
     html = rep(html, '// ============ INIT ============', bridge + '\n\n// ============ INIT ============')

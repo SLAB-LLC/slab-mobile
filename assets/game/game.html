@@ -1471,6 +1471,11 @@
     transition:transform 0.15s var(--ease-spring), opacity 0.2s ease;
   }
   .chat-send:active{ transform:scale(0.92); }
+  .chat-mic{ width:46px; height:46px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center; background:var(--surface); color:var(--amber); border:1px solid var(--border); font-size:20px; cursor:pointer; transition:transform 0.15s var(--ease-spring), background 0.2s ease, color 0.2s ease; }
+  .chat-mic[hidden]{ display:none; }
+  .chat-mic:active{ transform:scale(0.92); }
+  .chat-mic.on{ background:#e0453a; color:#fff; border-color:#e0453a; animation:mic-pulse 1.2s ease-in-out infinite; }
+  @keyframes mic-pulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(224,69,58,.45); } 50%{ box-shadow:0 0 0 8px rgba(224,69,58,0); } }
   .chat-send:disabled{ opacity:0.45; cursor:default; }
   .chat-send:focus-visible{ outline:2px solid var(--amber-soft); outline-offset:2px; }
 
@@ -2620,6 +2625,7 @@
     </div>
     <div class="chat-field">
       <input type="text" id="chat-text-input" placeholder="Ask anything..." aria-label="Message" autocomplete="off">
+      <button class="chat-mic" id="chat-mic-btn" type="button" aria-label="Talk" hidden><i class="ph-fill ph-microphone" aria-hidden="true"></i></button>
       <button class="chat-send" id="chat-send-btn" aria-label="Send" disabled>
         <i class="ph-fill ph-paper-plane-right" aria-hidden="true"></i>
       </button>
@@ -8535,6 +8541,13 @@ const VX_DATA = {"reps":[{"id":"m","name":"Marshall Hawks","ini":"MH","color":"#
 const VX = APP && APP.vault ? APP.vault : VX_DATA;
 VX.reps.forEach(r => { r.who = r.who || r.id; });
 VX.people = VX.people || VX.reps;
+if (!APP || (APP.brand && APP.brand.isAce)) {
+  const VX_HIDE = /^(Rylan)\b/i;
+  VX.people = VX.people.filter(p => !VX_HIDE.test(p.name));
+  VX.reps = VX.reps.filter(r => VX.people.some(p => p.id === r.who));
+  VX.clips = VX.clips.filter(c => VX.reps.some(r => r.id === c.rep));
+  if (VX.start && !VX.reps.some(r => r.id === VX.start)) VX.start = VX.reps[0] && VX.reps[0].id;
+}
 const vxDaysOf = (pid) => VX.reps.filter(r => r.who === pid);
 const vxStartHTML = () => { const r = vxRep(VX.start), d = r.days[0]; return `<b>Start with ${vxEsc(r.name.split(' ')[0])} · ${d.date}</b><small>${d.doors.length} doors, ${d.doors.filter(x => x.kind === 'sale').length} sales, ${vxFmt(d.mins * 60)}. Plug in and drive.</small>`; };
 const VX_OBJ = { price:'Price', spouse:'Spouse', delay:'Think about it', diy:'DIY', competitor:'Already have someone', not_interested:'Not interested', no_problem:'No bugs' };
@@ -8553,6 +8566,8 @@ const vxSave = () => { try { localStorage.setItem('slabAce.vault', JSON.stringif
 if (vxS.day.d !== vxToday()) vxS.day = { d:vxToday(), xp:0, sec:0 };
 if (vxS.prog && !vxRep(vxS.prog.rid)) vxS.prog = null;
 if (APP && APP.vault) vxS.tune.reps = VX.people.map(p => p.id);
+vxS.tune.reps = vxS.tune.reps.filter(id => VX.people.some(p => p.id === id));
+if (!vxS.tune.reps.length) vxS.tune.reps = VX.people.map(p => p.id);
 // clips: door type, a seeded like count (sales trend higher), a stable id
 VX.clips.forEach((c, i) => {
   const d = vxDoor(c.rep, c.door);
@@ -9101,6 +9116,7 @@ window.__appReply = (id, ok, result) => {
 window.__appEvent = (type, data) => {
   if (type === 'xp' && data) { currentXP = data.total; updateXPBadge(); applyLockStates(); renderLeaderboard(false); }
   if (type === 'tab' && data) { const b = document.querySelector(`.navbtn[data-page="${data}"]`); if (b) b.click(); }
+  if (type === 'voice' && data) appVoiceEvent(data);
 };
 
 // XP: amounts come from the server (grant_xp), which applies streak, power hour and caps.
@@ -9800,6 +9816,40 @@ function openCompanySwitch(){
     }));
   }).catch(e => { $('co-list').innerHTML = `<div class="co-wait">${esc((e && e.message) || 'Couldn’t load companies')}</div>`; });
 }
+
+// ---- Ask Marshall by voice: the mic beside the chat box (src/game/voice.ts does the listening) ----
+// Words fill the chat box as they're heard; the rep checks them and taps send. Marshall doesn't talk back yet.
+let appVoiceOn = false, appVoiceBase = '';
+function appVoiceSet(on){
+  appVoiceOn = on;
+  const b = $('chat-mic-btn'); if (!b) return;
+  b.classList.toggle('on', on);
+  b.setAttribute('aria-label', on ? 'Stop listening' : 'Talk');
+  chatInput.placeholder = on ? 'Listening...' : 'Ask anything...';
+}
+function appVoiceEvent(d){
+  if (d.state === 'listening' && typeof d.text === 'string') {
+    chatInput.value = (appVoiceBase ? appVoiceBase + ' ' : '') + d.text;
+    sendBtn.disabled = !chatInput.value.trim() || awaitingReply;
+  }
+  if (d.state === 'idle') appVoiceSet(false);
+  if (d.state === 'error') { appVoiceSet(false); showToast(d.error || 'Couldn’t hear that', 'ph-warning'); }
+}
+function appVoiceInit(){
+  const b = $('chat-mic-btn');
+  if (!b || !APP || !APP.voice) return;
+  b.hidden = false;
+  b.addEventListener('click', () => {
+    haptic('tap');
+    if (appVoiceOn) { appSend('listenStop'); return; }
+    appVoiceBase = chatInput.value.trim();
+    appVoiceSet(true);
+    appCall('listen').catch(e => { appVoiceSet(false); showToast((e && e.message) || 'Mic isn’t available', 'ph-warning'); });
+  });
+  // Sending stops the mic so a late word doesn't land in the next message
+  sendBtn.addEventListener('click', () => { if (appVoiceOn) appSend('listenStop'); });
+}
+appSafe('voice', appVoiceInit);
 
 
 // ============ INIT ============

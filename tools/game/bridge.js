@@ -50,6 +50,7 @@ window.__appReply = (id, ok, result) => {
 window.__appEvent = (type, data) => {
   if (type === 'xp' && data) { currentXP = data.total; updateXPBadge(); applyLockStates(); renderLeaderboard(false); }
   if (type === 'tab' && data) { const b = document.querySelector(`.navbtn[data-page="${data}"]`); if (b) b.click(); }
+  if (type === 'voice' && data) appVoiceEvent(data);
 };
 
 // XP: amounts come from the server (grant_xp), which applies streak, power hour and caps.
@@ -749,3 +750,37 @@ function openCompanySwitch(){
     }));
   }).catch(e => { $('co-list').innerHTML = `<div class="co-wait">${esc((e && e.message) || 'Couldn’t load companies')}</div>`; });
 }
+
+// ---- Ask Marshall by voice: the mic beside the chat box (src/game/voice.ts does the listening) ----
+// Words fill the chat box as they're heard; the rep checks them and taps send. Marshall doesn't talk back yet.
+let appVoiceOn = false, appVoiceBase = '';
+function appVoiceSet(on){
+  appVoiceOn = on;
+  const b = $('chat-mic-btn'); if (!b) return;
+  b.classList.toggle('on', on);
+  b.setAttribute('aria-label', on ? 'Stop listening' : 'Talk');
+  chatInput.placeholder = on ? 'Listening...' : 'Ask anything...';
+}
+function appVoiceEvent(d){
+  if (d.state === 'listening' && typeof d.text === 'string') {
+    chatInput.value = (appVoiceBase ? appVoiceBase + ' ' : '') + d.text;
+    sendBtn.disabled = !chatInput.value.trim() || awaitingReply;
+  }
+  if (d.state === 'idle') appVoiceSet(false);
+  if (d.state === 'error') { appVoiceSet(false); showToast(d.error || 'Couldn’t hear that', 'ph-warning'); }
+}
+function appVoiceInit(){
+  const b = $('chat-mic-btn');
+  if (!b || !APP || !APP.voice) return;
+  b.hidden = false;
+  b.addEventListener('click', () => {
+    haptic('tap');
+    if (appVoiceOn) { appSend('listenStop'); return; }
+    appVoiceBase = chatInput.value.trim();
+    appVoiceSet(true);
+    appCall('listen').catch(e => { appVoiceSet(false); showToast((e && e.message) || 'Mic isn’t available', 'ph-warning'); });
+  });
+  // Sending stops the mic so a late word doesn't land in the next message
+  sendBtn.addEventListener('click', () => { if (appVoiceOn) appSend('listenStop'); });
+}
+appSafe('voice', appVoiceInit);
