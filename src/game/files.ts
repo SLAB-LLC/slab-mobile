@@ -11,7 +11,7 @@ import { Asset } from 'expo-asset'
 const PAGE = require('../../assets/game/game.html')
 const LOGIN = require('../../assets/game/login.html')
 
-/** Marshall's pack: his full day, the files the demo's Vault data points at (Rylan's day was dropped 2026-11-02) */
+/** Marshall's pack: full days (m) and reels (r), the files the demo's Vault data points at */
 const AUDIO: Record<string, number> = {
   'm01.mp3': require('../../assets/game/audio/m01.mp3'),
   'm02.mp3': require('../../assets/game/audio/m02.mp3'),
@@ -30,6 +30,26 @@ const AUDIO: Record<string, number> = {
   'm15.mp3': require('../../assets/game/audio/m15.mp3'),
   'm16.mp3': require('../../assets/game/audio/m16.mp3'),
   'm17.mp3': require('../../assets/game/audio/m17.mp3'),
+  'r01.mp3': require('../../assets/game/audio/r01.mp3'),
+  'r02.mp3': require('../../assets/game/audio/r02.mp3'),
+  'r03.mp3': require('../../assets/game/audio/r03.mp3'),
+  'r04.mp3': require('../../assets/game/audio/r04.mp3'),
+  'r05.mp3': require('../../assets/game/audio/r05.mp3'),
+  'r06.mp3': require('../../assets/game/audio/r06.mp3'),
+  'r07.mp3': require('../../assets/game/audio/r07.mp3'),
+  'r08.mp3': require('../../assets/game/audio/r08.mp3'),
+  'r09.mp3': require('../../assets/game/audio/r09.mp3'),
+  'r10.mp3': require('../../assets/game/audio/r10.mp3'),
+  'r11.mp3': require('../../assets/game/audio/r11.mp3'),
+  'r12.mp3': require('../../assets/game/audio/r12.mp3'),
+  'r13.mp3': require('../../assets/game/audio/r13.mp3'),
+  'r14.mp3': require('../../assets/game/audio/r14.mp3'),
+  'r15.mp3': require('../../assets/game/audio/r15.mp3'),
+  'r16.mp3': require('../../assets/game/audio/r16.mp3'),
+  'r17.mp3': require('../../assets/game/audio/r17.mp3'),
+  'r18.mp3': require('../../assets/game/audio/r18.mp3'),
+  'r19.mp3': require('../../assets/game/audio/r19.mp3'),
+  'r20.mp3': require('../../assets/game/audio/r20.mp3'),
 }
 
 const DIR = `${FileSystem.documentDirectory}game/`

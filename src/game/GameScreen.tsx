@@ -16,7 +16,8 @@ import { grantXp } from '../services/xp.service'
 import { markVideoComplete } from '../services/training.service'
 import { askCoachWithClips, isCoachConnected } from '../services/coach.service'
 import { loadVaultDay } from './vault'
-import { buildGameBoot, VideoIndex, youtubeEmbedUrl } from './boot'
+import { startListening, stopListening } from './voice'
+import { buildGameBoot, isAceCompany, VideoIndex, youtubeEmbedUrl } from './boot'
 import { prepareGameFiles } from './files'
 import * as owner from './owner'
 import * as notifs from '../services/notifications.service'
@@ -106,6 +107,9 @@ export default function GameScreen() {
       .catch((err) => setFailed(String(err?.message || err)))
   }, [ready, bootKey])
 
+  // Leaving the game screen turns the chat mic off
+  useEffect(() => () => stopListening(), [])
+
   // The home screen icon follows the company (Ace gets the gold Ace logo)
   useEffect(() => {
     if (tenantReady) applyAppIcon(companyIconName(company, features))
@@ -157,9 +161,16 @@ export default function GameScreen() {
           })
           return { ...answer, connected: isCoachConnected() }
         }
+        case 'listen':
+          return startListening((type, data) => {
+            webRef.current?.injectJavaScript(`window.__appEvent && window.__appEvent(${JSON.stringify(type)}, ${JSON.stringify(data).replace(/</g, '\\u003c')}); true;`)
+          })
+        case 'listenStop':
+          stopListening()
+          return null
         case 'vaultDay':
           // A door the coach linked to that isn't among the featured days
-          return loadVaultDay(String(payload?.prefix ?? ''))
+          return loadVaultDay(String(payload?.prefix ?? ''), isAceCompany(company))
         case 'saveLook':
           await saveLook(normalizeLook(engine, payload?.look as Partial<RepLook>))
           return null

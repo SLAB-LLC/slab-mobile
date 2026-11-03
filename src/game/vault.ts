@@ -30,10 +30,12 @@ export interface VaultData {
 /** The pack's reps keep the ids the page's faces and tags are keyed by */
 const KNOWN: Record<string, VaultPerson> = {
   Marshall: { id: 'm', name: 'Marshall Hawks', ini: 'MH', color: '#daae5d' },
+  Rylan: { id: 'r', name: 'Rylan', ini: 'RY', color: '#7fd1c7' },
 }
-/** Reps whose days stay out of the Vault (Duncan, 2026-11-02: Marshall only, so trainees hear one style) */
-const HIDDEN = /^rylan\b/i
-const shown = (r: any) => !HIDDEN.test(r.rep_name ?? '')
+/** Ace's Vault is Marshall only (Duncan, 2026-11-03: Marshall said a second style would confuse Ace's reps).
+ *  Other companies and solo reps still get Rylan. The page applies the same rule to the pack it ships with. */
+const ACE_HIDDEN = /^rylan\b/i
+const shownFor = (ace: boolean) => (r: any) => !(ace && ACE_HIDDEN.test(r.rep_name ?? ''))
 const COLORS = ['#6ea8ff', '#e0664f', '#b48ef0', '#8fcf6a']
 /** Signed links last the whole session */
 const LINK_SECONDS = 12 * 3600
@@ -79,23 +81,23 @@ function toDay(r: any, p: VaultPerson, id: string, url: Map<string, string>): { 
 let extraDays = 0
 
 /** One day by its audio folder, for a door the coach points at that isn't among the featured days */
-export async function loadVaultDay(prefix: string): Promise<VaultDay | null> {
+export async function loadVaultDay(prefix: string, ace = false): Promise<VaultDay | null> {
   const { data: r } = await supabase.from('vault_days').select(DAY_COLUMNS).eq('audio_prefix', prefix).maybeSingle()
-  if (!r || !shown(r)) return null
+  if (!r || !shownFor(ace)(r)) return null
   const p = person(r.rep_name, 0)
   // Ids stay plain (the page puts them in attributes); the featured days use their position
   const { day } = toDay(r, p, `${p.id}~more${++extraDays}`, await signAll([r]))
   return day.days[0].doors.length ? day : null
 }
 
-export async function loadVault(): Promise<VaultData | null> {
+export async function loadVault(ace = false): Promise<VaultData | null> {
   const { data: rows, error } = await supabase
     .from('vault_days')
     .select(DAY_COLUMNS)
     .eq('featured', true)
     .order('recording_date', { ascending: false, nullsFirst: false })
     .limit(MAX_DAYS)
-  const keep = (rows ?? []).filter(shown)
+  const keep = (rows ?? []).filter(shownFor(ace))
   if (error || !keep.length) return null
 
   const url = await signAll(keep)
