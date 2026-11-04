@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { AppState, AppStateStatus } from 'react-native'
 import { User } from '@supabase/supabase-js'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from '../utils/supabase'
 import { UserProfile, Company } from '../types'
 import { registerPushTokenSilently, deactivatePushToken } from '../services/notifications.service'
@@ -9,6 +10,23 @@ import { recordHeartbeat } from '../services/streak.service'
 import { SOLO_COMPANY_SLUG } from '../tenant/defaults'
 
 const HEARTBEAT_INTERVAL_MS = 60_000
+
+/**
+ * Change this to sign every phone out once, the next time the app opens with the new code
+ * (2026-11-04, Duncan: so everyone walks in through the new CRT login and intro).
+ * Fresh installs just record it; nobody is signed out twice for the same value.
+ */
+const SIGN_OUT_EPOCH = '2026-11-04'
+const SIGN_OUT_EPOCH_KEY = 'slab.signOutEpoch'
+
+async function applySignOutEpoch() {
+  try {
+    if ((await AsyncStorage.getItem(SIGN_OUT_EPOCH_KEY)) === SIGN_OUT_EPOCH) return
+    // Local only: clears this phone's session without touching the rep's other devices
+    await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+    await AsyncStorage.setItem(SIGN_OUT_EPOCH_KEY, SIGN_OUT_EPOCH)
+  } catch {}
+}
 
 interface AuthContextType {
   user: User | null
@@ -171,33 +189,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user?.id])
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchProfile(session.user.id).finally(() => setLoading(false))
-      } else {
-        setLoading(false)
-      }
-    })
+    let subscription: { unsubscribe: () => void } | null = null
+    let cancelled = false
 
-    // Listen for auth state changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
+    // A one-time sign-out (SIGN_OUT_EPOCH) runs before the saved session is read
+    applySignOutEpoch().then(() => {
+      if (cancelled) return
 
-      if (session?.user) {
-        fetchProfile(session.user.id)
-      } else {
-        endSession().catch(() => {})
-        setProfile(null)
-        setCompany(null)
-      }
+      // Get initial session
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setUser(session?.user ?? null)
+        if (session?.user) {
+          fetchProfile(session.user.id).finally(() => setLoading(false))
+        } else {
+          setLoading(false)
+        }
+      })
+
+      // Listen for auth state changes
+      subscription = supabase.auth.onAuthStateChange((_event, session) => {
+        setUser(session?.user ?? null)
+
+        if (session?.user) {
+          fetchProfile(session.user.id)
+        } else {
+          endSession().catch(() => {})
+          setProfile(null)
+          setCompany(null)
+        }
+      }).data.subscription
     })
 
     return () => {
-      subscription.unsubscribe()
+      cancelled = true
+      subscription?.unsubscribe()
     }
   }, [])
 
