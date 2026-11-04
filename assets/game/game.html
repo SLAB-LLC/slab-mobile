@@ -4737,6 +4737,7 @@ const ALL_GEAR = Object.entries(GEAR).flatMap(([slot, list]) => list.filter(g =>
 const gearUnlocked = (g) => currentXP >= g.xp;
 
 const DEFAULT_LOOK = { skin:2, eyes:0, hair:'short', hairColor:1, face:'none', top:'tee', hat:'none', pants:'black', shoes:'sneaker', extra:'none', ride:'none' };
+if (SLAB_PACK) DEFAULT_LOOK.top = 'logotee';
 
 // body: main color, sleeve length, optional sleeve color and logo color
 const TOPS = {
@@ -5656,6 +5657,7 @@ try {
 } catch (e) {}
 function saveMe(){ try { localStorage.setItem('slabAce.rep', JSON.stringify(ME)); } catch (e) {} appSaveMe(); }
 if (APP) { ME.name = APP.me.name || ME.name; ME.email = APP.me.email; ME.level = APP.me.level || 'rookie'; if (APP.me.look) { ME.look = Object.assign({ ...DEFAULT_LOOK }, APP.me.look); ME.onboarded = true; } else ME.onboarded = false; }
+if (APP && SLAB_PACK && ME.look.top === 'tee') { ME.look.top = 'logotee'; setTimeout(saveMe, 1500); }
 const meName = () => ME.name || 'Riley';
 
 function applyMe(){
