@@ -39,8 +39,8 @@ const shownFor = (ace: boolean) => (r: any) => !(ace && ACE_HIDDEN.test(r.rep_na
 const COLORS = ['#6ea8ff', '#e0664f', '#b48ef0', '#8fcf6a']
 /** Signed links last the whole session */
 const LINK_SECONDS = 12 * 3600
-/** Days loaded at start-up: each carries its full transcript, so the page stays light */
-const MAX_DAYS = 12
+/** Published recordings loaded at start-up, enough for the whole library */
+const MAX_DAYS = 100
 
 function person(name: string, i: number): VaultPerson {
   if (KNOWN[name]) return KNOWN[name]
@@ -65,17 +65,40 @@ async function signAll(rows: any[]): Promise<Map<string, string>> {
   return new Map((signed ?? []).filter((s) => s.path && s.signedUrl).map((s) => [s.path as string, s.signedUrl]))
 }
 
-/** A published day as a Vault entry, with its clips renumbered to match */
-function toDay(r: any, p: VaultPerson, id: string, url: Map<string, string>): { day: VaultDay; clips: any[] } {
-  const doors = (r.doors as any[])
-    .map((d) => ({ ...d, orig: d.n, src: url.get(`${r.audio_prefix}/${d.src}`) }))
-    .filter((d) => d.src)
-  // The page finds a door by its number, so keep them 1..n in order
-  const renumber = new Map(doors.map((d, k) => [d.n, k + 1]))
-  doors.forEach((d) => { d.n = renumber.get(d.n) })
-  const day: VaultDay = { ...p, id, who: p.id, prefix: r.audio_prefix, days: [{ ...dayLabels(r.recording_date), area: r.area ? r.area[0].toUpperCase() + r.area.slice(1) : '', mins: Number(r.minutes), doors }] }
-  const clips = (r.clips as any[]).filter((c) => renumber.has(c.door)).map((c) => ({ ...c, rep: id, door: renumber.get(c.door) }))
+/**
+ * One day's published recordings as a Vault entry, with doors and clips renumbered to match.
+ * The page finds a door by its number, so they run 1..n in order; each door keeps its recording's
+ * folder (`prefix`) and published number (`orig`) so the coach's pitch links can find it.
+ */
+function toDay(rows: any[], p: VaultPerson, id: string, url: Map<string, string>): { day: VaultDay; clips: any[] } {
+  const doors: any[] = []
+  const clips: any[] = []
+  for (const r of rows) {
+    const renumber = new Map<number, number>()
+    for (const d of r.doors as any[]) {
+      const src = url.get(`${r.audio_prefix}/${d.src}`)
+      if (!src) continue
+      renumber.set(d.n, doors.length + 1)
+      doors.push({ ...d, n: doors.length + 1, orig: d.n, prefix: r.audio_prefix, src })
+    }
+    for (const c of r.clips as any[]) {
+      if (renumber.has(c.door)) clips.push({ ...c, rep: id, door: renumber.get(c.door) })
+    }
+  }
+  const area = rows.find((r) => r.area)?.area as string | undefined
+  const mins = rows.reduce((sum, r) => sum + Number(r.minutes), 0)
+  const day: VaultDay = { ...p, id, who: p.id, prefix: rows[0].audio_prefix, days: [{ ...dayLabels(rows[0].recording_date), area: area ? area[0].toUpperCase() + area.slice(1) : '', mins, doors }] }
   return { day, clips }
+}
+
+/** A rep's recordings from the same date are one day; a recording with no date stays on its own */
+function groupByDay(rows: any[]): any[][] {
+  const groups = new Map<string, any[]>()
+  for (const r of rows) {
+    const key = r.recording_date ? `${r.rep_name}|${r.recording_date}` : r.audio_prefix
+    groups.set(key, [...(groups.get(key) ?? []), r])
+  }
+  return [...groups.values()]
 }
 
 let extraDays = 0
@@ -86,7 +109,7 @@ export async function loadVaultDay(prefix: string, ace = false): Promise<VaultDa
   if (!r || !shownFor(ace)(r)) return null
   const p = person(r.rep_name, 0)
   // Ids stay plain (the page puts them in attributes); the featured days use their position
-  const { day } = toDay(r, p, `${p.id}~more${++extraDays}`, await signAll([r]))
+  const { day } = toDay([r], p, `${p.id}~more${++extraDays}`, await signAll([r]))
   return day.days[0].doors.length ? day : null
 }
 
@@ -104,11 +127,11 @@ export async function loadVault(ace = false): Promise<VaultData | null> {
   const people: VaultPerson[] = []
   const reps: VaultData['reps'] = []
   const clips: any[] = []
-  keep.forEach((r: any, i: number) => {
-    const base = person(r.rep_name, people.length)
+  groupByDay(keep).forEach((group, i) => {
+    const base = person(group[0].rep_name, people.length)
     let p = people.find((x) => x.id === base.id)
     if (!p) people.push((p = base))
-    const got = toDay(r, p, `${p.id}~${i}`, url)
+    const got = toDay(group, p, `${p.id}~${i}`, url)
     reps.push(got.day)
     clips.push(...got.clips)
   })
