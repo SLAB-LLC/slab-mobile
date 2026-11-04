@@ -126,6 +126,8 @@ if (SLAB_PACK) {
 const ALL_GEAR = Object.entries(GEAR).flatMap(([slot, list]) => list.filter(g => g.xp > 0).map(g => ({ ...g, slot }))).sort((a, b) => a.xp - b.xp);
 
 const DEFAULT_LOOK = { skin:2, eyes:0, hair:'short', hairColor:1, face:'none', top:'tee', hat:'none', pants:'black', shoes:'sneaker', extra:'none', ride:'none' };
+// Reps without a company start in the SLAB logo tee, not the lettered company tee (Duncan, 2026-11-04)
+if (SLAB_PACK) DEFAULT_LOOK.top = 'logotee';
 
 // body: main color, sleeve length, optional sleeve color and logo color
 const TOPS = {

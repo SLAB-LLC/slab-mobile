@@ -220,7 +220,17 @@ def slab_pack(html):
         old, new, count = (*edit, 1)[:3]
         html = rep(html, old, new, count)
     html = rep(html, "const RARITY = { crown:1,", "const RARITY = { labcoat:8, goggles:25, crown:1,")
+    html = slab_default_tee(html)
     return html, mark
+
+
+def slab_default_tee(html):
+    """Reps without a company start in the SLAB logo tee, and anyone still in the default tee moves to it
+    (Duncan, 2026-11-04: no Ace-style shirt for them). src/avatar/engine.ts sets the same default."""
+    look = "const DEFAULT_LOOK = { skin:2, eyes:0, hair:'short', hairColor:1, face:'none', top:'tee', hat:'none', pants:'black', shoes:'sneaker', extra:'none', ride:'none' };\n"
+    html = rep(html, look, look + "if (SLAB_PACK) DEFAULT_LOOK.top = 'logotee';\n")
+    me = "const meName = () => ME.name || 'Riley';\n"
+    return rep(html, me, "if (APP && SLAB_PACK && ME.look.top === 'tee') { ME.look.top = 'logotee'; setTimeout(saveMe, 1500); }\n" + me)
 
 
 def main(src):
