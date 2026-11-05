@@ -156,6 +156,16 @@ def chat_mic(html):
                '  @keyframes mic-pulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(224,69,58,.45); } 50%{ box-shadow:0 0 0 8px rgba(224,69,58,0); } }\n')
     return html
 
+def vault_lazy_lines(html):
+    """Days from the Vault index come without transcripts; tools/game/bridge.js fetches them on open"""
+    html = rep(html, 'function vxOpenDay(rid, n, t){\n  vxReelStop();',
+               'function vxOpenDay(rid, n, t){\n'
+               '  if (APP && appNeedLines(rid)) { appFillLines(rid).then(ok => { if (ok) vxOpenDay(rid, n, t); }); return; }\n'
+               '  vxReelStop();')
+    html = rep(html, 't = vxAu.currentTime, L = d.lines;', 't = vxAu.currentTime, L = d.lines || [];')
+    html = rep(html, 'L = c.d.lines; let i', 'L = c.d.lines || []; let i')
+    return html
+
 def slab_pack(html):
     """SLAB's own merch for reps without a company; src/avatar/engine.ts carries the same edits"""
     L = 'GEAR_LETTERS'
@@ -499,6 +509,7 @@ appSafe('rep', initRep);
     html = vault_live(html)
     html = hide_reps_for_ace(html)
     html = chat_mic(html)
+    html = vault_lazy_lines(html)
 
     # ---- the bridge itself, just before start-up runs ----
     html = rep(html, '// ============ INIT ============', bridge + '\n\n// ============ INIT ============')

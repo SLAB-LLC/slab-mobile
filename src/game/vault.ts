@@ -39,7 +39,7 @@ const shownFor = (ace: boolean) => (r: any) => !(ace && ACE_HIDDEN.test(r.rep_na
 const COLORS = ['#6ea8ff', '#e0664f', '#b48ef0', '#8fcf6a']
 /** Signed links last the whole session */
 const LINK_SECONDS = 12 * 3600
-/** Published recordings loaded at start-up, enough for the whole library */
+/** Published recordings loaded at start-up, enough for the whole library (light: see vaultRows) */
 const MAX_DAYS = 100
 
 function person(name: string, i: number): VaultPerson {
@@ -113,15 +113,44 @@ export async function loadVaultDay(prefix: string, ace = false): Promise<VaultDa
   return day.days[0].doors.length ? day : null
 }
 
-export async function loadVault(ace = false): Promise<VaultData | null> {
-  const { data: rows, error } = await supabase
+/**
+ * Every published day from vault_days_index (slabtech sql/vault-days-index-view.sql): doors come
+ * without their transcripts, except doors a reel plays from, and loadVaultLines fills a day in when
+ * a rep opens it. Until that view exists, only the featured days load, transcripts and all.
+ */
+async function vaultRows(): Promise<any[] | null> {
+  const all = await supabase
+    .from('vault_days_index')
+    .select(DAY_COLUMNS)
+    .order('recording_date', { ascending: false, nullsFirst: false })
+    .limit(MAX_DAYS)
+  if (!all.error) return all.data ?? []
+  const featured = await supabase
     .from('vault_days')
     .select(DAY_COLUMNS)
     .eq('featured', true)
     .order('recording_date', { ascending: false, nullsFirst: false })
     .limit(MAX_DAYS)
+  return featured.error ? null : featured.data ?? []
+}
+
+/** Transcripts for the doors of these recordings: prefix -> published door number -> lines */
+export async function loadVaultLines(prefixes: string[]): Promise<Record<string, Record<number, any[]>>> {
+  const out: Record<string, Record<number, any[]>> = {}
+  if (!prefixes.length) return out
+  const { data, error } = await supabase.from('vault_days').select('audio_prefix, doors').in('audio_prefix', prefixes)
+  if (error) throw new Error('That day could not load')
+  for (const r of data ?? []) {
+    out[r.audio_prefix] = {}
+    for (const d of (r.doors as any[]) ?? []) out[r.audio_prefix][d.n] = d.lines ?? []
+  }
+  return out
+}
+
+export async function loadVault(ace = false): Promise<VaultData | null> {
+  const rows = await vaultRows()
   const keep = (rows ?? []).filter(shownFor(ace))
-  if (error || !keep.length) return null
+  if (!keep.length) return null
 
   const url = await signAll(keep)
   const people: VaultPerson[] = []

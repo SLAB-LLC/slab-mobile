@@ -15,7 +15,7 @@ import { supabase } from '../utils/supabase'
 import { grantXp } from '../services/xp.service'
 import { markVideoComplete } from '../services/training.service'
 import { askCoachWithClips, isCoachConnected } from '../services/coach.service'
-import { loadVaultDay } from './vault'
+import { loadVaultDay, loadVaultLines } from './vault'
 import { startListening, stopListening } from './voice'
 import { buildGameBoot, isAceCompany, VideoIndex, youtubeEmbedUrl } from './boot'
 import { prepareGameFiles } from './files'
@@ -168,6 +168,9 @@ export default function GameScreen() {
         case 'listenStop':
           stopListening()
           return null
+        case 'vaultLines':
+          // A day the Vault index sent without transcripts, as the rep opens it
+          return loadVaultLines(Array.isArray(payload?.prefixes) ? payload.prefixes.map(String).slice(0, 50) : [])
         case 'vaultDay':
           // A door the coach linked to that isn't among the featured days
           return loadVaultDay(String(payload?.prefix ?? ''), isAceCompany(company))

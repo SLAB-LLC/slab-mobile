@@ -8700,6 +8700,7 @@ function vxPlayerShell(){
   return pl;
 }
 function vxOpenDay(rid, n, t){
+  if (APP && appNeedLines(rid)) { appFillLines(rid).then(ok => { if (ok) vxOpenDay(rid, n, t); }); return; }
   vxReelStop();
   const pl = vxPlayerShell(), d = vxDoor(rid, n), r = vxRep(rid), ds = vxDoors(rid);
   vxMode = 'day'; vxCur = { rid, n };
@@ -8726,7 +8727,7 @@ function vxOpenDay(rid, n, t){
 function vxStep(dir){ if (!vxCur || vxMode !== 'day') return; const n = vxCur.n + dir; if (n < 1 || n > vxDoors(vxCur.rid).length) return; haptic('tap'); vxOpenDay(vxCur.rid, n, 0); }
 function vxTick(){
   const pl = $('vx-pl'); if (!pl || !pl.classList.contains('on') || vxMode !== 'day') return;
-  const d = vxDoor(vxCur.rid, vxCur.n), t = vxAu.currentTime, L = d.lines;
+  const d = vxDoor(vxCur.rid, vxCur.n), t = vxAu.currentTime, L = d.lines || [];
   const p = Math.min(1, t / d.dur) * 100; pl.querySelector('.vx-scrub i').style.width = p + '%'; pl.querySelector('.vx-scrub em').style.left = p + '%';
   $('vx-pl-a').textContent = vxFmt(t); const pb = $('vx-pl-pb'), st0 = vxAu.paused ? 'p' : 'a'; if (pb.dataset.s !== st0) { pb.dataset.s = st0; pb.innerHTML = vxAu.paused ? VX_I.play : VX_I.pause; }
   let i = 0; L.forEach((l, k) => { if (t >= l[0]) i = k; });
@@ -8849,7 +8850,7 @@ function vxReelTick(){
   if (vxMode !== 'reel' || !$('vx-reels').classList.contains('on')) return;
   const c = vxCur, card = document.querySelector(`#vx-feed .vx-card[data-q="${vxActive}"]`);
   if (card) {
-    const t = vxAu.currentTime, L = c.d.lines; let i = 0; L.forEach((l, k) => { if (t >= l[0]) i = k; });
+    const t = vxAu.currentTime, L = c.d.lines || []; let i = 0; L.forEach((l, k) => { if (t >= l[0]) i = k; });
     const l = L[i];
     if (l) {
       const ws = l[2].split(' '), en = i + 1 < L.length ? L[i + 1][0] : c.d.dur, n = Math.max(0, Math.min(ws.length, Math.ceil((t - l[0]) / Math.max(.5, en - l[0] - .6) * ws.length))), W = 16, a = Math.floor(Math.max(0, n - 1) / W) * W;
@@ -9856,6 +9857,23 @@ function appVoiceInit(){
   sendBtn.addEventListener('click', () => { if (appVoiceOn) appSend('listenStop'); });
 }
 appSafe('voice', appVoiceInit);
+
+// ---- Vault days that arrive without transcripts (the index view keeps start-up light) ----
+// Opening such a day fetches its doors' transcripts first, then opens it as usual.
+function appNeedLines(rid){ const r = vxRep(rid); return !!r && r.days[0].doors.some(d => !d.lines); }
+async function appFillLines(rid){
+  const ds = vxRep(rid).days[0].doors;
+  const prefixes = [...new Set(ds.filter(d => !d.lines && d.prefix).map(d => d.prefix))];
+  if (prefixes.length) showToast('Loading that day...', 'ph-headphones');
+  try {
+    const got = prefixes.length ? await appCall('vaultLines', { prefixes }) : {};
+    ds.forEach(d => { if (!d.lines) d.lines = ((got || {})[d.prefix] || {})[d.orig] || []; });
+    return true;
+  } catch (e) {
+    showToast((e && e.message) || 'That day could not load', 'ph-warning');
+    return false;
+  }
+}
 
 
 // ============ INIT ============
