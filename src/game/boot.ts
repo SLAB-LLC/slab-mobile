@@ -375,8 +375,9 @@ export async function buildGameBoot(args: {
       vault,
       build: args.build,
       voice: voiceAvailable(),
-      // Ace runs the standard levels; other companies open the street once their own lessons are in
-      labOpen: ace || (!!features.companyLessons && lessons.units.length > 0),
+      // The street opens once a company's own lessons are in. Ace's standard levels are filler for now,
+      // so Ace stays locked too until its lessons are plugged in (Duncan, 2026-11-05)
+      labOpen: !!features.companyLessons && lessons.units.length > 0,
       lessons: features.companyLessons ? lessons.units : [],
       vaultVideos: ace
         ? lessons.units.map((u) => ({ title: u.title, videos: u.subs.map((v) => ({ id: v.id, title: v.title, duration: v.video.duration })) }))

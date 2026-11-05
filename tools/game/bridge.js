@@ -184,7 +184,15 @@ let appSaveTimer = 0;
 function appSaveMe(){
   if (!APP) return;
   clearTimeout(appSaveTimer);
-  appSaveTimer = setTimeout(() => appSend('saveLook', { look: ME.look }), 700);
+  appSaveTimer = setTimeout(() => appSend('saveLook', { look: { ...ME.look, shout: ME.shout || '' } }), 700);
+}
+// The podium message rides along in the saved look, so it shows on every phone. A message set on this
+// phone before that was saved goes up once; after that the account's copy wins.
+if (APP) {
+  const saved = APP.me.look && typeof APP.me.look.shout === 'string' ? APP.me.look.shout : null;
+  if (saved !== null) ME.shout = saved;
+  else if (ME.shout && APP.me.look) appSaveMe();
+  if (ME.look) delete ME.look.shout;
 }
 
 // ---- Marshall's videos in the Vault ----

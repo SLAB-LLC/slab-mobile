@@ -179,6 +179,11 @@ def admin_all_gear(html):
     html = rep(html, 'GEAR[slot].filter(g => g.xp <= currentXP)', 'GEAR[slot].filter(g => g.xp <= gearXP())')
     return html
 
+def shared_shouts(html):
+    """Podium messages come from each rep's saved look (look.shout), not the demo's made-up lines"""
+    return rep(html, "function shoutFor(rep){ return rep.you ? (ME.shout || '') : (SHOUTS[rep.name] || ''); }",
+               "function shoutFor(rep){ return rep.you ? (ME.shout || '') : APP ? ((rep.look && rep.look.shout) || '') : (SHOUTS[rep.name] || ''); }")
+
 def slab_pack(html):
     """SLAB's own merch for reps without a company; src/avatar/engine.ts carries the same edits"""
     L = 'GEAR_LETTERS'
@@ -524,6 +529,7 @@ appSafe('rep', initRep);
     html = chat_mic(html)
     html = vault_lazy_lines(html)
     html = admin_all_gear(html)
+    html = shared_shouts(html)
 
     # ---- the bridge itself, just before start-up runs ----
     html = rep(html, '// ============ INIT ============', bridge + '\n\n// ============ INIT ============')
