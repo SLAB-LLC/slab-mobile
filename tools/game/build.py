@@ -166,6 +166,19 @@ def vault_lazy_lines(html):
     html = rep(html, 'L = c.d.lines; let i', 'L = c.d.lines || []; let i')
     return html
 
+def admin_all_gear(html):
+    """SLAB super admins get every piece of gear, whatever their XP (Duncan, 2026-11-05)"""
+    html = rep(html, 'const gearUnlocked = (g) => currentXP >= g.xp;',
+               'const gearXP = () => (APP && APP.me && APP.me.superAdmin) ? Infinity : currentXP;\n'
+               'const gearUnlocked = (g) => gearXP() >= g.xp;')
+    html = rep(html, 'const nextUnlock = () => ALL_GEAR.find(g => g.xp > currentXP);',
+               'const nextUnlock = () => ALL_GEAR.find(g => g.xp > gearXP());')
+    html = rep(html, '    const locked = xp > currentXP;', '    const locked = xp > gearXP();')
+    html = rep(html, "if (+b.dataset.xp > currentXP) { showToast('Unlocks at '", "if (+b.dataset.xp > gearXP()) { showToast('Unlocks at '")
+    html = rep(html, 'ALL_GEAR.filter(g => g.xp <= currentXP)', 'ALL_GEAR.filter(g => g.xp <= gearXP())', 2)
+    html = rep(html, 'GEAR[slot].filter(g => g.xp <= currentXP)', 'GEAR[slot].filter(g => g.xp <= gearXP())')
+    return html
+
 def slab_pack(html):
     """SLAB's own merch for reps without a company; src/avatar/engine.ts carries the same edits"""
     L = 'GEAR_LETTERS'
@@ -510,6 +523,7 @@ appSafe('rep', initRep);
     html = hide_reps_for_ace(html)
     html = chat_mic(html)
     html = vault_lazy_lines(html)
+    html = admin_all_gear(html)
 
     # ---- the bridge itself, just before start-up runs ----
     html = rep(html, '// ============ INIT ============', bridge + '\n\n// ============ INIT ============')

@@ -4734,7 +4734,8 @@ if (SLAB_PACK) {
   GEAR.extra.splice(GEAR.extra.findIndex(x => x.id === 'shades'), 0, { id:'goggles', name:'Lab goggles', xp:450 });
 }
 const ALL_GEAR = Object.entries(GEAR).flatMap(([slot, list]) => list.filter(g => g.xp > 0).map(g => ({ ...g, slot }))).sort((a, b) => a.xp - b.xp);
-const gearUnlocked = (g) => currentXP >= g.xp;
+const gearXP = () => (APP && APP.me && APP.me.superAdmin) ? Infinity : currentXP;
+const gearUnlocked = (g) => gearXP() >= g.xp;
 
 const DEFAULT_LOOK = { skin:2, eyes:0, hair:'short', hairColor:1, face:'none', top:'tee', hat:'none', pants:'black', shoes:'sneaker', extra:'none', ride:'none' };
 if (SLAB_PACK) DEFAULT_LOOK.top = 'logotee';
@@ -5742,7 +5743,7 @@ awardXP = function(amount, label){
   ALL_GEAR.filter(g => prev < g.xp && currentXP >= g.xp).forEach(g => showToast((g.slot === 'ride' ? 'New ride: ' : 'Unlocked: ') + g.name, 'ph-star'));
   if ($('phone').classList.contains('me-open')) renderProfile(true);
 };
-const nextUnlock = () => ALL_GEAR.find(g => g.xp > currentXP);
+const nextUnlock = () => ALL_GEAR.find(g => g.xp > gearXP());
 
 // ============ AVATAR CREATOR ============
 const CREATOR_TABS = [
@@ -5755,7 +5756,7 @@ function mountCreator(el, getLook, onChange, opts){
   opts = opts || {};
   let tab = opts.tab || 'top';
   const tile = (value, name, xp, selected) => {
-    const locked = xp > currentXP;
+    const locked = xp > gearXP();
     return `<button class="cr-tile${selected ? ' sel' : ''}${locked ? ' locked' : ''}" data-v="${value}" data-xp="${xp}" aria-pressed="${selected}" aria-label="${name}${locked ? ', unlocks at ' + xp + ' XP' : ''}">
       <canvas width="96" height="96" aria-hidden="true"></canvas><span>${name}</span>
       ${locked ? `<em><i class="ph-fill ph-lock-simple" aria-hidden="true"></i>${xp} XP</em>` : ''}</button>`;
@@ -5784,7 +5785,7 @@ function mountCreator(el, getLook, onChange, opts){
       if (tab === 'ride') drawRiderFit(b.querySelector('canvas'), { ...look, ride:b.dataset.v }, { pose:'side-0', mood:'happy', cx:18, cw:48 });
       else drawSprite(b.querySelector('canvas'), { ...look, [slot]:b.dataset.v }, { crop:TAB_CROP[tab] });
       b.addEventListener('click', () => {
-        if (+b.dataset.xp > currentXP) { showToast('Unlocks at ' + b.dataset.xp + ' XP', 'ph-lock-simple'); haptic('wrong'); return; }
+        if (+b.dataset.xp > gearXP()) { showToast('Unlocks at ' + b.dataset.xp + ' XP', 'ph-lock-simple'); haptic('wrong'); return; }
         onChange({ [slot]:b.dataset.v }); render();
       });
     });
@@ -5979,9 +5980,9 @@ function renderPowerCard(){
 }
 function renderProfile(keepScroll){
   const nu = nextUnlock();
-  const prevStep = ALL_GEAR.filter(g => g.xp <= currentXP).map(g => g.xp).pop() || 0;
+  const prevStep = ALL_GEAR.filter(g => g.xp <= gearXP()).map(g => g.xp).pop() || 0;
   const pct = nu ? Math.round((currentXP - prevStep) / (nu.xp - prevStep) * 100) : 100;
-  const unlocked = ALL_GEAR.filter(g => g.xp <= currentXP).length;
+  const unlocked = ALL_GEAR.filter(g => g.xp <= gearXP()).length;
   const scroll = $('me-scroll').scrollTop;
   $('me-body').innerHTML = `<div class="lv-panel">
     <div class="me-stage"><canvas id="me-big" width="128" height="164" aria-hidden="true"></canvas><div class="ob-floor"></div></div>
@@ -8529,7 +8530,7 @@ openAce = function(it, opener){
 const BUILD_ORDER = ['skin', 'hair', 'face', 'top', 'hat', 'pants', 'shoes', 'extra', 'ride'];
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 function randomLook(){
-  const owned = (slot) => GEAR[slot].filter(g => g.xp <= currentXP).map(g => g.id);
+  const owned = (slot) => GEAR[slot].filter(g => g.xp <= gearXP()).map(g => g.id);
   const L = { ...ME.look, skin:Math.floor(Math.random() * SKINS.length), hair:pick(HAIR_STYLES).id, hairColor:Math.floor(Math.random() * HAIR_COLORS.length),
     face:Math.random() < 0.55 ? 'none' : pick(FACES).id };
   ['top', 'hat', 'pants', 'shoes', 'extra'].forEach(s => { L[s] = pick(owned(s)); });
