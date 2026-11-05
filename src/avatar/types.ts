@@ -12,6 +12,8 @@ export interface RepLook {
   shoes: string
   extra: string
   ride: string
+  /** The rep's leaderboard podium message (saved with the look so every phone sees it) */
+  shout?: string
 }
 
 export type GearSlot = 'top' | 'hat' | 'pants' | 'shoes' | 'extra' | 'ride'

@@ -39,6 +39,7 @@ export function normalizeLook(engine: SpriteEngine, saved: Partial<RepLook> | nu
     extra: inList(s.extra, engine.GEAR.extra, d.extra),
     ride: inList(s.ride, engine.GEAR.ride, d.ride),
     ...(s.eyeStyle ? { eyeStyle: s.eyeStyle } : {}),
+    ...(typeof s.shout === 'string' ? { shout: s.shout.trim().slice(0, 60) } : {}),
   }
 }
 
