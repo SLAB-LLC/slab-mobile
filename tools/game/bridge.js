@@ -787,3 +787,20 @@ function appVoiceInit(){
   sendBtn.addEventListener('click', () => { if (appVoiceOn) appSend('listenStop'); });
 }
 appSafe('voice', appVoiceInit);
+
+// ---- Vault days that arrive without transcripts (the index view keeps start-up light) ----
+// Opening such a day fetches its doors' transcripts first, then opens it as usual.
+function appNeedLines(rid){ const r = vxRep(rid); return !!r && r.days[0].doors.some(d => !d.lines); }
+async function appFillLines(rid){
+  const ds = vxRep(rid).days[0].doors;
+  const prefixes = [...new Set(ds.filter(d => !d.lines && d.prefix).map(d => d.prefix))];
+  if (prefixes.length) showToast('Loading that day...', 'ph-headphones');
+  try {
+    const got = prefixes.length ? await appCall('vaultLines', { prefixes }) : {};
+    ds.forEach(d => { if (!d.lines) d.lines = ((got || {})[d.prefix] || {})[d.orig] || []; });
+    return true;
+  } catch (e) {
+    showToast((e && e.message) || 'That day could not load', 'ph-warning');
+    return false;
+  }
+}
