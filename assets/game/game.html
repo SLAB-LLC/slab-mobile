@@ -3736,7 +3736,7 @@ function renderLeaderboard(changed){
   const podium = [1, 0, 2].map(i => sorted[i]).filter(Boolean).map(rep => {
     const rank = sorted.indexOf(rep) + 1;
     return `<button class="pd-spot r${rank}${rep.you ? ' you' : ''}" data-name="${rep.name}" aria-label="${rep.name}, number ${rank}, ${rep.xp} XP. Open their flex card">
-      ${shoutFor(rep) ? `<span class="pd-shout">${bookEsc(shoutFor(rep))}</span>` : rep.you ? '<span class="pd-shout add" data-shout><i class="ph ph-chat-teardrop-text" aria-hidden="true"></i> Add a message</span>' : ''}
+      ${shoutFor(rep) ? `<span class="pd-shout"${rep.you ? ' data-shout role="button" aria-label="Edit your message"' : ''}>${bookEsc(shoutFor(rep))}${rep.you ? ' <i class="ph ph-pencil-simple" aria-hidden="true"></i>' : ''}</span>` : rep.you ? '<span class="pd-shout add" data-shout><i class="ph ph-chat-teardrop-text" aria-hidden="true"></i> Add a message</span>' : ''}
       <canvas class="pd-rep" width="144" height="136" data-rank="${rank}" aria-hidden="true"></canvas>
       <span class="pd-name">${rep.name.split(' ')[0]}${rank === 1 ? '<i class="ph-fill ph-crown-simple" aria-hidden="true"></i>' : ''}</span>
       <span class="pd-block"><b class="num">${rank}</b><small class="num">${rep.xp} XP</small></span></button>`;
@@ -3764,7 +3764,7 @@ function renderLeaderboard(changed){
     if (r === 1) mountLeaderPrize(c, rep.look); else liveSprite(c, () => rep.look, { pose:'down-0', ride:true });
   });
   const addShout = lb.querySelector('[data-shout]');
-  if (addShout) addShout.closest('button').addEventListener('click', (e) => { e.stopPropagation(); editShout(); }, true);
+  if (addShout) addShout.addEventListener('click', (e) => { e.stopPropagation(); editShout(); });
   lb.querySelectorAll('[data-name]').forEach(b => b.addEventListener('click', () => openFlexCard(leaders.find(l => l.name === b.dataset.name))));
 }
 
