@@ -193,6 +193,17 @@ def podium_edit(html):
                "if (addShout) addShout.addEventListener('click', (e) => { e.stopPropagation(); editShout(); });")
     return html
 
+def holiday_locker(html):
+    """Limited holiday pieces (tools/game/seasons.js) stay locked until earned, and only show while their
+    holiday is on or once you own them"""
+    html = rep(html, '    const locked = xp > gearXP();', '    const held = limitedLocked(value), locked = held || xp > gearXP();')
+    html = rep(html, "${locked ? ', unlocks at ' + xp + ' XP' : ''}", "${locked ? (held ? ', holiday piece, locked' : ', unlocks at ' + xp + ' XP') : ''}")
+    html = rep(html, '<i class="ph-fill ph-lock-simple" aria-hidden="true"></i>${xp} XP</em>', '<i class="ph-fill ph-lock-simple" aria-hidden="true"></i>${held ? \'Holiday\' : xp + \' XP\'}</em>')
+    html = rep(html, "        if (+b.dataset.xp > gearXP()) {", "        if (limitedLocked(b.dataset.v)) { showToast(limitedHint(b.dataset.v), 'ph-lock-simple'); haptic('wrong'); return; }\n        if (+b.dataset.xp > gearXP()) {")
+    html = rep(html, "${GEAR[tab].map(g => tile(g.id, g.name, g.xp, look[tab] === g.id)).join('')}", "${GEAR[tab].filter(gearVisible).map(g => tile(g.id, g.name, g.xp, look[tab] === g.id)).join('')}")
+    html = rep(html, 'GEAR[slot].filter(g => g.xp <= gearXP())', 'GEAR[slot].filter(g => g.xp <= gearXP() && !limitedLocked(g.id) && !g.limited)')
+    return html
+
 def slab_pack(html):
     """SLAB's own merch for reps without a company; src/avatar/engine.ts carries the same edits"""
     L = 'GEAR_LETTERS'
@@ -540,9 +551,11 @@ appSafe('rep', initRep);
     html = admin_all_gear(html)
     html = shared_shouts(html)
     html = podium_edit(html)
+    html = holiday_locker(html)
 
     # ---- the bridge itself, just before start-up runs ----
-    html = rep(html, '// ============ INIT ============', bridge + '\n\n// ============ INIT ============')
+    seasons = open(os.path.join(HERE, 'seasons.js'), encoding='utf-8').read()
+    html = rep(html, '// ============ INIT ============', bridge + '\n\n' + seasons + '\n\n// ============ INIT ============')
 
     # ---- styles for the real lesson player ----
     css = """

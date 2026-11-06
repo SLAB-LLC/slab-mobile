@@ -14,6 +14,8 @@ export interface RepLook {
   ride: string
   /** The rep's leaderboard podium message (saved with the look so every phone sees it) */
   shout?: string
+  /** Limited holiday hats and outfits the rep has earned (ids from tools/game/seasons.js) */
+  limited?: string[]
 }
 
 export type GearSlot = 'top' | 'hat' | 'pants' | 'shoes' | 'extra' | 'ride'

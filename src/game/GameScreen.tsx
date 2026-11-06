@@ -174,6 +174,14 @@ export default function GameScreen() {
         case 'vaultDay':
           // A door the coach linked to that isn't among the featured days
           return loadVaultDay(String(payload?.prefix ?? ''), isAceCompany(company))
+        case 'xpDays': {
+          // XP per day since a date, for the holiday streak and XP goals (tools/game/seasons.js)
+          const since = /^\d{4}-\d{2}-\d{2}$/.test(String(payload?.since)) ? String(payload.since) : new Date().toISOString().slice(0, 10)
+          const { data, error } = await supabase.from('xp_events').select('local_date, amount')
+            .eq('user_id', user?.id ?? '').gte('local_date', since).limit(5000)
+          if (error) throw error
+          return (data ?? []).map((r: any) => ({ d: r.local_date, xp: r.amount }))
+        }
         case 'saveLook':
           await saveLook(normalizeLook(engine, payload?.look as Partial<RepLook>))
           return null
