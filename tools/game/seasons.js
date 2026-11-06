@@ -360,10 +360,11 @@ function decorateStreet(){
   const sprite = (w, h, x, y, z, paint, k = 1.7) => { const c = document.createElement('canvas'); c.width = w; c.height = h; c.className = 'st-season'; c.setAttribute('aria-hidden', 'true'); paint(c.getContext('2d'));
     Object.assign(c.style, { left:Math.round(x * S) + 'px', top:Math.round((y - h * (k - 1)) * S) + 'px', width:Math.round(w * S * k) + 'px', height:Math.round(h * S * k) + 'px', zIndex:z });
     wrap.appendChild(c); return c; };
-  // stoops
+  // stoops (dropped onto the ground in front so nothing sits on the wall)
+  const STOOP_DROP = 12;
   street.stops.forEach((s, i) => {
     const season = stopSeason(list, s), z = s.z + 5000, side = s.flip ? -1 : 1;
-    const at = (dist, up, w, h, paint, k) => sprite(w, h, s.stand.x + (side < 0 ? -dist - w : dist), s.stand.y - up, z, paint, k);
+    const at = (dist, up, w, h, paint, k) => sprite(w, h, s.stand.x + (side < 0 ? -dist - w : dist), s.stand.y - up + STOOP_DROP, z, paint, k);
     if (season === 'halloween') at(6, 8, 11, 10, SEASON_ART.pumpkin);
     if (season === 'easter') ['#ff9ec4','#9ed8ff','#ffe27a','#a8f0a0'].forEach((col, k) => sprite(4, 6, s.stand.x + side * (14 + k * 6) - 2, s.stand.y - 3 + (k % 2) * 3, z, (g) => { for (let y = 0; y < 6; y++) for (let x = 0; x < 4; x++) if (((x - 1.5) / 2) ** 2 + ((y - 3.2) / 3) ** 2 <= 1) sPx(g, x, y, y === 3 ? '#ffffff' : col); }));
     if (season === 'thanksgiving') { at(6, 6, 11, 6, SEASON_ART.hay); at(9, 13, 11, 10, SEASON_ART.pumpkinPlain, 1.2); if (i % 2) at(20, 5, 13, 5, SEASON_ART.gourds, 1.2); }
