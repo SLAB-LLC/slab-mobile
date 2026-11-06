@@ -184,6 +184,15 @@ def shared_shouts(html):
     return rep(html, "function shoutFor(rep){ return rep.you ? (ME.shout || '') : (SHOUTS[rep.name] || ''); }",
                "function shoutFor(rep){ return rep.you ? (ME.shout || '') : APP ? ((rep.look && rep.look.shout) || '') : (SHOUTS[rep.name] || ''); }")
 
+def podium_edit(html):
+    """Your own podium message stays tappable to edit (Duncan, 2026-11-06), and only the bubble opens
+    the editor, so tapping your rep still opens your flex card"""
+    html = rep(html, "${shoutFor(rep) ? `<span class=\"pd-shout\">${bookEsc(shoutFor(rep))}</span>` : rep.you",
+               "${shoutFor(rep) ? `<span class=\"pd-shout\"${rep.you ? ' data-shout role=\"button\" aria-label=\"Edit your message\"' : ''}>${bookEsc(shoutFor(rep))}${rep.you ? ' <i class=\"ph ph-pencil-simple\" aria-hidden=\"true\"></i>' : ''}</span>` : rep.you")
+    html = rep(html, "if (addShout) addShout.closest('button').addEventListener('click', (e) => { e.stopPropagation(); editShout(); }, true);",
+               "if (addShout) addShout.addEventListener('click', (e) => { e.stopPropagation(); editShout(); });")
+    return html
+
 def slab_pack(html):
     """SLAB's own merch for reps without a company; src/avatar/engine.ts carries the same edits"""
     L = 'GEAR_LETTERS'
@@ -530,6 +539,7 @@ appSafe('rep', initRep);
     html = vault_lazy_lines(html)
     html = admin_all_gear(html)
     html = shared_shouts(html)
+    html = podium_edit(html)
 
     # ---- the bridge itself, just before start-up runs ----
     html = rep(html, '// ============ INIT ============', bridge + '\n\n// ============ INIT ============')
