@@ -191,6 +191,8 @@ def podium_edit(html):
                "${shoutFor(rep) ? `<span class=\"pd-shout\"${rep.you ? ' data-shout role=\"button\" aria-label=\"Edit your message\"' : ''}>${bookEsc(shoutFor(rep))}${rep.you ? ' <i class=\"ph ph-pencil-simple\" aria-hidden=\"true\"></i>' : ''}</span>` : rep.you")
     html = rep(html, "if (addShout) addShout.closest('button').addEventListener('click', (e) => { e.stopPropagation(); editShout(); }, true);",
                "if (addShout) addShout.addEventListener('click', (e) => { e.stopPropagation(); editShout(); });")
+    # the demo only embeds the icons it uses, so the pencil needs its own (without it the mask is empty: a black square)
+    html = rep(html, '\n.ph-fill.ph-chat-teardrop-text{', '\n.ph.ph-pencil-simple{--i:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTYgMjU2IiBmaWxsPSJjdXJyZW50Q29sb3IiPjxwYXRoIGQ9Ik0yMjcuMzEsNzMuMzcsMTgyLjYzLDI4LjY4YTE2LDE2LDAsMCwwLTIyLjYzLDBMMzYuNjksMTUyQTE1Ljg2LDE1Ljg2LDAsMCwwLDMyLDE2My4zMVYyMDhhMTYsMTYsMCwwLDAsMTYsMTZIOTIuNjlBMTUuODYsMTUuODYsMCwwLDAsMTA0LDIxOS4zMUwyMjcuMzEsOTZhMTYsMTYsMCwwLDAsMC0yMi42M1pNOTIuNjksMjA4SDQ4VjE2My4zMWw4OC04OEwxODAuNjksMTIwWk0xOTIsMTA4LjY4LDE0Ny4zMSw2NGwyNC0yNEwyMTYsODQuNjhaIi8+PC9zdmc+");}\n.ph-fill.ph-chat-teardrop-text{')
     return html
 
 def road_room(html):
