@@ -238,9 +238,13 @@ const SEASON_GROUND = { xmas:(r,g,b) => { const l = (r + g + b) / 3, v = Math.mi
   halloween:(r,g,b) => [r * 1.1 + 10, g * 0.8, b * 1.25 + 14], easter:(r,g,b) => [r * 1.5 + 22, g * 1.75 + 30, b * 1.1 + 8],
   hanukkah:(r,g,b) => [r * 0.9, g * 1.05 + 4, b * 1.3 + 9], thanksgiving:(r,g,b) => [r * 1.55 + 16, g * 1.12 + 4, b * 0.6],
   fourth:(r,g,b) => [r * 1.1, g * 1.45 + 14, b * 0.9], stpats:(r,g,b) => [r * 0.7, g * 1.6 + 16, b * 0.95 + 4], valentines:(r,g,b) => [r * 1.15 + 8, g * 1.05, b * 1.1 + 4] };
-const SEASON_SCATTER = { easter:[['#ffb3d1','#ffe27a','#ffffff','#b9a6ff','#ff9ec4'], 0.010, 'flower'], thanksgiving:[['#e2621c','#c8341a','#f2b134','#a8461a'], 0.020, 'leaf'],
+// look knobs: lights along the house fronts too, and how thick the fall leaves lie
+const SEASON_STYLE = { frontLights:false, leafDensity:0.020 };
+const SEASON_SCATTER = { easter:[['#ffb3d1','#ffe27a','#ffffff','#b9a6ff','#ff9ec4'], 0.010, 'flower'], thanksgiving:[['#e2621c','#c8341a','#f2b134','#a8461a'], SEASON_STYLE.leafDensity, 'leaf'],
   stpats:[['#7be06a','#52c45a'], 0.006, 'clover'], valentines:[['#ff2a55','#ff8db6'], 0.008, 'petal'], hanukkah:[['#d8e6ff'], 0.004, 'dot'] };
 const FALL_LEAVES = ['#c8341a','#e2621c','#f2b134','#a8461a','#d84a1e'];
+// each fall tree gets one look: the mixed brown, or a yellow, orange or red one
+const FALL_TREES = [FALL_LEAVES, ['#f2c230','#e8a81c','#ffd75a'], ['#e8741c','#d4581a','#f29a3a'], ['#c8281a','#a81e18','#e04a2a'], FALL_LEAVES];
 const sPx = (g, x, y, c) => { g.fillStyle = c; g.fillRect(x, y, 1, 1); };
 const sGrid = (rows, pal) => (g) => rows.forEach((r, y) => [...r].forEach((ch, x) => { if (pal[ch]) sPx(g, x, y, pal[ch]); }));
 const SO = '#140c0c';
@@ -326,6 +330,16 @@ function decorateRoof(s){
     if (snow) { sPx(g, x, y, '#f2f6ff'); sPx(g, x, y + 1, '#dfe7f5'); if (x % 5 === 0) sPx(g, x, y + 2, '#dfe7f5'); }
     if (x % 4 === 1 && Math.abs(top[x + 1] - y) < 3) { const col = lights[(((x / 4) | 0) + s.i) % lights.length], yy = y + (snow ? 2 : 1);
       g.globalAlpha = 0.35; g.fillStyle = col; g.fillRect(x - 1, yy - 1, 4, 4); g.globalAlpha = 1; g.fillRect(x, yy, 2, 2); } }
+  if (SEASON_STYLE.frontLights && s.geo && ISO_STYLES[s.geo.style]) { // a strand hung under the front eaves, following the roof's own edge
+    const sp = ISO_STYLES[s.geo.style], { U, V, ox, oy } = s.geo, Hw = sp.H, o = sp.roof === 'flat' ? 0 : 4;
+    const ridgeU = sp.roof === 'gable' && ((sp.ridge === 'par') === (s.geo.front === 'L'));
+    const zAt = (u, v) => { if (sp.roof === 'flat') return Hw + 1;
+      if (sp.roof === 'gable') { const half = (ridgeU ? V : U) / 2, dd = ridgeU ? Math.abs(v - V / 2) : Math.abs(u - U / 2); return Hw + sp.Hr * (1 - dd / half); }
+      const k = sp.Hr / (Math.min(U, V) / 2); return Hw + Math.min(sp.Hr, k * Math.min(u, U - u, v, V - v)); };
+    const bulb = (u, v, n) => { const x = Math.round(u - v + ox), y = Math.floor((u + v) / 2 - zAt(u, v)) + oy + 3, col = lights[(n + s.i) % lights.length];
+      g.globalAlpha = 0.35; g.fillStyle = col; g.fillRect(x - 1, y - 1, 4, 4); g.globalAlpha = 1; g.fillRect(x, y, 2, 2); };
+    let n = 0; for (let u = -o + 1; u <= U + o - 1; u += 4) bulb(u, V + o, n++);
+    for (let v = V + o - 3; v >= -o + 1; v -= 4) bulb(U + o, v, n++); }
   if (season === 'xmas') { const dx = Math.round(s.door.x - s.left), dy = Math.round(s.door.y - s.top);
     for (let y = -3; y <= 3; y++) for (let x = -3; x <= 3; x++) { const r = x * x + y * y; if (r >= 4 && r <= 10) sPx(g, dx + x, dy - 15 + y, (x + y) % 2 ? '#2f9a4a' : '#1f6a32'); }
     [[0,3],[-1,4],[1,4]].forEach(([x, y]) => sPx(g, dx + x, dy - 15 + y, '#e02a2a')); }
@@ -410,8 +424,8 @@ function decorateStreet(){
   gg.putImageData(gd, 0, 0);
   // trees
   wrap.querySelectorAll('.st-tree').forEach((c, n) => { const g = c.getContext('2d'), W = c.width, H = c.height, id = g.getImageData(0, 0, W, H), d = id.data;
-    if (main === 'thanksgiving') { for (let i = 0; i < d.length; i += 4) { if (!d[i + 3] || !(d[i + 1] > d[i] && d[i + 1] > d[i + 2])) continue; const l = d[i + 1] / 160, c2 = FALL_LEAVES[((i / 4) * 7 + n * 3 + ((i / 4 / W) | 0)) % FALL_LEAVES.length];
-      d[i] = Math.min(255, parseInt(c2.slice(1,3),16) * l); d[i + 1] = Math.min(255, parseInt(c2.slice(3,5),16) * l); d[i + 2] = Math.min(255, parseInt(c2.slice(5,7),16) * l); } g.putImageData(id, 0, 0); }
+    if (main === 'thanksgiving') { for (let i = 0; i < d.length; i += 4) { if (!d[i + 3] || !(d[i + 1] > d[i] && d[i + 1] > d[i + 2])) continue; const l = d[i + 1] / 160, pal = FALL_TREES[(n * 7 + 3) % 11 % FALL_TREES.length], c2 = pal[((i / 4) * 7 + n * 3 + ((i / 4 / W) | 0)) % pal.length]; const lb = pal === FALL_LEAVES ? l : Math.min(1.2, l * 1.7);
+      d[i] = Math.min(255, parseInt(c2.slice(1,3),16) * lb); d[i + 1] = Math.min(255, parseInt(c2.slice(3,5),16) * lb); d[i + 2] = Math.min(255, parseInt(c2.slice(5,7),16) * lb); } g.putImageData(id, 0, 0); }
     if (main === 'xmas') for (let x = 0; x < W; x++) { let seen = 0; for (let y = 0; y < H; y++) { const j = (y * W + x) * 4; if (!d[j + 3]) { seen = 0; continue; } if (seen < 1) sPx(g, x, y, '#eef3ff'); if (seen > 2 && (x * 7 + y * 3 + n) % 23 === 0) sPx(g, x, y, SEASON_LIGHTS.xmas[(x + y) % 4]); seen++; } }
     if (main === 'easter' || main === 'valentines') for (let i = 0; i < d.length; i += 4) { const x = (i / 4) % W, y = (i / 4 / W) | 0; if (d[i + 3] && d[i + 1] > d[i] && (x * 5 + y * 11 + n) % 17 === 0) sPx(g, x, y, main === 'easter' ? '#ffd1e6' : '#ff8db6'); }
   });
