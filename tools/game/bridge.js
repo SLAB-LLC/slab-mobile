@@ -418,6 +418,16 @@ if (ownerApp()) {
   fresh.addEventListener('click', () => { haptic('tap'); openMyTeam(null); });
 }
 
+// ---- Billing: owners open their company's Billing page on the website (Stripe) ----
+// The link leaves the app: GameScreen's onShouldStart hands any outside URL to the phone's browser.
+if (APP && APP.me.billingUrl) {
+  const baseRoster = rosterHTML;
+  rosterHTML = function(){
+    return `<div class="ow-card" style="display:flex;align-items:center;gap:12px"><div style="flex:1"><b>Billing</b><p class="ow-note" style="margin:4px 0 0">Set up or manage your company's payment. Opens in your browser.</p></div>
+      <a class="ow-btn" href="${owEsc(APP.me.billingUrl)}" style="text-decoration:none">Open</a></div>` + baseRoster();
+  };
+}
+
 if (APP) {
   // The company's real reps, ranked by total XP; reps without a saved look show the default rep
   if (APP.leaders && APP.leaders.length) leaders.splice(0, leaders.length, ...APP.leaders.map(l => ({ props:0, lessons:0, bosses:0, books:0, badges:[], ...l, look: Object.assign({ ...DEFAULT_LOOK }, l.look || {}) })));

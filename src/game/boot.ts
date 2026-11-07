@@ -8,6 +8,8 @@ import type { Company, UserProfile } from '../types'
 import type { RepLook } from '../avatar'
 import { gearBrand } from '../avatar'
 import { loadVault, VaultData } from './vault'
+
+const SITE_URL = (process.env.EXPO_PUBLIC_SITE_URL || 'https://www.slabtraining.com').replace(/\/$/, '')
 import { voiceAvailable } from './voice'
 
 /**
@@ -63,6 +65,8 @@ export interface GameBoot {
     solo: boolean
     /** SLAB admin: may switch which company the app shows (admin_switch_company) */
     superAdmin: boolean
+    /** Owners: the company's Billing page on the website (opens in the browser), else null */
+    billingUrl: string | null
     look: Partial<RepLook> | null
   }
   features: { vaultUnlockXp: number; chatUnlockXp: number; monthlyPrize: boolean; companyLessons: boolean }
@@ -353,6 +357,10 @@ export async function buildGameBoot(args: {
         companyName: company?.name ?? null,
         solo,
         superAdmin: profile?.role === 'super_admin',
+        billingUrl:
+          !solo && company?.slug && (profile?.role === 'company_admin' || profile?.role === 'super_admin')
+            ? `${SITE_URL}/c/${company.slug}/billing`
+            : null,
         look: args.look,
       },
       features: {
