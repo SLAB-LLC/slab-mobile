@@ -195,6 +195,15 @@ def podium_edit(html):
     html = rep(html, '\n.ph-fill.ph-chat-teardrop-text{', '\n.ph.ph-pencil-simple{--i:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTYgMjU2IiBmaWxsPSJjdXJyZW50Q29sb3IiPjxwYXRoIGQ9Ik0yMjcuMzEsNzMuMzcsMTgyLjYzLDI4LjY4YTE2LDE2LDAsMCwwLTIyLjYzLDBMMzYuNjksMTUyQTE1Ljg2LDE1Ljg2LDAsMCwwLDMyLDE2My4zMVYyMDhhMTYsMTYsMCwwLDAsMTYsMTZIOTIuNjlBMTUuODYsMTUuODYsMCwwLDAsMTA0LDIxOS4zMUwyMjcuMzEsOTZhMTYsMTYsMCwwLDAsMC0yMi42M1pNOTIuNjksMjA4SDQ4VjE2My4zMWw4OC04OEwxODAuNjksMTIwWk0xOTIsMTA4LjY4LDE0Ny4zMSw2NGwyNC0yNEwyMTYsODQuNjhaIi8+PC9zdmc+");}\n.ph-fill.ph-chat-teardrop-text{')
     return html
 
+def reels_no_fake(html):
+    """Reels show only real likes and comments (Duncan, 2026-11-07): no made-up counts, no sample comments"""
+    html = rep(html, "c.base = Math.round((d.kind === 'sale' ? 640 : d.kind === 'callback' ? 260 : 120) * (0.55 + ((i * 7919) % 97) / 97) + (c.close ? 200 : 0));", "c.base = 0;")
+    html = rep(html, "c.cm = Math.round(c.base / 22);", "c.cm = 0;")
+    i = html.index('const VX_FAKE_CM = [')
+    j = html.index('];', i) + 2
+    return html[:i] + 'const VX_FAKE_CM = [];' + html[j:]
+
+
 def road_room(html):
     """Room above the first house for the road and the manager's drop-off (tools/game/dropoff.js)."""
     return rep(html, 'street.Y0 = Math.ceil(44 - Math.min(...tops));', 'street.Y0 = Math.ceil(44 - Math.min(...tops)) + ROAD_ROOM;')
@@ -560,6 +569,7 @@ appSafe('rep', initRep);
     html = podium_edit(html)
     html = holiday_locker(html)
     html = road_room(html)
+    html = reels_no_fake(html)
 
     # ---- the bridge itself, just before start-up runs ----
     seasons = open(os.path.join(HERE, 'seasons.js'), encoding='utf-8').read()
