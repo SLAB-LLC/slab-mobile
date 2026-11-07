@@ -10421,11 +10421,11 @@ document.head.insertAdjacentHTML('beforeend', '<style>.st-season{ position:absol
 // A two-lane road runs along the top of the street, where the first walkway starts. The first time a rep opens the
 // Lab after setting up (or after the tour), their "manager" pulls up in his car, drops them off, says his line, and
 // drives off. Then the rep walks down to their door. Plays once per phone.
-const ROAD_ROOM = 34;                 // extra lawn above the first house (build.py adds it to street.Y0)
-const ROAD_HALF = 14;                 // half the road's width, across it, in street units
+const ROAD_ROOM = 48;                 // extra lawn above the first house (build.py adds it to street.Y0)
+const ROAD_HALF = 21;                 // half the road's width, across it, in street units
 const CAR = { LEN:34, WID:12, W:58, H:44, OX:15, OY:26, K:1.5 };   // K: drawn a size up so it reads next to the rep
-const DROP_KEY = 'slab.dropoff.v1';
-const DROP_LINE = 'This hood looks gas, I wish I had this';
+const DROP_KEY = 'slab.dropoff.v2';
+const DROP_LINE = 'Bro this hood is gas! I should\u2019ve drawn it up for myself';
 
 // the road follows the u axis and tees into the far end of the first walkway
 function roadV(){ return street.verts[-1].v - ROAD_HALF + 3; }
