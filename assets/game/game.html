@@ -10147,7 +10147,7 @@ const SEASON_GROUND = { xmas:(r,g,b) => { const l = (r + g + b) / 3, v = Math.mi
   hanukkah:(r,g,b) => [r * 0.9, g * 1.05 + 4, b * 1.3 + 9], thanksgiving:(r,g,b) => [r * 1.55 + 16, g * 1.12 + 4, b * 0.6],
   fourth:(r,g,b) => [r * 1.1, g * 1.45 + 14, b * 0.9], stpats:(r,g,b) => [r * 0.7, g * 1.6 + 16, b * 0.95 + 4], valentines:(r,g,b) => [r * 1.15 + 8, g * 1.05, b * 1.1 + 4] };
 // look knobs: lights along the house fronts too, and how thick the fall leaves lie
-const SEASON_STYLE = { frontLights:false, leafDensity:0.020 };
+const SEASON_STYLE = { frontLights:true, leafDensity:0.0067 };
 const SEASON_SCATTER = { easter:[['#ffb3d1','#ffe27a','#ffffff','#b9a6ff','#ff9ec4'], 0.010, 'flower'], thanksgiving:[['#e2621c','#c8341a','#f2b134','#a8461a'], SEASON_STYLE.leafDensity, 'leaf'],
   stpats:[['#7be06a','#52c45a'], 0.006, 'clover'], valentines:[['#ff2a55','#ff8db6'], 0.008, 'petal'], hanukkah:[['#d8e6ff'], 0.004, 'dot'] };
 const FALL_LEAVES = ['#c8341a','#e2621c','#f2b134','#a8461a','#d84a1e'];
@@ -10161,6 +10161,8 @@ const SEASON_ART = (() => { const O = SO, px = sPx, grid = sGrid; return {
     pumpkin: grid(['.....g.....','....gg.....','..OOOOOOO..','.OBBbBBbBO.','OBYBbBBYBbO','OBYYbBYYBbO','OBBbBBbBBbO','OBbYYYYYbbO','.OBbBBbBBO.','..OOOOOOO..'], { O, B:'#ff8a1e', b:'#c85e08', Y:'#ffe34a', g:'#3a7a2a' }),
     cane: grid(['.WRW.','R...W','W...R','....W','....R','....W','....R','....W','....R','....W','....R','....W'], { W:'#ffffff', R:'#e02a2a' }),
     pumpkinPlain: grid(['.....g.....','....gg.....','..OOOOOOO..','.OBBbBBbBO.','OBBBbBBBBbO','OBBBbBBBBbO','OBBbBBbBBbO','OBbBBbBBbbO','.OBbBBbBBO.','..OOOOOOO..'], { O, B:'#e8842a', b:'#b8601a', g:'#5a6a2a' }),
+    pumpkinWhite: grid(['...g...','.OOOOO.','OWWwWWO','OWwWWwO','OWWwWWO','.OOOOO.'], { O, W:'#efe6d2', w:'#c9bfa8', g:'#5a6a2a' }),
+    pumpkinSmall: grid(['..g..','.OOO.','ORrRO','ORRrO','.OOO.'], { O, R:'#d0501a', r:'#9a3412', g:'#5a6a2a' }),
     gourds: grid(['..g.......t..','.OYO....OOWO.','OYyYO..OWwWWO','OYYyO..OWWwWO','.OOO....OOOO.'], { O, Y:'#f2c23a', y:'#c8962a', W:'#7aa84a', w:'#e8e2b0', g:'#5a6a2a', t:'#5a6a2a' }),
     menorahTable: (g) => {
       const M = ['......f......','f.f.f.W.f.f.f','W.W.W.W.W.W.W','W.W.W.W.W.W.W','W.W.W.W.W.W.W','YYYYYYYYYYYYY','......Y......','......Y......','....YYYYY....'];
@@ -10171,6 +10173,13 @@ const SEASON_ART = (() => { const O = SO, px = sPx, grid = sGrid; return {
       [[5, 17], [11, 18], [17, 17]].forEach(([x, y]) => { for (let k = 0; k < 6; k++) px(g, x, y + k, '#4a2e1a'); });
     },
     dinner: (g) => {
+      // chairs on the far side and heads go behind the table
+      const chair = (x, y, back) => { const R2 = (a, b, w, h, c) => { g.fillStyle = c; g.fillRect(a, b, w, h); };
+        R2(x, y + 2, 1, 4, '#3a2412'); R2(x + 4, y + 2, 1, 4, '#3a2412'); R2(x, y, 5, 2, '#8a5a2e'); R2(x, y, 5, 1, '#a8743e');
+        if (back) { R2(x + (back > 0 ? 4 : 0), y - 6, 1, 7, '#5a3a1e'); R2(x + (back > 0 ? 4 : 0) - (back > 0 ? 0 : 0), y - 6, 1, 1, '#a8743e'); } };
+      g.translate(3, 7);
+      [[10, 18], [18, 14], [26, 10], [34, 6]].forEach(([x, y]) => chair(x, y, -1));
+      chair(-1, 25, -1); chair(55, 11, 1);
       const W = 60, H = 44, R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
       // the table top in the street's 2:1 angle, long side running like the houses
       const A = [6, 24], B = [38, 8], C = [54, 16], D = [22, 32];
@@ -10191,6 +10200,9 @@ const SEASON_ART = (() => { const O = SO, px = sPx, grid = sGrid; return {
       R(15, 25, 4, 2, '#f2c23a'); px(g, 18, 25, '#7aa84a');
       R(44, 16, 3, 2, '#c8203a');
       [[20, 23], [36, 15]].forEach(([x, y]) => { R(x, y - 5, 1, 5, '#f4efe2'); px(g, x, y - 6, '#ffb02e'); px(g, x, y - 7, '#ffe27a'); });
+      // chairs pulled up on the near side
+      [[24, 34], [32, 30], [40, 26], [48, 22]].forEach(([x, y]) => chair(x, y, 0));
+      g.setTransform(1, 0, 0, 1, 0, 0);
     },
     turkey: (g, frame) => {
       const O = '#140c0c';
@@ -10289,7 +10301,7 @@ function decorateStreet(){
     const at = (dist, up, w, h, paint, k) => sprite(w, h, s.stand.x + (side < 0 ? -dist - w : dist), s.stand.y - up + STOOP_DROP, z, paint, k);
     if (season === 'halloween') at(6, 8, 11, 10, SEASON_ART.pumpkin);
     if (season === 'easter') ['#ff9ec4','#9ed8ff','#ffe27a','#a8f0a0'].forEach((col, k) => sprite(4, 6, s.stand.x + side * (14 + k * 6) - 2, s.stand.y - 3 + (k % 2) * 3, z, (g) => { for (let y = 0; y < 6; y++) for (let x = 0; x < 4; x++) if (((x - 1.5) / 2) ** 2 + ((y - 3.2) / 3) ** 2 <= 1) sPx(g, x, y, y === 3 ? '#ffffff' : col); }));
-    if (season === 'thanksgiving') { at(6, 6, 11, 6, SEASON_ART.hay); at(9, 13, 11, 10, SEASON_ART.pumpkinPlain, 1.2); if (i % 2) at(20, 5, 13, 5, SEASON_ART.gourds, 1.2); }
+    if (season === 'thanksgiving') { at(5, 8, 11, 10, SEASON_ART.pumpkinPlain, 1.2); at(17, 5, 7, 6, SEASON_ART.pumpkinWhite, 1.3); at(25, 3, 5, 5, SEASON_ART.pumpkinSmall, 1.2); if (i % 2) at(32, 1, 13, 5, SEASON_ART.gourds, 1.2); }
     if (season === 'fourth' && i % 2 === 1) at(6, 16, 8, 10, SEASON_ART.flag);
     if (season === 'valentines' && i % 2 === 0) at(6, 20, 7, 12, SEASON_ART.balloon);
   });
@@ -10308,8 +10320,9 @@ function decorateStreet(){
       if (tl < x0 + w * scale && tl + tw > x0 && tt + th > y0 + h * scale * 0.4 && tt + th < y0 + h * scale + 16) t.style.visibility = 'hidden'; });
     const c = sprite(w, h, x0, y0 + h * (scale - 1), objZ(q.u, q.v), paint, scale); return c; };
   if (keys.includes('hanukkah')) [3, 8, 13, 17].forEach(k => inYard(k, 52, 46, 23, 23, 11, 22, SEASON_ART.menorahTable, 2.1));
+  const DINNER_AT = [50, 72];
   if (main === 'thanksgiving') {
-    inYard(17, 50, 44, 60, 44, 30, 36, SEASON_ART.dinner, 1.9);
+    inYard(17, DINNER_AT[0], DINNER_AT[1], 66, 54, 33, 43, SEASON_ART.dinner, 1.7);
     // a turkey that wanders its yard and gobbles, like the dogs
     [6, 14].forEach(k => { if (k >= street.stops.length - 1) return; const c = document.createElement('canvas'); c.className = 'st-dog st-season'; c.setAttribute('aria-hidden', 'true');
       c.style.width = Math.round(25 * S) + 'px'; c.style.height = Math.round(23 * S) + 'px'; wrap.appendChild(c);
