@@ -253,6 +253,21 @@ const SEASON_ART = (() => { const O = SO, px = sPx, grid = sGrid; return {
     pumpkin: grid(['.....g.....','....gg.....','..OOOOOOO..','.OBBbBBbBO.','OBYBbBBYBbO','OBYYbBYYBbO','OBBbBBbBBbO','OBbYYYYYbbO','.OBbBBbBBO.','..OOOOOOO..'], { O, B:'#ff8a1e', b:'#c85e08', Y:'#ffe34a', g:'#3a7a2a' }),
     cane: grid(['.WRW.','R...W','W...R','....W','....R','....W','....R','....W','....R','....W','....R','....W'], { W:'#ffffff', R:'#e02a2a' }),
     pumpkinPlain: grid(['.....g.....','....gg.....','..OOOOOOO..','.OBBbBBbBO.','OBBBbBBBBbO','OBBBbBBBBbO','OBBbBBbBBbO','OBbBBbBBbbO','.OBbBBbBBO.','..OOOOOOO..'], { O, B:'#e8842a', b:'#b8601a', g:'#5a6a2a' }),
+    pumpkinBig: grid([
+      '.......gg......',
+      '......gG.......',
+      '...OOOOgOOOO...',
+      '..OBbBBbBBbBO..',
+      '.OBBbLBbBLbBBO.',
+      'OBBbLLBbBLLbBBO',
+      'OBBbLBBbBBLbBBO',
+      'OBbbBBBbBBBbbBO',
+      'OBbBBBbbbBBBbBO',
+      'OdbBBBbBbBBBbdO',
+      '.OdbBBbBbBBbdO.',
+      '..OddbbBbbddO..',
+      '...OOOOOOOOO...',
+      '...............'], { O, B:'#e8842a', b:'#b8601a', L:'#f6a85a', d:'#8a4612', g:'#4a5a22', G:'#7a8a3a' }),
     pumpkinWhite: grid(['...g...','.OOOOO.','OWWwWWO','OWwWWwO','OWWwWWO','.OOOOO.'], { O, W:'#efe6d2', w:'#c9bfa8', g:'#5a6a2a' }),
     pumpkinSmall: grid(['..g..','.OOO.','ORrRO','ORRrO','.OOO.'], { O, R:'#d0501a', r:'#9a3412', g:'#5a6a2a' }),
     gourds: grid(['..g.......t..','.OYO....OOWO.','OYyYO..OWwWWO','OYYyO..OWWwWO','.OOO....OOOO.'], { O, Y:'#f2c23a', y:'#c8962a', W:'#7aa84a', w:'#e8e2b0', g:'#5a6a2a', t:'#5a6a2a' }),
@@ -387,13 +402,13 @@ function decorateStreet(){
     Object.assign(c.style, { left:Math.round(x * S) + 'px', top:Math.round((y - h * (k - 1)) * S) + 'px', width:Math.round(w * S * k) + 'px', height:Math.round(h * S * k) + 'px', zIndex:z });
     wrap.appendChild(c); return c; };
   // stoops (dropped onto the ground in front so nothing sits on the wall)
-  const STOOP_DROP = 12;
+  const STOOP_DROP = 12, PUMPKIN_AT = [22, 4];
   street.stops.forEach((s, i) => {
     const season = stopSeason(list, s), z = s.z + 5000, side = s.flip ? -1 : 1;
     const at = (dist, up, w, h, paint, k) => sprite(w, h, s.stand.x + (side < 0 ? -dist - w : dist), s.stand.y - up + STOOP_DROP, z, paint, k);
     if (season === 'halloween') at(6, 8, 11, 10, SEASON_ART.pumpkin);
     if (season === 'easter') ['#ff9ec4','#9ed8ff','#ffe27a','#a8f0a0'].forEach((col, k) => sprite(4, 6, s.stand.x + side * (14 + k * 6) - 2, s.stand.y - 3 + (k % 2) * 3, z, (g) => { for (let y = 0; y < 6; y++) for (let x = 0; x < 4; x++) if (((x - 1.5) / 2) ** 2 + ((y - 3.2) / 3) ** 2 <= 1) sPx(g, x, y, y === 3 ? '#ffffff' : col); }));
-    if (season === 'thanksgiving') { at(5, 8, 11, 10, SEASON_ART.pumpkinPlain, 1.2); at(17, 5, 7, 6, SEASON_ART.pumpkinWhite, 1.3); at(25, 3, 5, 5, SEASON_ART.pumpkinSmall, 1.2); if (i % 2) at(32, 1, 13, 5, SEASON_ART.gourds, 1.2); }
+    if (season === 'thanksgiving') at(PUMPKIN_AT[0], PUMPKIN_AT[1], 15, 14, SEASON_ART.pumpkinBig, 1.4);
     if (season === 'fourth' && i % 2 === 1) at(6, 16, 8, 10, SEASON_ART.flag);
     if (season === 'valentines' && i % 2 === 0) at(6, 20, 7, 12, SEASON_ART.balloon);
   });
@@ -412,7 +427,7 @@ function decorateStreet(){
       if (tl < x0 + w * scale && tl + tw > x0 && tt + th > y0 + h * scale * 0.4 && tt + th < y0 + h * scale + 16) t.style.visibility = 'hidden'; });
     const c = sprite(w, h, x0, y0 + h * (scale - 1), objZ(q.u, q.v), paint, scale); return c; };
   if (keys.includes('hanukkah')) [3, 8, 13, 17].forEach(k => inYard(k, 52, 46, 23, 23, 11, 22, SEASON_ART.menorahTable, 2.1));
-  const DINNER_AT = [50, 72];
+  const DINNER_AT = [68, 90];
   if (main === 'thanksgiving') {
     inYard(17, DINNER_AT[0], DINNER_AT[1], 66, 54, 33, 43, SEASON_ART.dinner, 1.7);
     // a turkey that wanders its yard and gobbles, like the dogs
