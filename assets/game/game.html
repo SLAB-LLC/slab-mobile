@@ -8579,8 +8579,8 @@ VX.clips.forEach((c, i) => {
   const d = vxDoor(c.rep, c.door);
   c.id = `${c.rep}${c.door}-${i}`; c.d = d;
   c.type = d.objs.includes('competitor') ? 'switch' : 'new';
-  c.base = Math.round((d.kind === 'sale' ? 640 : d.kind === 'callback' ? 260 : 120) * (0.55 + ((i * 7919) % 97) / 97) + (c.close ? 200 : 0));
-  c.cm = Math.round(c.base / 22);
+  c.base = 0;
+  c.cm = 0;
 });
 const vxLikes = (c) => c.base + (vxS.likes[c.id] ? 1 : 0);
 const vxK = (n) => n >= 1000 ? (n / 1000).toFixed(1).replace('.0', '') + 'k' : String(n);
@@ -8885,7 +8885,7 @@ function vxOpenTune(){
   $('vx-scrim').classList.add('on');
 }
 function vxCloseSheet(){ $('vx-sheet').className = 'vx-sheet'; $('vx-scrim').classList.remove('on'); }
-const VX_FAKE_CM = [['JT', 'Jake Turner', '2h', 'Running this exact line tomorrow.'], ['AR', 'Ava Reyes', '5h', 'He never argues it. He asks a question and lets them talk.'], ['DK', 'Devon Kim', '1d', 'Tried it on a guy with a company already. Switched him.']];
+const VX_FAKE_CM = [];
 function vxOpenComments(c, card){
   const sh = $('vx-sheet'), mine = vxS.comments[c.id] || [];
   sh.className = 'vx-sheet on';
