@@ -193,6 +193,11 @@ def podium_edit(html):
                "if (addShout) addShout.addEventListener('click', (e) => { e.stopPropagation(); editShout(); });")
     return html
 
+def road_room(html):
+    """Room above the first house for the road and the manager's drop-off (tools/game/dropoff.js)."""
+    return rep(html, 'street.Y0 = Math.ceil(44 - Math.min(...tops));', 'street.Y0 = Math.ceil(44 - Math.min(...tops)) + ROAD_ROOM;')
+
+
 def holiday_locker(html):
     """Limited holiday pieces (tools/game/seasons.js) stay locked until earned, and only show while their
     holiday is on or once you own them"""
@@ -552,10 +557,12 @@ appSafe('rep', initRep);
     html = shared_shouts(html)
     html = podium_edit(html)
     html = holiday_locker(html)
+    html = road_room(html)
 
     # ---- the bridge itself, just before start-up runs ----
     seasons = open(os.path.join(HERE, 'seasons.js'), encoding='utf-8').read()
-    html = rep(html, '// ============ INIT ============', bridge + '\n\n' + seasons + '\n\n// ============ INIT ============')
+    dropoff = open(os.path.join(HERE, 'dropoff.js'), encoding='utf-8').read()
+    html = rep(html, '// ============ INIT ============', bridge + '\n\n' + seasons + '\n\n' + dropoff + '\n\n// ============ INIT ============')
 
     # ---- styles for the real lesson player ----
     css = """
