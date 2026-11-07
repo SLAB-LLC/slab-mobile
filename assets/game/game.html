@@ -9490,13 +9490,23 @@ if (ownerApp()) {
   fresh.addEventListener('click', () => { haptic('tap'); openMyTeam(null); });
 }
 
-// ---- Billing: owners open their company's Billing page on the website (Stripe) ----
+// ---- Billing: its own Owner view tab; opens the company's Billing page on the website (Stripe) ----
 // The link leaves the app: GameScreen's onShouldStart hands any outside URL to the phone's browser.
 if (APP && APP.me.billingUrl) {
-  const baseRoster = rosterHTML;
-  rosterHTML = function(){
-    return `<div class="ow-card" style="display:flex;align-items:center;gap:12px"><div style="flex:1"><b>Billing</b><p class="ow-note" style="margin:4px 0 0">Set up or manage your company's payment. Opens in your browser.</p></div>
-      <a class="ow-btn" href="${owEsc(APP.me.billingUrl)}" style="text-decoration:none">Open</a></div>` + baseRoster();
+  const tabs = document.querySelector('.ow-tabs');
+  tabs.style.gridTemplateColumns = 'repeat(5,1fr)';
+  const bt = document.createElement('button');
+  bt.type = 'button'; bt.dataset.tab = 'billing';
+  bt.innerHTML = '<svg class="ow-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2.2" fill="currentColor"/><rect x="2" y="8.2" width="20" height="2.6" fill="#08080a"/><rect x="5" y="14" width="6" height="2" rx="1" fill="#08080a"/></svg>Billing';
+  bt.addEventListener('click', () => { owState.tab = 'billing'; $('ow-scroll').scrollTop = 0; haptic('tap'); renderOwner(); });
+  tabs.appendChild(bt);
+  const baseTraining = trainingHTML;
+  trainingHTML = function(){
+    if (owState.tab !== 'billing') return baseTraining();
+    return `<div class="ow-h"><h2>Billing</h2></div>
+      <div class="ow-card ow-form"><p class="ow-note" style="margin:0 0 12px">Set up your company's payment, see invoices and receipts, or change the bank account or card on file. It opens in your browser on the SLAB website, where payments are handled securely by Stripe.</p>
+      <a class="ow-btn" href="${owEsc(APP.me.billingUrl)}" style="display:flex;text-decoration:none">Open billing</a></div>
+      <p class="ow-note">Sign in with the same email and password you use in the app.</p>`;
   };
 }
 
