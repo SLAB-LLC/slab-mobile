@@ -102,7 +102,7 @@ openFlexCard = function(rep){
   const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
 })();
 
-// ---- Golden Door armor: Duncan's gold suit (helmet with a black visor, chest plate, gold legs and boots) ----
+// ---- Golden Door armor: Duncan's gold suit (open-face helmet, chest plate, gold legs and boots) ----
 // It's a top in the locker that only Golden Door winners own. It's drawn over the rep's own body so it fits every
 // pose: each part of the sprite (skin, hair, shirt, pants, shoes) is found by rendering it twice with that part
 // changed, then repainted in Duncan's gold, with a light sweeping across it so it glimmers.
@@ -156,9 +156,10 @@ function armorCanvas(look, pose, mood, flash, phase){
       let col;
       if (head) {
         // gold helmet; the face behind a black visor with a gold rim on each side
-        // a gold brow plate over the forehead, then the visor down to the chin
-        const face = !String(pose).startsWith('up') && y >= faceTop + 3 && x > ha && x < hb - 1 && (!m.hair[i] || y >= faceTop + 4);
-        col = face ? GA.K : (x >= hb - 1 ? GA.O : GA.Y);
+        // an open-face helmet: gold over the hair and forehead, the rep's own face (and beard) showing below it
+        const face = !String(pose).startsWith('up') && y >= faceTop + 3 && x > ha && x < hb - 1 && !(String(pose).startsWith('side') && x < (ha + hb) / 2) && (!m.hair[i] || y >= faceTop + 4);
+        if (face && !flash) { D[i * 4] = A[i * 4]; D[i * 4 + 1] = A[i * 4 + 1]; D[i * 4 + 2] = A[i * 4 + 2]; D[i * 4 + 3] = 255; continue; }
+        col = x >= hb - 1 ? GA.O : GA.Y;
         if (!face && y <= faceTop - 2 && x - ha >= 2 && x - ha <= 4 && y >= faceTop - 4) col = GA.W;
       } else if (isLeg(i)) {
         // two gold legs: each leg's outer half lit, inner half shadowed, boots darker at the toe
