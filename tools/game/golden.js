@@ -97,7 +97,122 @@ openFlexCard = function(rep){
   .gd-tag{ position:absolute; top:8px; right:20px; z-index:2; display:flex; align-items:center; gap:4px; font:700 11px/1 'Barlow',sans-serif;
     color:#16161a; background:linear-gradient(#fff2c0,#f3cf72); border-radius:999px; padding:3px 8px 3px 5px; box-shadow:0 0 10px rgba(243,207,114,.5); }
   .gd-tag svg{ width:13px; height:13px; }
-  .fx-name .gd-badge{ margin-left:6px; }
+  .fx-name .gd-badge{ margin:0 8px 0 6px; }
   @media (prefers-reduced-motion: reduce){ .gd-name, .lb-row.gd::after, .pd-spot.gd .pd-block::after, .gd-doorway, .gd-doorway i{ animation:none; } }`;
   const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+})();
+
+// ---- Golden Door armor: Duncan's gold suit (helmet with a black visor, chest plate, gold legs and boots) ----
+// It's a top in the locker that only Golden Door winners own. It's drawn over the rep's own body so it fits every
+// pose: each part of the sprite (skin, hair, shirt, pants, shoes) is found by rendering it twice with that part
+// changed, then repainted in Duncan's gold, with a light sweeping across it so it glimmers.
+const GD_ARMOR = 'goldarmor';
+const GA = { Y:'#ffeb3b', O:'#ff9800', W:'#ffffff', K:'#101014', S:'#fff6c4' };
+GEAR.top.push({ id:GD_ARMOR, name:'Golden Door armor', xp:0, limited:'goldendoor' });
+LIMITED[GD_ARMOR] = { season:'goldendoor', slot:'top' };
+const isArmor = (look) => !!look && look.top === GD_ARMOR;
+const armorMaskCache = new Map(), armorCache = new Map();
+function armorMasks(look, pose, mood){
+  const plain = { ...look, top:'crew', hat:'none', extra:'none' };
+  const key = JSON.stringify([plain, pose, mood]); let m = armorMaskCache.get(key); if (m) return m;
+  const px = (lk) => baseArmorSprite(lk, pose, mood).getContext('2d').getImageData(0, 0, SPR_W, SPR_H).data;
+  const A = px(plain);
+  const diff = (B) => { const out = new Uint8Array(SPR_W * SPR_H); for (let i = 0; i < out.length; i++) { const j = i * 4; out[i] = A[j] !== B[j] || A[j + 1] !== B[j + 1] || A[j + 2] !== B[j + 2] ? 1 : 0; } return out; };
+  m = {
+    base: A,
+    skin: diff(px({ ...plain, skin:(plain.skin || 0) === 4 ? 0 : 4 })),
+    hair: diff(px({ ...plain, hairColor:(plain.hairColor || 0) === 3 ? 0 : 3 })),
+    top: diff(px({ ...plain, top:'oxford' })),
+    pants: diff(px({ ...plain, pants:plain.pants === 'khaki' ? 'jeans' : 'khaki' })),
+    shoes: diff(px({ ...plain, shoes:plain.shoes === 'gold' ? 'boots' : 'gold' })),
+  };
+  if (armorMaskCache.size > 200) armorMaskCache.clear();
+  armorMaskCache.set(key, m); return m;
+}
+function armorCanvas(look, pose, mood, flash, phase){
+  const key = JSON.stringify([look, pose, mood, !!flash, phase]); let c = armorCache.get(key); if (c) return c;
+  const m = armorMasks(look, pose, mood), A = m.base, N = SPR_W * SPR_H;
+  const ol = [parseInt(OUTLINE.slice(1, 3), 16), parseInt(OUTLINE.slice(3, 5), 16), parseInt(OUTLINE.slice(5, 7), 16)];
+  const solid = (i) => A[i * 4 + 3] > 0 && !(A[i * 4] === ol[0] && A[i * 4 + 1] === ol[1] && A[i * 4 + 2] === ol[2]);
+  // the neck: the first row of shirt
+  let neck = SPR_H; for (let i = 0; i < N; i++) if (m.top[i]) { neck = Math.floor(i / SPR_W); break; }
+  // rows of each part: the left edge is lit, the right edge in shadow
+  const span = (y, test) => { let a = -1, b = -1; for (let x = 0; x < SPR_W; x++) { const i = y * SPR_W + x; if (solid(i) && test(i)) { if (a < 0) a = x; b = x; } } return [a, b]; };
+  const isLeg = (i) => m.pants[i] || m.shoes[i];
+  let faceTop = SPR_H; for (let i = 0; i < neck * SPR_W; i++) if (m.skin[i]) { faceTop = Math.floor(i / SPR_W); break; }
+  let torsoBottom = neck; for (let i = 0; i < N; i++) if (m.top[i]) torsoBottom = Math.floor(i / SPR_W);
+  let legTop = SPR_H, legBottom = 0; for (let i = 0; i < N; i++) if (isLeg(i) && solid(i)) { const y = Math.floor(i / SPR_W); if (y < legTop) legTop = y; legBottom = y; }
+  const bootTop = legTop + Math.round((legBottom - legTop) * 0.5);
+  c = document.createElement('canvas'); c.width = SPR_W; c.height = SPR_H; const g = c.getContext('2d');
+  const img = g.createImageData(SPR_W, SPR_H), D = img.data;
+  const put = (i, hex) => { D[i * 4] = parseInt(hex.slice(1, 3), 16); D[i * 4 + 1] = parseInt(hex.slice(3, 5), 16); D[i * 4 + 2] = parseInt(hex.slice(5, 7), 16); D[i * 4 + 3] = 255; };
+  for (let y = 0; y < SPR_H; y++) {
+    const head = y < neck, [ha, hb] = head ? span(y, () => true) : [0, 0];
+    const [ta, tb] = span(y, (i) => !head && !isLeg(i)), [la, lb] = span(y, isLeg);
+    for (let x = 0; x < SPR_W; x++) {
+      const i = y * SPR_W + x;
+      if (!A[i * 4 + 3]) continue;
+      if (!solid(i)) { put(i, flash ? GA.W : GA.K); continue; }
+      let col;
+      if (head) {
+        // gold helmet; the face behind a black visor with a gold rim on each side
+        // a gold brow plate over the forehead, then the visor down to the chin
+        const face = !String(pose).startsWith('up') && y >= faceTop + 3 && x > ha && x < hb - 1 && (!m.hair[i] || y >= faceTop + 4);
+        col = face ? GA.K : (x >= hb - 1 ? GA.O : GA.Y);
+        if (!face && y <= faceTop - 2 && x - ha >= 2 && x - ha <= 4 && y >= faceTop - 4) col = GA.W;
+      } else if (isLeg(i)) {
+        // two gold legs: each leg's outer half lit, inner half shadowed, boots darker at the toe
+        const mid = (la + lb) / 2, left = x < mid, out = left ? x - la : lb - x;
+        col = out <= 1 ? GA.Y : GA.O;
+        // a black belt where the legs start, and black cuffs where the boots start
+        if (y === legTop || y === bootTop) col = GA.K;
+        else if (y >= bootTop && y >= legBottom - 1) col = out <= 2 ? GA.Y : GA.O;
+        if ((y === legTop + 1 || y === legTop + 2) && out === 1 && left) col = GA.W;
+        if (y === bootTop + 2 && out === 0) col = GA.W;
+      } else {
+        // chest plate: lit on the left, shadow down the right and along the bottom
+        const t = tb > ta ? (x - ta) / (tb - ta) : 0;
+        col = t > 0.74 || y >= torsoBottom - 1 ? GA.O : GA.Y;
+        if (y >= neck + 2 && y <= neck + 3 && x - ta >= 3 && x - ta <= 4 && !(y === neck + 3 && x - ta === 4)) col = GA.W;
+      }
+      if (flash) col = GA.W;
+      // the glimmer: a bright band sweeps across the armor
+      if (!flash && col !== GA.K && phase >= 0) { const d = (x + y) - (phase * 7 - 14); if (d >= 0 && d < 3) col = d === 1 ? GA.W : GA.S; }
+      put(i, col);
+    }
+  }
+  g.putImageData(img, 0, 0);
+  if (armorCache.size > 400) armorCache.clear();
+  armorCache.set(key, c); return c;
+}
+// a sweep every ~2.5 seconds: 14 steps across, then a rest
+const armorPhase = () => (typeof reduceMotion !== 'undefined' && reduceMotion) ? -1 : Math.floor(Date.now() / 110) % 24;
+const baseArmorSprite = spriteCanvas;
+spriteCanvas = function(look, pose, mood, flash){
+  if (!isArmor(look)) return baseArmorSprite(look, pose, mood, flash);
+  const p = armorPhase();
+  return armorCanvas(look, pose, mood, flash, p < 14 ? p : -1);
+};
+// rep previews redraw a couple of times a second; armor redraws faster so the sweep runs smoothly
+setInterval(() => {
+  if (typeof liveSprites === 'undefined') return;
+  liveSprites.forEach(entry => {
+    if (!document.contains(entry.canvas)) return;
+    const look = entry.look(); if (!isArmor(look)) return;
+    const o = Object.assign({}, entry.opts, { bob: reduceMotion || entry.opts.turn ? 0 : liveTick % 2 });
+    if (o.turn) return;
+    drawSprite(entry.canvas, look, o);
+  });
+}, 110);
+// winners own the armor (and put it on once by default); it goes away if the award is taken back
+(function(){
+  if (typeof APP === 'undefined' || !APP || !APP.me || !ME.look) return;
+  const n = APP.me.goldenDoors || 0, owned = new Set(ME.look.limited || []);
+  let changed = false;
+  if (n > 0 && !owned.has(GD_ARMOR)) { owned.add(GD_ARMOR); changed = true; }
+  if (n === 0 && owned.has(GD_ARMOR) && !APP.me.superAdmin) { owned.delete(GD_ARMOR); changed = true; }
+  if (n === 0 && ME.look.top === GD_ARMOR && !APP.me.superAdmin) { ME.look.top = DEFAULT_LOOK.top; changed = true; }
+  let first = false; try { first = n > 0 && !localStorage.getItem('slab.gdArmor.v1'); if (first) localStorage.setItem('slab.gdArmor.v1', '1'); } catch (e) {}
+  if (first) { ME.look.top = GD_ARMOR; changed = true; }
+  if (changed) { ME.look.limited = [...owned]; if (typeof saveMe === 'function') saveMe(); }
 })();
