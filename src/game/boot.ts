@@ -48,6 +48,8 @@ export interface GameLeader {
   look?: Partial<RepLook> | null
   /** Global leaderboard only: the rep's company, null for solo reps */
   company?: string | null
+  /** Golden Doors won (rep_awards, set by SLAB admins on the website); 0 or missing for most reps */
+  goldenDoors?: number
 }
 
 export interface GameBoot {
@@ -68,6 +70,8 @@ export interface GameBoot {
     /** Owners: the company's Billing page on the website (opens in the browser), else null */
     billingUrl: string | null
     look: Partial<RepLook> | null
+    /** Golden Doors won (rep_awards): badge, shiny row, golden doorway and exclusive gear */
+    goldenDoors: number
   }
   features: { vaultUnlockXp: number; chatUnlockXp: number; monthlyPrize: boolean; companyLessons: boolean }
   brand: {
@@ -239,6 +243,8 @@ async function loadGlobalLeaders(): Promise<GameLeader[] | null> {
     you: !!r.is_me,
     look: r.look ?? null,
     company: r.company_name ?? null,
+    // global_leaderboard carries the count inside the look (slabtech sql/golden-door-migration.sql)
+    goldenDoors: Number(r.look?.goldenDoors) || 0,
   }))
 }
 
@@ -266,6 +272,14 @@ async function loadDoneLessons(userId: string): Promise<string[]> {
   return ((data ?? []) as any[]).map((r) => r.source_id).filter(Boolean)
 }
 
+/** Golden Doors won, by user id (slabtech sql/golden-door-migration.sql); empty if not migrated yet */
+async function loadGoldenDoors(ids: string[]): Promise<Map<string, number>> {
+  if (!ids.length) return new Map()
+  const { data, error } = await supabase.from('rep_awards').select('user_id, golden_doors').in('user_id', ids)
+  if (error) return new Map()
+  return new Map(((data ?? []) as any[]).filter((r) => r.golden_doors > 0).map((r) => [r.user_id, r.golden_doors as number]))
+}
+
 /** Company reps ranked by total XP, with their saved looks */
 async function loadLeaders(companyId: string, me: { id: string; name: string; xp: number; streak: number }): Promise<GameLeader[]> {
   const [board, xpRes] = await Promise.all([
@@ -274,7 +288,10 @@ async function loadLeaders(companyId: string, me: { id: string; name: string; xp
   ])
   const xpBy = new Map(((xpRes.data ?? []) as any[]).map((r) => [r.user_id, r.total_xp as number]))
   const ids = Array.from(new Set([...board.map((b) => b.user_id), ...xpBy.keys()]))
-  const looks = await avatarService.getLooks(ids).catch(() => ({} as Record<string, Partial<RepLook>>))
+  const [looks, doors] = await Promise.all([
+    avatarService.getLooks(ids).catch(() => ({} as Record<string, Partial<RepLook>>)),
+    loadGoldenDoors(ids).catch(() => new Map<string, number>()),
+  ])
 
   const leaders: GameLeader[] = []
   const seen = new Set<string>()
@@ -286,6 +303,7 @@ async function loadLeaders(companyId: string, me: { id: string; name: string; xp
       streak: b.current_streak ?? 0,
       xp: xpBy.get(b.user_id) ?? 0,
       look: looks[b.user_id] ?? null,
+      goldenDoors: doors.get(b.user_id) ?? 0,
     })
   }
   // The top reps, and always the rep themselves (the page needs their row even when they're far down)
@@ -328,7 +346,7 @@ export async function buildGameBoot(args: {
   const gear = gearBrand(theme)
   const meRow: GameLeader = { name, streak: args.streakDays, xp: args.totalXp, you: true }
 
-  const [lessons, leaders, doneLessons, notif, vault, globalLeaders, soloVideos] = await Promise.all([
+  const [lessons, leaders, doneLessons, notif, vault, globalLeaders, soloVideos, myDoors] = await Promise.all([
     // Ace's training videos are Marshall's: they play from his page in the Vault even while the street runs the standard levels
     company && (features.companyLessons || ace) ? loadLessons(company.id, userId).catch(() => ({ units: [], videos: {} })) : Promise.resolve({ units: [], videos: {} }),
     company
@@ -339,7 +357,11 @@ export async function buildGameBoot(args: {
     loadVault(ace).catch(() => null),
     loadGlobalLeaders().catch(() => null),
     solo ? loadMarshallVideos().catch(() => ({ groups: [], videos: {} })) : Promise.resolve({ groups: [], videos: {} }),
+    loadGoldenDoors([userId]).catch(() => new Map<string, number>()),
   ])
+  const goldenDoors = myDoors.get(userId) ?? 0
+  const meLeader = leaders.find((l) => l.you)
+  if (meLeader) meLeader.goldenDoors = goldenDoors
 
   return {
     videos: { ...lessons.videos, ...soloVideos.videos },
@@ -362,6 +384,7 @@ export async function buildGameBoot(args: {
             ? `${SITE_URL}/c/${company.slug}/billing`
             : null,
         look: args.look,
+        goldenDoors,
       },
       features: {
         // Solo reps have no lessons to earn XP from, so their Vault is open from the start

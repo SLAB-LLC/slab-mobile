@@ -574,7 +574,8 @@ appSafe('rep', initRep);
     # ---- the bridge itself, just before start-up runs ----
     seasons = open(os.path.join(HERE, 'seasons.js'), encoding='utf-8').read()
     dropoff = open(os.path.join(HERE, 'dropoff.js'), encoding='utf-8').read()
-    html = rep(html, '// ============ INIT ============', bridge + '\n\n' + seasons + '\n\n' + dropoff + '\n\n// ============ INIT ============')
+    golden = open(os.path.join(HERE, 'golden.js'), encoding='utf-8').read()
+    html = rep(html, '// ============ INIT ============', bridge + '\n\n' + seasons + '\n\n' + dropoff + '\n\n' + golden + '\n\n// ============ INIT ============')
 
     # ---- styles for the real lesson player ----
     css = """
