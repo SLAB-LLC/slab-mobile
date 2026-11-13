@@ -453,13 +453,12 @@ if (APP) {
     // SLAB's own logo in its true colors (white letters, orange box) everywhere but Ace, whose app
     // tints it Ace gold
     // A company may want SLAB in one of its colors instead (theme.slabLogo; ProTerra: its pink), the way
-    // Ace's app shows it in Ace gold: the corner logo takes the color whole, the opening splash keeps
-    // SLAB's white letters and turns the orange box that color
+    // Ace's app shows it in Ace gold: the corner logo and the opening splash keep SLAB's white letters
+    // and turn the orange box that color
     const tint = APP.brand && APP.brand.slabLogo;
     const st = document.createElement('style');
-    st.textContent = tint
-      ? `.slab-logo{ background:${tint} !important; }`
-      : `.slab-logo{ background:url(${SLAB_TRUE}) center / contain no-repeat !important; -webkit-mask:none !important; mask:none !important; }`;
+    const logoCss = (url) => `.slab-logo{ background:url(${url}) center / contain no-repeat !important; -webkit-mask:none !important; mask:none !important; }`;
+    st.textContent = logoCss(SLAB_TRUE);
     document.head.appendChild(st);
     const splashSlab = [...document.querySelectorAll('#bt-co .bt-logos img:first-child')];
     splashSlab.forEach(img => { img.src = SLAB_TRUE; });
@@ -480,6 +479,7 @@ if (APP) {
         g.putImageData(px, 0, 0);
         const url = cv.toDataURL();
         splashSlab.forEach(img => { img.src = url; });
+        st.textContent = logoCss(url);
       };
       im.src = SLAB_TRUE;
     }
