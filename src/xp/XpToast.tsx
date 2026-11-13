@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { Animated, Text, StyleSheet, Platform } from 'react-native'
 import { useTenantTheme } from '../tenant'
+import { androidTop } from '../utils/androidInsets'
 
 export interface ToastItem {
   id: number
@@ -42,7 +43,7 @@ export default function XpToast({ toast, onDone }: { toast: ToastItem; onDone: (
 const styles = StyleSheet.create({
   toast: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 110 : 90,
+    top: Platform.OS === 'ios' ? 110 : androidTop(90, 60),
     alignSelf: 'center',
     borderWidth: 1,
     borderRadius: 20,

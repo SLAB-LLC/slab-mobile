@@ -14,6 +14,7 @@ import {
 } from 'react-native'
 import { useAuth } from '../../context/AuthContext'
 import { useTenantTheme } from '../../tenant'
+import { androidBottom, androidTop } from '../../utils/androidInsets'
 
 const logoImage = require('../../../assets/slab-logo-thermal.png')
 const DRAWER_WIDTH = 280
@@ -228,7 +229,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingTop: Platform.OS === 'ios' ? 60 : androidTop(40, 16),
     paddingHorizontal: 20,
     paddingBottom: 24,
     alignItems: 'center',
@@ -296,7 +297,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    paddingBottom: Platform.OS === 'ios' ? 40 : androidBottom(24),
     alignItems: 'center',
     gap: 6,
   },
