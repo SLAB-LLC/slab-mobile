@@ -409,10 +409,6 @@ def main(src):
                "  }\n"
                "  if (bootAuth.get()) { await btCompany(); return; }")
 
-    # ---- the sprite's gear brand can be swapped per rep (bridge.js: each rep in their own company's gear) ----
-    for name in ('ACE_GOLD', 'GEAR_LETTERS', 'GEAR_X0'):
-        html = rep(html, f'const {name} = ', f'let {name} = ')
-
     # ---- owner announcements are signed by the rep's own company ----
     html = rep(html, "|| 'Ace Cooperatives'", "|| (APP && APP.me.companyName) || 'Ace Cooperatives'", 2)
 
@@ -429,6 +425,10 @@ def main(src):
                "const APP_COACH = (APP && APP.brand && APP.brand.coach && APP.brand.coach.sprite) ? APP.brand.coach : null;\n"
                "const avatarSheets = { marshall: APP_COACH ? APP_COACH.sprite : IMG.marshallSprite, ...(APP_COACH ? { marshallVault: IMG.marshallSprite } : {}),")
     html = rep(html, "const VX_AVK = { m:'marshall', r:'rylan' };", "const VX_AVK = { m: APP_COACH ? 'marshallVault' : 'marshall', r:'rylan' };")
+    # A light-themed company's street gets a light grey sidewalk (stone, joints and edges) instead of dark stone with gold trim
+    html = rep(html, "walk:hex('#34343a'), walkJ:hex('#232327') };",
+               "walk:hex('#34343a'), walkJ:hex('#232327'),\n"
+               "              ...((APP && APP.brand && APP.brand.light) ? { stone:hex('#c6c9ce'), stoneB:hex('#bec1c7'), joint:hex('#a3a7ae'), edge:hex('#dcdee2'), edgeHi:hex('#eef0f2'), curb:hex('#767a82'), walk:hex('#c1c4c9'), walkJ:hex('#a6aab1') } : {}) };")
     html = rep(html, "<b>Ask Marshall</b><small>Answers from Marshall's real door interactions</small>",
                "<b>Ask ${APP_COACH ? bbEsc(APP_COACH.name) : 'Marshall'}</b><small>${APP_COACH ? 'Answers from top reps’ real door interactions' : 'Answers from Marshall’s real door interactions'}</small>")
 
@@ -474,6 +474,9 @@ def main(src):
                "const ACE_GOLD = (APP_GEAR && APP_GEAR.primary) || '#daae5d', ACE_BLACK = (APP_GEAR && APP_GEAR.dark) || '#1b1b20';\n"
                "const GEAR_LETTERS = ((APP_GEAR && APP_GEAR.letters) || 'ACE').split('');\n"
                "const GEAR_X0 = Math.round(17.5 - (GEAR_LETTERS.length * 4 - 1) / 2);")
+    # the sprite's gear brand can be swapped per rep (bridge.js: each rep in their own company's gear) ----
+    for name in ('ACE_GOLD', 'GEAR_LETTERS', 'GEAR_X0'):
+        html = rep(html, f'const {name} = ', f'let {name} = ')
     html = rep(html, "const GLYPH = { A:['010','101','111','101','101'], C:['011','100','100','100','011'], E:['111','100','110','100','111'] };",
                'const GLYPH = ' + font + ';')
     html, mark = slab_pack(html)

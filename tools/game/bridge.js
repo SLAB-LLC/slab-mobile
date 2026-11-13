@@ -1196,3 +1196,127 @@ if (APP && APP.brand && APP.brand.light) appSafe('light theme', () => {
   };
   logo.src = SLAB_TRUE;
 });
+
+// ============ LIGHT STREET: WHITE LESSON BUBBLES ============
+// On a light-themed company the lesson names over the houses sit in white bubbles in the brand's ink,
+// with the accent marking the lesson you're on and the boss.
+if (APP && APP.brand && APP.brand.light) appSafe('light street labels', () => {
+  const ink = /^#?[0-9a-f]{6}$/i.test(String(APP.brand.ink || '').trim()) ? APP.brand.ink.trim() : '#14161b';
+  const acc = APP.brand.accent || '#e8413a';
+  document.head.insertAdjacentHTML('beforeend', `<style>
+    html.light .st-label span{ background:#fff; color:${ink}; border:1px solid ${ink}2e; box-shadow:0 1px 0 ${ink}26, 0 2px 6px rgba(0,0,0,.18); }
+    html.light .st-label i{ color:${acc}; }
+    html.light .st-label.active span, html.light .st-label.ready span{ background:#fff; color:${ink}; border:2px solid ${acc}; }
+    html.light .st-label.active i, html.light .st-label.ready i{ color:${acc}; }
+    html.light .st-label.locked span{ color:${ink}; border-color:${ink}2e; }
+    html.light .st-label.locked i{ color:${ink}8c; }
+    html.light .st-label.boss span{ background:#fff; color:${ink}; border-color:${acc}; }
+    html.light .st-label.boss i{ color:${acc}; }
+  </style>`);
+});
+
+// ============ LIGHT VAULT: A DOOR SET IN CONCRETE ============
+// The dark wall around the vault door becomes pixel concrete (slabs, speckles, a few cracks). The hole in it
+// grows the same way the dark one did when the door rolls away.
+if (APP && APP.brand && APP.brand.light) appSafe('concrete vault', () => {
+  const tex = (() => {
+    const N = 96, c = document.createElement('canvas'); c.width = c.height = N;
+    const g = c.getContext('2d'); let seed = 7;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const r = rnd(); let v = 158 + Math.round((r - 0.5) * 10);
+      if (r > 0.965) v = 128; else if (r > 0.93) v = 176; else if (r < 0.03) v = 140;
+      g.fillStyle = `rgb(${v},${v + 1},${v + 4})`; g.fillRect(x, y, 1, 1);
+    }
+    // slab joints on two sides, so the tiles meet in a grid
+    g.fillStyle = '#7f8287'; g.fillRect(0, 0, N, 1); g.fillRect(0, 0, 1, N);
+    g.fillStyle = '#b3b5b9'; g.fillRect(0, 1, N, 1); g.fillRect(1, 0, 1, N);
+    // hairline cracks
+    const crack = (x, y, n, dx) => { for (let i = 0; i < n; i++) { g.fillStyle = '#85888d'; g.fillRect(x, y, 1, 1); y++; if (rnd() < 0.5) x += dx; } };
+    crack(30, 14, 18, 1); crack(70, 52, 22, -1); crack(14, 66, 10, 1);
+    return c.toDataURL();
+  })();
+  document.head.insertAdjacentHTML('beforeend', `<style>
+    .vx-door .vx-cc{ position:absolute; inset:0; pointer-events:none; --r:158px;
+      background:url(${tex}) 0 0 / 288px 288px repeat; image-rendering:pixelated;
+      -webkit-mask:radial-gradient(circle at 50% 46%, transparent var(--r), #000 calc(var(--r) + 1px));
+              mask:radial-gradient(circle at 50% 46%, transparent var(--r), #000 calc(var(--r) + 1px)); }
+    html.light .vx-door .hole{ box-shadow:0 0 0 6px #5c5f65, 0 0 0 10px #34363a, 0 0 22px 12px rgba(0,0,0,.32); }
+    html.light .vx-door.reveal .hole{ box-shadow:none; }
+    html.light .vx-door .hint{ color:#fff; text-shadow:2px 2px 0 #34363a; }
+    .vx-door.reveal .vx-cc{ --r:860px; transition:--r .8s cubic-bezier(.65,0,.35,1); }
+  </style>`);
+  // the hole's radius animates as a length (older phones without @property just open it in one step)
+  if (window.CSS && CSS.registerProperty) { try { CSS.registerProperty({ name:'--r', syntax:'<length>', inherits:false, initialValue:'158px' }); } catch (e) {} }
+  const baseDoorEl = vxDoorEl;
+  vxDoorEl = function(){
+    const had = $('vx-door'), d = baseDoorEl();
+    if (!had) { const cc = document.createElement('div'); cc.className = 'vx-cc'; d.insertBefore(cc, d.firstChild); }
+    return d;
+  };
+});
+
+// ============ THE COACH'S VAULT PORTRAIT STAYS IN ITS FRAME ============
+// The coach's sheet is drawn wider than Marshall's and Rylan's, so their card's frame is drawn over the portrait.
+if (APP_COACH && APP_COACH.vaultTag) appSafe('coach frame', () => {
+  document.head.insertAdjacentHTML('beforeend', `<style>
+    .vx-rc .vx-fwrap{ position:relative; }
+    .vx-rc .vx-fwrap.coach-frame::after{ content:""; position:absolute; inset:0; box-shadow:inset 0 0 0 2px var(--vx-frame, #2e281e); pointer-events:none; z-index:2; }
+  </style>`);
+  const baseRender = vxRenderDays;
+  vxRenderDays = function(){
+    baseRender();
+    const cv = document.querySelector('#vx-days .vx-rc canvas.vx-face[data-av="marshall"]'); if (!cv) return;
+    const w = cv.parentNode; w.classList.add('coach-frame');
+    // the same color the theme gave the other frames
+    const m = getComputedStyle(w).boxShadow.match(/rgba?\([^)]*\)/); if (m) w.style.setProperty('--vx-frame', m[0]);
+  };
+});
+
+// ============ EXTRA RIDES (features.extraRides) ============
+// A company can add rides to the Segway and e-scooter. 'skateboard': a deck in the brand's colors
+// (dark deck, accent stripe, cream wheels), unlocked at 2000 XP.
+if (APP && APP.features && Array.isArray(APP.features.extraRides) && APP.features.extraRides.includes('skateboard')) appSafe('skateboard', () => {
+  const gb = (APP.brand && APP.brand.gear) || {};
+  const DECK = gb.dark || '#0b243b', STRIPE = gb.primary || APP.brand.accent || '#cb272d', GRIP = '#1b1e23';
+  const who = (gb.name && gb.name !== 'SLAB') ? gb.name + ' ' : '';
+  RIDES.skateboard = { lift:10, name:`${who}skateboard` };
+  if (!GEAR.ride.some(g => g.id === 'skateboard')) {
+    const item = { id:'skateboard', name:`${who}skateboard`, xp:2000 };
+    GEAR.ride.push(item);
+    ALL_GEAR.push({ ...item, slot:'ride' }); ALL_GEAR.sort((a, b) => a.xp - b.xp);
+    RARITY.skateboard = 4;
+  }
+  const basePaint = paintRide;
+  paintRide = function(g, kind, ox, oy, frame){
+    if (kind !== 'skateboard') return basePaint(g, kind, ox, oy, frame);
+    frame = frame || 0;
+    const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(ox + x, oy + y, w, h); };
+    const wheel = (cx) => {
+      R(cx - 1, -5, 2, 1, '#8f8b80'); R(cx - 2, -4, 4, 3, '#f3efe4'); R(cx - 1, -1, 2, 1, '#8f8b80');
+      R(cx - 2, -4, 1, 3, '#d9d4c6'); R(cx + 1, -4, 1, 3, '#d9d4c6');
+      const k = Math.floor(frame) & 3;                                   // a mark on the wheel turns as it rolls
+      R(cx - 1 + (k === 1 || k === 2 ? 1 : 0), -4 + (k >= 2 ? 1 : 0), 1, 1, '#a9a597');
+    };
+    // trucks: baseplate under the deck, hanger and axle down to the wheels
+    [-9, 9].forEach(cx => { R(cx - 1, -7, 3, 1, '#5d636c'); R(cx - 2, -6, 5, 1, '#b9bec6'); R(cx, -6, 1, 1, '#8b919a'); });
+    wheel(-9); wheel(9);
+    // deck: grip tape on top, the dark ply, an accent stripe along the edge, kicked up at both ends
+    R(-13, -10, 27, 1, GRIP); R(-13, -9, 27, 1, DECK); R(-13, -8, 27, 1, STRIPE);
+    R(-15, -11, 2, 1, GRIP); R(-15, -10, 2, 1, DECK); R(-14, -9, 1, 1, STRIPE);
+    R(-16, -12, 1, 1, GRIP); R(-16, -11, 1, 1, DECK);
+    R(14, -11, 2, 1, GRIP); R(14, -10, 2, 1, DECK); R(14, -9, 1, 1, STRIPE);
+    R(16, -12, 1, 1, GRIP); R(16, -11, 1, 1, DECK);
+    R(-11, -10, 3, 1, '#2a2e35'); R(7, -10, 3, 1, '#2a2e35');           // bolts showing through the grip
+  };
+  // the board on its own: framed tighter than the bigger rides so it doesn't look tiny on the tiles
+  const baseIcon = drawRideIcon;
+  drawRideIcon = function(canvas, kind){
+    if (kind !== 'skateboard') return baseIcon(canvas, kind);
+    const g = canvas.getContext('2d'); g.clearRect(0, 0, canvas.width, canvas.height); g.imageSmoothingEnabled = false;
+    const TW = 36, TH = 16, t = document.createElement('canvas'); t.width = TW; t.height = TH;
+    paintRide(t.getContext('2d'), 'skateboard', 18, 15, 1);
+    const s = Math.min(canvas.width / TW, canvas.height / TH);
+    g.drawImage(t, Math.round((canvas.width - TW * s) / 2), Math.round((canvas.height - TH * s) / 2), TW * s, TH * s);
+  };
+});

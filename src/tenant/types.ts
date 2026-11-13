@@ -88,6 +88,8 @@ export interface TenantFeatures {
   monthlyPrize: boolean
   /** The Library tab opens; false keeps it locked ("coming soon") while the company's library is being filled */
   library?: boolean
+  /** Extra rides this company's reps can unlock with XP, on top of the Segway and e-scooter (e.g. ['skateboard']) */
+  extraRides?: string[]
   /** The street runs the company's own training videos instead of the standard SLAB levels */
   companyLessons: boolean
   /** Marshall's training videos on his page in the Vault (always on for reps with no company; Ace has them as its own) */
