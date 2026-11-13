@@ -309,6 +309,8 @@ def main(src):
 
     build_login(html)
     bridge = open(os.path.join(HERE, 'bridge.js'), encoding='utf-8').read()
+    slab_true = base64.b64encode(open(os.path.join(HERE, 'slab-true.png'), 'rb').read()).decode()
+    bridge = bridge.replace('/*SLAB_TRUE*/', 'data:image/png;base64,' + slab_true)
 
     # ---- state from the app ----
     html = rep(html, 'let currentXP = 340;',
@@ -393,7 +395,7 @@ def main(src):
     # ---- boot: the app already signed them in ----
     html = rep(html, "  if (bootAuth.get()) { await btCompany(); return; }",
                "  if (APP) {\n"
-               "    if (APP.brand && APP.brand.isAce) { await btCompany(); return; }\n"
+               "    if (APP.brand && (APP.brand.isAce || APP.brand.splash)) { await btCompany(); return; }\n"
                "    // SLAB's own reps open on the website's intro: the logo glitches in, then the screen slides up\n"
                "    if (APP.me && APP.me.solo) {\n"
                "      const img = intro.querySelector('img'), tag = intro.querySelector('.bt-tag');\n"
@@ -406,6 +408,9 @@ def main(src):
                "    return;\n"
                "  }\n"
                "  if (bootAuth.get()) { await btCompany(); return; }")
+
+    # ---- owner announcements are signed by the rep's own company ----
+    html = rep(html, "|| 'Ace Cooperatives'", "|| (APP && APP.me.companyName) || 'Ace Cooperatives'", 2)
 
     # ---- Rylan's own portrait in the Vault (the demo shows him with Austin's sheet) ----
     rylan = base64.b64encode(open(os.path.join(HERE, 'rylan-sprite.webp'), 'rb').read()).decode()

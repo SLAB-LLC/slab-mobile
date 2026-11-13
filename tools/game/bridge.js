@@ -438,6 +438,9 @@ if (APP && APP.me.billingUrl) {
   };
 }
 
+// SLAB's logo in its true colors (tools/game/slab-true.png, filled in by build.py)
+const SLAB_TRUE = '/*SLAB_TRUE*/';
+
 if (APP) {
   // The company's real reps, ranked by total XP; reps without a saved look show the default rep
   if (APP.leaders && APP.leaders.length) leaders.splice(0, leaders.length, ...APP.leaders.map(l => ({ props:0, lessons:0, bosses:0, books:0, badges:[], ...l, look: Object.assign({ ...DEFAULT_LOOK }, l.look || {}) })));
@@ -446,6 +449,65 @@ if (APP) {
 
   // Company branding: accent color and co-brand line from the tenant config
   const accent = APP.brand && APP.brand.accent;
+  if (!APP.brand || !APP.brand.isAce) {
+    // SLAB's own logo in its true colors (white letters, orange box) everywhere but Ace, whose app
+    // tints it Ace gold
+    const st = document.createElement('style');
+    st.textContent = `.slab-logo{ background:url(${SLAB_TRUE}) center / contain no-repeat !important; -webkit-mask:none !important; mask:none !important; }`;
+    document.head.appendChild(st);
+    document.querySelectorAll('#bt-co .bt-logos img:first-child').forEach(img => { img.src = SLAB_TRUE; });
+  }
+  // (only companies set up with their own look: older company records carry a blue default)
+  if (APP.brand && APP.brand.background && APP.brand.splash) document.documentElement.style.setProperty('--bg', APP.brand.background);
+  if (accent && !APP.brand.isAce && /^#?[0-9a-f]{6}$/i.test(accent.trim())) {
+    // The demo also draws Ace gold straight into its styles (glows, 3D button shading, rings); every
+    // one of those follows the company accent, darker shades as darker mixes of it. Golden Door and
+    // coin golds are other colors and stay gold.
+    const n = parseInt(accent.trim().replace('#', ''), 16), c = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    const mix = (to, t) => '#' + c.map(v => Math.round(v + (to - v) * t).toString(16).padStart(2, '0')).join('');
+    const GOLDS = [
+      [/#daae5d/gi, accent], [/rgba\(\s*218\s*,\s*174\s*,\s*93\s*,/g, `rgba(${c.join(',')},`],
+      [/#f3d48a/gi, mix(255, 0.35)], [/#b4883a/gi, mix(0, 0.25)], [/#6b4f1c/gi, mix(0, 0.6)],
+      [/#4a3b1c/gi, mix(0, 0.72)], [/#2e2614/gi, mix(0, 0.8)], [/#1a1408/gi, mix(0, 0.9)],
+    ];
+    document.querySelectorAll('style').forEach(s => {
+      let t = s.textContent, was = t;
+      GOLDS.forEach(([re, to]) => { t = t.replace(re, to); });
+      if (t !== was) s.textContent = t;
+    });
+  }
+  // The owner screens name the rep's own company (the demo says Ace Cooperatives)
+  if (APP.me.companyName) {
+    const CO = String(APP.me.companyName).toUpperCase();
+    document.querySelectorAll('.rv-kick').forEach(k => { k.textContent = `${CO} · OWNER`; });
+    document.querySelectorAll('.ow-co').forEach(k => { k.textContent = CO; });
+  }
+  if (accent && !APP.brand.isAce && /^#?[0-9a-f]{6}$/i.test(accent.trim())) {
+    // The Vault door's brass (painted pixel by pixel) takes the company accent: gold pixels keep their
+    // light and shade but turn the accent's hue
+    const hex = accent.trim().replace('#', ''), A = [0, 2, 4].map(i => parseInt(hex.slice(i, i + 2), 16) / 255);
+    const mx = Math.max(...A), mn = Math.min(...A), dl = mx - mn;
+    const aH = dl === 0 ? 0 : mx === A[0] ? ((A[1] - A[2]) / dl + 6) % 6 / 6 : mx === A[1] ? ((A[2] - A[0]) / dl + 2) / 6 : ((A[0] - A[1]) / dl + 4) / 6;
+    const tintGold = (cv) => {
+      if (!cv || !cv.getContext) return;
+      const g = cv.getContext('2d'), im = g.getImageData(0, 0, cv.width, cv.height), d = im.data;
+      for (let i = 0; i < d.length; i += 4) {
+        if (!d[i + 3]) continue;
+        const r = d[i] / 255, gg = d[i + 1] / 255, b = d[i + 2] / 255, M = Math.max(r, gg, b), m = Math.min(r, gg, b), L = (M + m) / 2, D = M - m;
+        if (D < 0.08 || M !== r || b > gg) continue;                       // greys, steel and non-gold stay
+        const S = D / (1 - Math.abs(2 * L - 1)), H = ((gg - b) / D) / 6;
+        if (H < 0.06 || H > 0.17 || S < 0.25) continue;
+        const q = L < 0.5 ? L * (1 + S) : L + S - L * S, p = 2 * L - q;
+        const f = (t) => { t = (t + 1) % 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < 1 / 2 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; };
+        d[i] = Math.round(f(aH + 1 / 3) * 255); d[i + 1] = Math.round(f(aH) * 255); d[i + 2] = Math.round(f(aH - 1 / 3) * 255);
+      }
+      g.putImageData(im, 0, 0);
+    };
+    const doorBase = paintVaultDoor, wheelBase = paintVaultWheel;
+    paintVaultDoor = function(c){ doorBase(c); tintGold(c); };
+    paintVaultWheel = function(c){ wheelBase(c); tintGold(c); };
+    paintVaultDoor($('vault-door')); paintVaultWheel($('vault-wheel'));
+  }
   if (accent && !APP.brand.isAce) {
     // the accent's dim fill, hairline and light tint follow it (SLAB's own is orange)
     const m = /^#?([0-9a-f]{6})$/i.exec(accent.trim()), rs = document.documentElement.style;
@@ -479,6 +541,12 @@ if (APP) {
       if (APP.brand && APP.brand.logoUrl) img.src = APP.brand.logoUrl;
       else { img.remove(); document.querySelectorAll('.topbar .brand .x').forEach(x => x.remove()); }
     });
+    // A company with its own co-brand and logo (APP.brand.splash) also opens on SLAB × their logo,
+    // with their name under it, the way Ace reps open on SLAB × Ace
+    if (APP.brand && APP.brand.splash && APP.brand.logoUrl) {
+      document.querySelectorAll('#bt-co img[data-img="ace"]').forEach(img => { img.src = APP.brand.logoUrl; });
+      document.querySelectorAll('#bt-co .bt-tag').forEach(t => { t.textContent = String(APP.brand.splash).toUpperCase(); });
+    }
     ACE.splice(0, ACE.length);
     const gearName = (APP.brand && APP.brand.gear && APP.brand.gear.name) || APP.brand.cobrand || 'Team';
     const rename = (g) => { g.name = g.name.replace(/\bAce\b/, gearName); };

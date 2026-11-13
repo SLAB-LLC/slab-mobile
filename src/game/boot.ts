@@ -79,6 +79,10 @@ export interface GameBoot {
     accent: string
     isAce: boolean
     logoUrl: string | null
+    /** Page background (the tenant theme's), so a company can run on pure black */
+    background: string
+    /** Company name for the opening splash (SLAB × their logo), set when the company has its own co-brand and logo */
+    splash: string | null
     gear: { name: string; letters: string; primary: string; dark: string }
   }
   /** Base URL for the Vault's audio pack (ends with /), or null when it isn't hosted yet */
@@ -399,6 +403,9 @@ export async function buildGameBoot(args: {
         accent: theme.colors.accent,
         isAce: ace,
         logoUrl: theme.logoUrl,
+        background: theme.colors.background,
+        // Companies set up with their own co-brand and logo (company_app_config) open on SLAB × their logo, like Ace
+        splash: !solo && !ace && theme.cobrand && theme.logoUrl ? (company?.name ?? theme.brandName) : null,
         // Ace gear is always the gold of the Ace logo, whatever colors the company record carries
         gear: { name: gear.name, letters: gear.letters.join(''), primary: ace ? ACE_GOLD : gear.primary, dark: gear.dark },
       },
