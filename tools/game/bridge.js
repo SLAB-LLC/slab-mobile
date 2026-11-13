@@ -452,10 +452,37 @@ if (APP) {
   if (!APP.brand || !APP.brand.isAce) {
     // SLAB's own logo in its true colors (white letters, orange box) everywhere but Ace, whose app
     // tints it Ace gold
+    // A company may want SLAB in one of its colors instead (theme.slabLogo; ProTerra: its pink), the way
+    // Ace's app shows it in Ace gold: the corner logo and the opening splash keep SLAB's white letters
+    // and turn the orange box that color
+    const tint = APP.brand && APP.brand.slabLogo;
     const st = document.createElement('style');
-    st.textContent = `.slab-logo{ background:url(${SLAB_TRUE}) center / contain no-repeat !important; -webkit-mask:none !important; mask:none !important; }`;
+    const logoCss = (url) => `.slab-logo{ background:url(${url}) center / contain no-repeat !important; -webkit-mask:none !important; mask:none !important; }`;
+    st.textContent = logoCss(SLAB_TRUE);
     document.head.appendChild(st);
-    document.querySelectorAll('#bt-co .bt-logos img:first-child').forEach(img => { img.src = SLAB_TRUE; });
+    const splashSlab = [...document.querySelectorAll('#bt-co .bt-logos img:first-child')];
+    splashSlab.forEach(img => { img.src = SLAB_TRUE; });
+    if (tint && /^#?[0-9a-f]{6}$/i.test(tint.trim())) {
+      const im = new Image();
+      im.onload = () => {
+        const cv = document.createElement('canvas'); cv.width = im.naturalWidth; cv.height = im.naturalHeight;
+        const g = cv.getContext('2d'); g.drawImage(im, 0, 0);
+        const px = g.getImageData(0, 0, cv.width, cv.height), d = px.data, h = tint.trim().replace('#', '');
+        const T = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16));
+        for (let i = 0; i < d.length; i += 4) {
+          if (!d[i + 3]) continue;
+          const r = d[i], gg = d[i + 1], b = d[i + 2];
+          if (r - b < 60 || r < gg) continue;                       // white letters and dark ink stay
+          const k = Math.min(1.25, (r + gg + b) / (0xF4 + 0x71 + 0x1E));  // keep the box's shading
+          d[i] = Math.min(255, Math.round(T[0] * k)); d[i + 1] = Math.min(255, Math.round(T[1] * k)); d[i + 2] = Math.min(255, Math.round(T[2] * k));
+        }
+        g.putImageData(px, 0, 0);
+        const url = cv.toDataURL();
+        splashSlab.forEach(img => { img.src = url; });
+        st.textContent = logoCss(url);
+      };
+      im.src = SLAB_TRUE;
+    }
   }
   // (only companies set up with their own look: older company records carry a blue default)
   if (APP.brand && APP.brand.background && APP.brand.splash) document.documentElement.style.setProperty('--bg', APP.brand.background);
@@ -548,6 +575,13 @@ if (APP) {
       document.querySelectorAll('#bt-co .bt-tag').forEach(t => { t.textContent = String(APP.brand.splash).toUpperCase(); });
     }
     ACE.splice(0, ACE.length);
+    // Nothing of the company's own in the library yet: say so under the Book Library
+    const aceBase = renderAce;
+    renderAce = function(){
+      aceBase();
+      if (!ACE.length && !aceState.section && !aceState.q.trim()) $('ace-body').innerHTML = '<div class="lib-empty">Nothing Added Yet</div>';
+    };
+    renderAce();
     const gearName = (APP.brand && APP.brand.gear && APP.brand.gear.name) || APP.brand.cobrand || 'Team';
     const rename = (g) => { g.name = g.name.replace(/\bAce\b/, gearName); };
     Object.values(GEAR).forEach(list => list.forEach(rename));
@@ -677,6 +711,41 @@ runTour = function(){
   for (let i = TOUR.length - 1; i >= 0; i--) if (!TOUR[i].go && !document.querySelector(TOUR[i].sel)) TOUR.splice(i, 1);
   TOUR.forEach(t => { if (!t.go) t.go = () => tourGo('courses'); });
   baseRunTour();
+};
+
+// ============ EVERY REP IN THEIR OWN COMPANY'S GEAR ============
+// The global board mixes companies. global_leaderboard puts each rep's company gear inside their look
+// (look.gear: name, letters, primary, dark), so a SLAB rep's tee stays SLAB orange and an Ace rep's stays
+// Ace gold whoever is looking. The sprite engine reads the brand from a few globals; drawing a rep with
+// look.gear swaps them in for that one sprite.
+const GEAR_HOME = { name: (APP_GEAR && APP_GEAR.name) || 'Ace', letters: GEAR_LETTERS.join(''), primary: ACE_GOLD, dark: ACE_BLACK };
+function setGearBrand(g){
+  ACE_GOLD = g.primary; ACE_BLACK = g.dark;
+  GEAR_LETTERS = String(g.letters || 'SLAB').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4).split('');
+  if (!GEAR_LETTERS.length) GEAR_LETTERS = ['S'];
+  GEAR_X0 = Math.round(17.5 - (GEAR_LETTERS.length * 4 - 1) / 2);
+  Object.assign(TOPS.tee, { body:ACE_BLACK, logo:ACE_GOLD }); TOPS.polo.body = ACE_GOLD; TOPS.vest.body = ACE_BLACK;
+  TOPS.hoodie.logo = ACE_GOLD; Object.assign(TOPS.varsity, { body:ACE_BLACK, sleeveColor:ACE_GOLD }); SHOES.gold = ACE_GOLD;
+}
+const repGear = (look) => {
+  const g = look && look.gear;
+  if (!g || !/^#[0-9a-f]{6}$/i.test(g.primary || '')) return null;
+  return { name: g.name || 'SLAB', letters: g.letters || g.name || 'SLAB', primary: g.primary, dark: /^#[0-9a-f]{6}$/i.test(g.dark || '') ? g.dark : '#1b1b20' };
+};
+const composeHome = composeSprite;
+composeSprite = function(look, pose, mood){
+  const g = repGear(look);
+  if (!g || (g.primary.toLowerCase() === GEAR_HOME.primary.toLowerCase() && g.dark.toLowerCase() === GEAR_HOME.dark.toLowerCase() && g.letters === GEAR_HOME.letters)) return composeHome(look, pose, mood);
+  setGearBrand(g);
+  try { return composeHome(look, pose, mood); } finally { setGearBrand(GEAR_HOME); }
+};
+// and their flex chips name their own company's gear ("SLAB hoodie", not "Proterra hoodie")
+const flexItemsHome = flexItems;
+flexItems = function(rep){
+  const items = flexItemsHome(rep), g = repGear(rep.look);
+  if (!g || g.name === GEAR_HOME.name) return items;
+  const re = new RegExp('\\b' + GEAR_HOME.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'g');
+  return items.map(it => ({ ...it, name: it.name.replace(re, g.name) }));
 };
 
 // ============ LEADERBOARD: MY COMPANY OR EVERYONE ============
