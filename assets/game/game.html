@@ -9152,6 +9152,14 @@ function vaultMinuteXP(){
   }).catch(() => {});
 }
 
+// YouTube won't play an embed made straight from this page (a local file, so no website for YouTube to see:
+// error 153, "watch on YouTube"). Its videos play through the SLAB site's player page instead.
+const YT_PLAYER = 'https://www.slabtraining.com/yt.html';
+function ytPlayer(url, autoplay){
+  const m = String(url || '').match(/youtube(?:-nocookie)?\.com\/embed\/([\w-]{6,})/);
+  return m ? `${YT_PLAYER}?v=${m[1]}${autoplay ? '&autoplay=1' : ''}` : url;
+}
+
 // Real lessons: video from the company's training library, and quiz questions when the lesson has them
 const appLessonWatchable = () => APP && lesson.ref && lesson.ref.video;
 function appShowWatch(){
@@ -9182,7 +9190,7 @@ function appShowWatch(){
   const mount = (url) => {
     if (!host || lesson.ref !== ref) return;
     if (v.type === 'youtube') {
-      host.innerHTML = `<iframe src="${url}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+      host.innerHTML = `<iframe src="${ytPlayer(url)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
       // YouTube doesn't report the end inside a web view; open the next step after a fair watch
       clearTimeout(lesson.ytTimer);
       lesson.ytTimer = setTimeout(unlock, Math.min(90, Math.max(20, (v.duration || 120) * 0.6)) * 1000);
@@ -9297,7 +9305,7 @@ function appPlayVideo(id, title){
     const holder = box.querySelector('.app-vid-box');
     if (!url) { holder.innerHTML = '<span class="app-vid-wait">This video isn\'t available right now.</span>'; return; }
     holder.innerHTML = /youtube\.com\/embed|player\.vimeo/.test(url)
-      ? `<iframe src="${url}${url.includes('?') ? '&' : '?'}autoplay=1&playsinline=1" allow="autoplay; fullscreen; encrypted-media" allowfullscreen></iframe>`
+      ? `<iframe src="${/youtube\.com\/embed/.test(url) ? ytPlayer(url, true) : `${url}${url.includes('?') ? '&' : '?'}autoplay=1&playsinline=1`}" allow="autoplay; fullscreen; encrypted-media" allowfullscreen></iframe>`
       : `<video src="${url}" controls autoplay playsinline></video>`;
   }).catch(e => { if (box.isConnected) box.querySelector('.app-vid-box').innerHTML = `<span class="app-vid-wait">${vxEsc((e && e.message) || 'Video could not load')}</span>`; });
 }

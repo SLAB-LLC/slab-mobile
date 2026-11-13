@@ -307,6 +307,8 @@ export default function GameScreen() {
       if (req.isTopFrame === false) return true
       if (!pageUri || url.startsWith('file:') || url.startsWith('about:') || url.startsWith('data:') || url === pageUri) return true
       if (url.startsWith('https://www.youtube.com/embed/')) return true
+      // YouTube lessons play through the SLAB site's player page (tools/game/bridge.js ytPlayer)
+      if (url.startsWith('https://www.slabtraining.com/yt.html')) return true
       Linking.openURL(url).catch(() => {})
       return false
     },
