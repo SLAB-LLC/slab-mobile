@@ -11,6 +11,7 @@ import { loadVault, VaultData } from './vault'
 
 const SITE_URL = (process.env.EXPO_PUBLIC_SITE_URL || 'https://www.slabtraining.com').replace(/\/$/, '')
 import { voiceAvailable } from './voice'
+import { encode as base64Encode } from 'base64-arraybuffer'
 
 /**
  * Builds window.SLAB_APP, the data the game page (assets/game/game.html, built by
@@ -73,7 +74,8 @@ export interface GameBoot {
     /** Golden Doors won (rep_awards): badge, shiny row, golden doorway and exclusive gear */
     goldenDoors: number
   }
-  features: { vaultUnlockXp: number; chatUnlockXp: number; monthlyPrize: boolean; companyLessons: boolean }
+  /** library: false keeps the Library tab locked while the company's library is being filled */
+  features: { vaultUnlockXp: number; chatUnlockXp: number; monthlyPrize: boolean; companyLessons: boolean; library: boolean }
   brand: {
     cobrand: string
     accent: string
@@ -83,6 +85,15 @@ export interface GameBoot {
     background: string
     /** Company name for the opening splash (SLAB × their logo), set when the company has its own co-brand and logo */
     splash: string | null
+    /** The company runs on a light background: the page swaps to its light theme (bridge.js) */
+    light: boolean
+    /** Text color on the light theme (the tenant theme's text) */
+    ink: string
+    /**
+     * The coach in the chat and nav. `sprite` is their 4x2 sheet as a data URL (the page keys and
+     * crops it on a canvas, which a remote image would taint), or null to keep Marshall.
+     */
+    coach: { name: string; fullName: string; sprite: string | null; vaultTag: string | null }
     gear: { name: string; letters: string; primary: string; dark: string }
   }
   /** Base URL for the Vault's audio pack (ends with /), or null when it isn't hosted yet */
@@ -112,6 +123,23 @@ export interface GameBoot {
 
 /** Lesson id -> where its video lives, kept natively so signed URLs are made on demand */
 export type VideoIndex = Record<string, { type: 'youtube' | 'upload'; youtubeUrl?: string | null; storagePath?: string | null }>
+
+/** The coach's sprite sheet as a data URL, or null (no sheet set, or it couldn't load: Marshall stays) */
+async function loadCoachSprite(url: string | null | undefined): Promise<string | null> {
+  if (!url) return null
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`coach sprite ${res.status}`)
+  const type = res.headers.get('content-type')?.split(';')[0] || (/\.png$/i.test(url) ? 'image/png' : 'image/webp')
+  return `data:${type};base64,${base64Encode(await res.arrayBuffer())}`
+}
+
+/** A light background (white, cream): the page runs its light theme */
+function isLight(color: string): boolean {
+  const m = /^#?([0-9a-f]{6})$/i.exec(color.trim())
+  if (!m) return false
+  const n = parseInt(m[1], 16)
+  return 0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255) > 160
+}
 
 /** Sampled from the Ace logo */
 const ACE_GOLD = '#daae5d'
@@ -350,7 +378,7 @@ export async function buildGameBoot(args: {
   const gear = gearBrand(theme)
   const meRow: GameLeader = { name, streak: args.streakDays, xp: args.totalXp, you: true }
 
-  const [lessons, leaders, doneLessons, notif, vault, globalLeaders, soloVideos, myDoors] = await Promise.all([
+  const [lessons, leaders, doneLessons, notif, vault, globalLeaders, soloVideos, myDoors, coachSprite] = await Promise.all([
     // Ace's training videos are Marshall's: they play from his page in the Vault even while the street runs the standard levels
     company && (features.companyLessons || ace) ? loadLessons(company.id, userId).catch(() => ({ units: [], videos: {} })) : Promise.resolve({ units: [], videos: {} }),
     company
@@ -362,6 +390,10 @@ export async function buildGameBoot(args: {
     loadGlobalLeaders().catch(() => null),
     solo ? loadMarshallVideos().catch(() => ({ groups: [], videos: {} })) : Promise.resolve({ groups: [], videos: {} }),
     loadGoldenDoors([userId]).catch(() => new Map<string, number>()),
+    loadCoachSprite(theme.coach.spriteUrl).catch((e) => {
+      console.warn('Coach sprite unavailable:', e?.message)
+      return null
+    }),
   ])
   const goldenDoors = myDoors.get(userId) ?? 0
   const meLeader = leaders.find((l) => l.you)
@@ -397,6 +429,8 @@ export async function buildGameBoot(args: {
         // Ace runs the monthly prize even if its config row predates the switch
         monthlyPrize: features.monthlyPrize || ace,
         companyLessons: !!features.companyLessons,
+        // Solo reps' Library is locked by the solo rules instead
+        library: features.library !== false,
       },
       brand: {
         cobrand: theme.cobrand || theme.brandName,
@@ -406,6 +440,9 @@ export async function buildGameBoot(args: {
         background: theme.colors.background,
         // Companies set up with their own co-brand and logo (company_app_config) open on SLAB × their logo, like Ace
         splash: !solo && !ace && theme.cobrand && theme.logoUrl ? (company?.name ?? theme.brandName) : null,
+        light: !ace && isLight(theme.colors.background),
+        ink: theme.colors.text,
+        coach: { name: theme.coach.name, fullName: theme.coach.fullName || theme.coach.name, sprite: ace ? null : coachSprite, vaultTag: ace ? null : theme.coach.vaultTag ?? null },
         // Ace gear is always the gold of the Ace logo, whatever colors the company record carries
         gear: { name: gear.name, letters: gear.letters.join(''), primary: ace ? ACE_GOLD : gear.primary, dark: gear.dark },
       },

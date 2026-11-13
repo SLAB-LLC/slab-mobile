@@ -418,6 +418,16 @@ def main(src):
                "const avatarSheets = { marshall: IMG.marshallSprite, austin: IMG.austinSprite, rylan: 'data:image/webp;base64," + rylan + "' };")
     html = rep(html, "const VX_AVK = { m:'marshall', r:'austin' };", "const VX_AVK = { m:'marshall', r:'rylan' };")
 
+    # ---- the company's own coach (APP.brand.coach.sprite) takes Marshall's place in the chat and nav ----
+    # Everything that animates the coach reads the 'marshall' frames, so the coach's sheet goes there; Marshall's
+    # own sheet stays on his rep card in the Vault (his pitches are still his).
+    html = rep(html, "const avatarSheets = { marshall: IMG.marshallSprite,",
+               "const APP_COACH = (APP && APP.brand && APP.brand.coach && APP.brand.coach.sprite) ? APP.brand.coach : null;\n"
+               "const avatarSheets = { marshall: APP_COACH ? APP_COACH.sprite : IMG.marshallSprite, ...(APP_COACH ? { marshallVault: IMG.marshallSprite } : {}),")
+    html = rep(html, "const VX_AVK = { m:'marshall', r:'rylan' };", "const VX_AVK = { m: APP_COACH ? 'marshallVault' : 'marshall', r:'rylan' };")
+    html = rep(html, "<b>Ask Marshall</b><small>Answers from Marshall's real door interactions</small>",
+               "<b>Ask ${APP_COACH ? bbEsc(APP_COACH.name) : 'Marshall'}</b><small>${APP_COACH ? 'Answers from top reps’ real door interactions' : 'Answers from Marshall’s real door interactions'}</small>")
+
     # ---- tour: steps can open another tab first, and the tour cleans up after itself ----
     html = rep(html, "    const step = TOUR[i];\n    const target = document.querySelector(step.sel);",
                "    const step = TOUR[i];\n    if (step.go) step.go();\n    const target = document.querySelector(step.sel);")

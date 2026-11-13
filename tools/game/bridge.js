@@ -134,10 +134,10 @@ const appCoachHistory = [];
 function appCoachReply(text){
   appCoachHistory.push({ role:'user', content:text });
   return appCall('coach', { messages: appCoachHistory.slice(-40) }).then(r => {
-    const reply = (r && r.reply) || 'Marshall could not answer right now. Try again in a minute.';
+    const reply = (r && r.reply) || `${coachName()} could not answer right now. Try again in a minute.`;
     appCoachHistory.push({ role:'assistant', content:reply });
     return { reply, connected: !!(r && r.connected), clips: (r && r.clips) || [] };
-  }).catch(() => ({ reply:'Marshall could not answer right now. Try again in a minute.', connected:false, clips:[] }));
+  }).catch(() => ({ reply:`${coachName()} could not answer right now. Try again in a minute.`, connected:false, clips:[] }));
 }
 
 // The doors an answer drew on, each a link that opens the full pitch in the Vault at the moment cited
@@ -468,7 +468,9 @@ if (APP) {
     const GOLDS = [
       [/#daae5d/gi, accent], [/rgba\(\s*218\s*,\s*174\s*,\s*93\s*,/g, `rgba(${c.join(',')},`],
       [/#f3d48a/gi, mix(255, 0.35)], [/#b4883a/gi, mix(0, 0.25)], [/#6b4f1c/gi, mix(0, 0.6)],
-      [/#4a3b1c/gi, mix(0, 0.72)], [/#2e2614/gi, mix(0, 0.8)], [/#1a1408/gi, mix(0, 0.9)],
+      // (the darkest shades are fills behind gold on black; on a light theme they are light tints instead)
+      ...(APP.brand.light ? [[/#4a3b1c/gi, mix(255, 0.72)], [/#2e2614/gi, mix(255, 0.8)], [/#1a1408/gi, mix(255, 0.9)]]
+        : [[/#4a3b1c/gi, mix(0, 0.72)], [/#2e2614/gi, mix(0, 0.8)], [/#1a1408/gi, mix(0, 0.9)]]),
     ];
     document.querySelectorAll('style').forEach(s => {
       let t = s.textContent, was = t;
@@ -900,3 +902,198 @@ async function appFillLines(rid){
     return false;
   }
 }
+
+// ============ THE COMPANY'S OWN COACH ============
+// A company with its own coach sheet (APP.brand.coach.sprite, build.py puts it in Marshall's slot) gets
+// that coach's name everywhere the chat is named. Marshall keeps his page in the Vault, so the coach no
+// longer climbs out of the nav onto Marshall's card there.
+const coachName = () => (APP && APP.brand && APP.brand.coach && APP.brand.coach.name) || 'Marshall';
+if (APP_COACH) appSafe('coach', () => {
+  const nm = APP_COACH.name || 'Coach', full = APP_COACH.fullName || nm;
+  const r = repsData.marshall;
+  r.name = full;
+  r.chatTitle = `Ask ${nm}`;
+  r.status = 'Trained on top reps’ real door interactions';
+  $('chat-rep-name').textContent = r.chatTitle;
+  $('chat-rep-status').textContent = r.status;
+  const nav = document.querySelector('.nav-marshall'); if (nav) nav.setAttribute('aria-label', `Chat with ${nm}`);
+  const lockDesc = document.querySelector('#chat-lock .lock-desc'); if (lockDesc) lockDesc.textContent = `Earn XP in the course to unlock Ask ${nm}.`;
+  TOUR.forEach(s => { if (s.sel === '.navbar' || s.sel === '.nav-marshall') s.text = s.text.replace(/\bMarshall\b/g, nm); });
+  vxHeadSync = function(){
+    const e = navHead.el, want = $('phone').classList.contains('chat-open');
+    if (want === e.classList.contains('away')) return;
+    e.classList.toggle('away', want);
+    if (want) { navHead.clear(); return; }
+    e.classList.remove('back'); void e.offsetWidth; e.classList.add('back');
+    setTimeout(() => e.classList.remove('back'), 700);
+    if (avatarFrames.marshall && !reduceMotion) { navHead.draw(0); navHead.later(() => navHead.idle(), 450); }
+  };
+  // Simple mode shows the coach's still face
+  const wait = setInterval(() => {
+    const f = avatarFrames.marshall; if (!f) return;
+    clearInterval(wait);
+    r.photo = f[0].toDataURL('image/png');
+  }, 150);
+});
+
+// The coach's own card in the Vault (APP.brand.coach.vaultTag), after Marshall and Rylan. Their days, once
+// published under their name, play from it; until then it says they're on the way.
+if (APP_COACH && APP_COACH.vaultTag) appSafe('coach vault card', () => {
+  if (VX.people === VX.reps) VX.people = VX.reps.slice();   // the pack in the app lists its days as its people
+  const full = APP_COACH.fullName || APP_COACH.name, first = String(full).split(' ')[0].toLowerCase();
+  let p = VX.people.find(x => String(x.name).toLowerCase() === String(full).toLowerCase() || String(x.name).toLowerCase() === first);
+  if (!p) VX.people.push(p = { id:'coach', name:full, ini:'', color:APP.brand.accent });
+  VX_AVK[p.id] = 'marshall';                  // the coach's frames (build.py)
+  VX_TAG[p.id] = APP_COACH.vaultTag;
+  const cid = p.id;
+  document.head.insertAdjacentHTML('beforeend', '<style>.vx-reps > .vx-rc:nth-child(odd):last-child{ grid-column:1 / -1; justify-self:center; width:calc(50% - 6px); }</style>');
+  const baseRender = vxRenderDays;
+  vxRenderDays = function(){
+    baseRender();
+    if (vxRepOpen || vxDaysOf(cid).length) return;
+    const card = document.querySelector(`#vx-days .vx-rc[data-rep="${cid}"]`); if (!card) return;
+    const sm = card.querySelector('small'); if (sm) sm.textContent = 'Days coming soon';
+    card.onclick = () => { haptic('tap'); showToast(`${APP_COACH.name}’s recorded days are on the way`, 'ph-headphones'); };
+  };
+});
+
+// A wide wordmark (rather than a square badge) gets room on the opening splash next to SLAB
+if (APP && APP.brand && APP.brand.splash && APP.brand.logoUrl) appSafe('splash logo', () => {
+  document.querySelectorAll('#bt-co .bt-logos img:last-child').forEach(img => {
+    const fit = () => { if (img.naturalWidth > img.naturalHeight * 2) img.style.width = '132px'; };
+    if (img.complete && img.naturalWidth) fit(); else img.addEventListener('load', fit, { once:true });
+  });
+});
+
+// ============ LIBRARY NOT OPEN YET ============
+// features.library false (company_app_config): the Library tab stays in the nav, dimmed, and says it's coming.
+if (APP && APP.features && APP.features.library === false && !appSolo()) {
+  document.head.insertAdjacentHTML('beforeend', '<style>.navbtn.lib-lock{ opacity:.45; }</style>');
+  document.querySelectorAll('.navbtn[data-page="library"]').forEach(b => { b.classList.add('lib-lock'); b.setAttribute('aria-label', 'Library, coming soon'); });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.navbtn[data-page="library"]')) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    haptic('wrong'); showToast('The Library is coming soon', 'ph-lock-simple');
+  }, true);
+}
+
+// ============ LIGHT THEME ============
+// A company on a light background (APP.brand.light, from its theme's background) gets the page in light:
+// white surfaces, the theme's text color for ink, and the dark textured plate behind the top bar turned
+// light with the same texture. The street itself is a scene and keeps its own colors.
+if (APP && APP.brand && APP.brand.light) appSafe('light theme', () => {
+  const ink = /^#?[0-9a-f]{6}$/i.test(String(APP.brand.ink || '').trim()) ? APP.brand.ink.trim() : '#14161b';
+  const hex = (h) => { const n = parseInt(h.replace('#', ''), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+  const mixC = (a, b, t) => '#' + a.map((v, i) => Math.round(v + (b[i] - v) * t).toString(16).padStart(2, '0')).join('');
+  const I = hex(ink), W = [255, 255, 255];
+  const acc = /^#?[0-9a-f]{6}$/i.test(String(APP.brand.accent || '').trim()) ? hex(APP.brand.accent.trim()) : I;
+  const bg = APP.brand.background || '#ffffff';
+  const rs = document.documentElement.style;
+  const vars = {
+    '--bg': bg,
+    '--surface': mixC(W, I, 0.045),
+    '--surface-2': mixC(W, I, 0.09),
+    '--border': mixC(W, I, 0.17),
+    '--hairline': mixC(W, I, 0.11),
+    '--text': ink,
+    '--text-dim': mixC(I, W, 0.42),
+    '--amber-dim': mixC(W, acc, 0.12),
+    '--amber-soft': mixC(acc, [0, 0, 0], 0.18),
+    '--amber-line': `rgba(${acc.join(',')},0.35)`,
+    '--green-dim': '#dcf3e6',
+  };
+  Object.entries(vars).forEach(([k, v]) => rs.setProperty(k, v));
+  document.documentElement.classList.add('light');
+  const st = document.createElement('style');
+  st.textContent = `
+    html.light body, html.light .phone{ background:${bg}; color:${ink}; }
+    html.light .table-stage{ background:var(--bg-plate, ${bg}) center / cover no-repeat, ${bg}; }
+    html.light .table-stage::after{ background:linear-gradient(180deg, rgba(255,255,255,0.35), rgba(255,255,255,0) 30%, rgba(255,255,255,0) 70%, rgba(255,255,255,0.45)); }
+    html.light .grain-overlay{ mix-blend-mode:multiply; opacity:0.035; }
+    html.light .bt-intro, html.light .bt-half{ background:${bg}; }
+    html.light .vx-best span{ color:${ink}; text-shadow:2px 2px 0 ${mixC(W, acc, 0.3)}; }
+  `;
+  document.head.appendChild(st);
+  // The app's own screens draw some greys straight into their styles. In those rules every neutral color
+  // flips: dark fills turn near white, light text and lines turn ink, by how light they were. Colored ones
+  // (accent, gold, green, red) keep their color, dark shadows stay dark. Scenes (the street, boss fights,
+  // the Vault door, the video player) aren't touched.
+  const SCREENS = /\.(vx-|vault|mt-|mt\b|ow-|ow\b|bb-|bb\b|lb-|lb\b|pd-|me-|prize|lv-|q-opt|lib-|ace-|shelf|ob-|sheet|toast|bubble|example|chat-|seg\b|seg-|mascot|lock-|stats|leader|podium|lesson-view|cr-|onboard|pn-|push-note|ss-backdrop|avatar-frame|deck-dots|fx-badge|fx-props|vet-chip|pw-live|bv-check|btn-primary|unit-seg)/;
+  const SCENES = /\.(vx-door|app-vid|st-|fv-|bt-)/;
+  const parse = (c) => {
+    let m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(c);
+    if (m) { const x = m[1].length === 3 ? m[1].replace(/./g, '$&$&') : m[1]; const n = parseInt(x, 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255, 1]; }
+    m = /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)$/i.exec(c);
+    return m ? [+m[1], +m[2], +m[3], m[4] == null ? 1 : +m[4]] : null;
+  };
+  const flip = (c, lightOnly) => {
+    const p = parse(c); if (!p) return c;
+    const [r, g, b, a] = p;
+    if (Math.max(r, g, b) - Math.min(r, g, b) > 34) return c;            // a real color: keep it
+    const L = (r + g + b) / 765;
+    if (lightOnly && L < 0.55) return c;
+    const o = W.map((v, i) => Math.round(v + (I[i] - v) * L));
+    return a >= 1 ? '#' + o.map(v => v.toString(16).padStart(2, '0')).join('') : `rgba(${o.join(',')},${a})`;
+  };
+  const COLORS = /#(?:[0-9a-f]{6}|[0-9a-f]{3})\b|rgba?\([^)]*\)/gi;
+  const flipDecls = (body) => body.replace(/([a-z-]+)\s*:([^;]*)/gi, (all, prop, val) => {
+    const p = prop.toLowerCase();
+    if (/^(color|background|background-color|background-image|border|border-[a-z-]+|outline|outline-color|fill|stroke|caret-color|text-decoration-color|accent-color)$/.test(p)) return `${prop}:${val.replace(COLORS, c => flip(c))}`;
+    if (/^(box-shadow|text-shadow)$/.test(p)) return `${prop}:${val.replace(COLORS, c => flip(c, true))}`;
+    return all;
+  });
+  document.querySelectorAll('style').forEach(s => {
+    if (s === st) return;
+    const was = s.textContent;
+    const t = was.replace(/([^{}]+)\{([^{}]*)\}/g, (all, sel, body) => (SCREENS.test(sel) && !SCENES.test(sel) && !/^\s*@/.test(sel)) ? `${sel}{${flipDecls(body)}}` : all);
+    if (t !== was) s.textContent = t;
+  });
+  // The little night-time houses on reels (Trending, Saved) turn daytime in the company's colors: pale sky
+  // and ground, ink walls, accent roof, cream windows. The door keeps its color, since it says how the door went.
+  const accHex = '#' + acc.map(v => v.toString(16).padStart(2, '0')).join('');
+  const THUMB = { '#16140f': mixC(W, I, 0.05), '#2d2a24': '#ffffff', '#141a14': mixC(W, I, 0.16), '#2a2722': ink,
+                  '#3d3830': accHex, '#f3d48a': '#f6ead0', '#3a3730': mixC(I, W, 0.3) };
+  const thumbBase = vxThumb;
+  vxThumb = function(cv, kind, seed){
+    thumbBase(cv, kind, seed);
+    const g = cv.getContext('2d'), im = g.getImageData(0, 0, cv.width, cv.height), d = im.data;
+    const map = Object.entries(THUMB).map(([from, to]) => [hex(from), hex(to)]);
+    for (let i = 0; i < d.length; i += 4) {
+      const hit = map.find(([f]) => f[0] === d[i] && f[1] === d[i + 1] && f[2] === d[i + 2]);
+      if (hit) { d[i] = hit[1][0]; d[i + 1] = hit[1][1]; d[i + 2] = hit[1][2]; }
+    }
+    g.putImageData(im, 0, 0);
+  };
+  // The plate: the same texture, inverted and pulled up toward white
+  const plate = new Image();
+  plate.onload = () => {
+    const c = document.createElement('canvas'); c.width = plate.naturalWidth; c.height = plate.naturalHeight;
+    const g = c.getContext('2d'); g.drawImage(plate, 0, 0);
+    const im = g.getImageData(0, 0, c.width, c.height), d = im.data;
+    for (let i = 0; i < d.length; i += 4) for (let k = 0; k < 3; k++) d[i + k] = 255 - Math.round(Math.min(d[i + k], 24) * 0.8);   // its few bright specks would show as grey dots
+    g.putImageData(im, 0, 0);
+    $('table-stage').style.setProperty('--bg-plate', `url(${c.toDataURL('image/png')})`);
+  };
+  plate.src = IMG.bgPlate;
+  // SLAB's logo: its white letters would vanish on white, so they take the ink color (the box stays orange)
+  const logo = new Image();
+  logo.onload = () => {
+    const c = document.createElement('canvas'); c.width = logo.naturalWidth; c.height = logo.naturalHeight;
+    const g = c.getContext('2d'); g.drawImage(logo, 0, 0);
+    const im = g.getImageData(0, 0, c.width, c.height), d = im.data;
+    for (let i = 0; i < d.length; i += 4) {
+      if (!d[i + 3]) continue;
+      const mx = Math.max(d[i], d[i + 1], d[i + 2]), mn = Math.min(d[i], d[i + 1], d[i + 2]);
+      if (mn > 170) { d[i] = I[0]; d[i + 1] = I[1]; d[i + 2] = I[2]; }
+      // SLAB's orange takes the company accent, so the logo wears the same two colors as theirs
+      else if (mx - mn > 60 && d[i] === mx) { const k = mx / 244; d[i] = Math.min(255, Math.round(acc[0] * k)); d[i + 1] = Math.min(255, Math.round(acc[1] * k)); d[i + 2] = Math.min(255, Math.round(acc[2] * k)); }
+    }
+    g.putImageData(im, 0, 0);
+    const url = c.toDataURL('image/png');
+    const s2 = document.createElement('style');
+    s2.textContent = `.slab-logo{ background:url(${url}) center / contain no-repeat !important; -webkit-mask:none !important; mask:none !important; }`;
+    document.head.appendChild(s2);
+    document.querySelectorAll('#bt-co .bt-logos img:first-child').forEach(img => { img.src = url; });
+  };
+  logo.src = SLAB_TRUE;
+});
