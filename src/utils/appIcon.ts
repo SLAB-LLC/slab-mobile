@@ -56,29 +56,24 @@ async function setIcon(name: string | null): Promise<boolean> {
 }
 
 /**
- * Puts the company's icon on the home screen. If this build doesn't have that icon (a company added
- * after the build), it falls back to the SLAB icon rather than leaving another company's icon up.
- * iOS refuses while the app is in the background or busy, so a failed change is tried again the next
- * time the app comes to the front.
+ * Puts the company's icon on the home screen. One quiet try per change: iOS throttles icon changes
+ * (it answers "resource temporarily unavailable" and can stay stuck until the phone restarts), so
+ * hammering it with retries makes things worse. A refused change is tried once more the next time
+ * the app comes to the front. Names this build doesn't have fall back to the SLAB icon.
  */
+let tried = new Set<string>()
 export async function applyAppIcon(name: string | null): Promise<void> {
   // Android swaps launcher aliases, which can close the app; it keeps the default for now
   if (Platform.OS !== 'ios' || !Icons?.supportsAlternateIcons) return
+  if (wanted !== name) tried = new Set()
   wanted = name
   if (!retryHooked) {
     retryHooked = true
     AppState.addEventListener('change', (state) => {
-      if (state === 'active' && wanted !== undefined) setTimeout(() => applyAppIcon(wanted ?? null), 800)
+      if (state !== 'active' || wanted === undefined || !lastError || tried.has('fg:' + wanted)) return
+      tried.add('fg:' + wanted)
+      setTimeout(() => wanted !== undefined && setIcon(wanted), 1500)
     })
   }
-  if (await setIcon(name)) return
-  // iOS often refuses right after launch or a screen change ("resource temporarily unavailable"); try again shortly
-  for (const ms of [1500, 4000]) {
-    await new Promise((r) => setTimeout(r, ms))
-    if (wanted !== name) return
-    if (await setIcon(name)) return
-  }
-  const why = lastError
-  if (name !== null && wanted === name) await setIcon(null)
-  if (!lastError) lastError = why
+  await setIcon(name)
 }
