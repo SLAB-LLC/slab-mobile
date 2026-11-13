@@ -309,6 +309,8 @@ def main(src):
 
     build_login(html)
     bridge = open(os.path.join(HERE, 'bridge.js'), encoding='utf-8').read()
+    slab_true = base64.b64encode(open(os.path.join(HERE, 'slab-true.png'), 'rb').read()).decode()
+    bridge = bridge.replace('/*SLAB_TRUE*/', 'data:image/png;base64,' + slab_true)
 
     # ---- state from the app ----
     html = rep(html, 'let currentXP = 340;',
@@ -406,6 +408,9 @@ def main(src):
                "    return;\n"
                "  }\n"
                "  if (bootAuth.get()) { await btCompany(); return; }")
+
+    # ---- owner announcements are signed by the rep's own company ----
+    html = rep(html, "|| 'Ace Cooperatives'", "|| (APP && APP.me.companyName) || 'Ace Cooperatives'", 2)
 
     # ---- Rylan's own portrait in the Vault (the demo shows him with Austin's sheet) ----
     rylan = base64.b64encode(open(os.path.join(HERE, 'rylan-sprite.webp'), 'rb').read()).decode()
