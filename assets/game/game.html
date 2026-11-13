@@ -10408,6 +10408,51 @@ if (APP && APP.features && Array.isArray(APP.features.extraRides) && APP.feature
   };
 });
 
+// ============ FINISHED LESSONS STAND OUT (light street) ============
+// A finished lesson's bubble goes solid ink with white text, and the house gets a pixel SOLD sign in the
+// yard beside its front walk. Locked bubbles fade a little, so done / up next / locked read at a glance.
+if (APP && APP.brand && APP.brand.light) appSafe('sold signs', () => {
+  const ink = /^#?[0-9a-f]{6}$/i.test(String(APP.brand.ink || '').trim()) ? APP.brand.ink.trim() : '#14161b';
+  const acc = /^#?[0-9a-f]{6}$/i.test(String(APP.brand.accent || '').trim()) ? APP.brand.accent.trim() : '#cb272d';
+  document.head.insertAdjacentHTML('beforeend', `<style>
+    html.light .st-label.done span{ background:${ink}; color:#fff; border:1px solid ${ink}; box-shadow:0 1px 0 rgba(0,0,0,.25), 0 2px 6px rgba(0,0,0,.2); }
+    html.light .st-label.done i{ color:#fff; }
+    html.light .st-label.locked span{ opacity:.82; }
+    .st-sold{ position:absolute; image-rendering:pixelated; pointer-events:none; }
+  </style>`);
+  // 21 x 25: a red board with white SOLD on a white post
+  const SIGN_W = 21, SIGN_H = 25;
+  const FONT = { S:['111','100','111','001','111'], O:['111','101','101','101','111'], L:['100','100','100','100','111'], D:['110','101','101','101','110'] };
+  const paintSold = (cv) => {
+    cv.width = SIGN_W; cv.height = SIGN_H;
+    const g = cv.getContext('2d'), P = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+    P(9, 9, 3, 16, '#e8e6e0'); P(9, 9, 1, 16, '#ffffff'); P(11, 9, 1, 16, '#a9a69d');     // white post
+    P(8, 23, 5, 2, 'rgba(0,0,0,.25)');                                                       // where it meets the grass
+    P(0, 0, 21, 11, '#2a0a0c'); P(1, 1, 19, 9, acc); P(1, 1, 19, 1, 'rgba(255,255,255,.28)'); // board
+    [...'SOLD'].forEach((ch, i) => FONT[ch].forEach((row, ry) => [...row].forEach((v, rx) => { if (v === '1') P(3 + i * 4 + rx, 3 + ry, 1, 1, '#fff'); })));
+  };
+  const plant = () => {
+    const wrap = $('path-wrap'); if (!wrap || !street || !street.stops) return;
+    wrap.querySelectorAll('.st-sold').forEach(e => e.remove());
+    const S = parseFloat(wrap.style.getPropertyValue('--S')) || 1, px = (v) => Math.round(v * S) + 'px';
+    street.stops.forEach(s => {
+      if (s.kind === 'boss' || !s.ref || s.ref.status !== 'done' || !s.doorUV || !s.walkUV) return;
+      // out in the front yard by the sidewalk, on the other side of the front walk from the mailbox
+      const even = s.i % 2 === 0, w = s.walkUV;
+      const q = even ? { u:w.u - 6, v:w.v + 10 } : { u:w.u + 10, v:w.v - 6 };
+      const p = isoPt(q.u, q.v);
+      const c = document.createElement('canvas'); c.className = 'st-sold'; c.setAttribute('aria-hidden', 'true');
+      paintSold(c);
+      c.style.left = px(p.x - SIGN_W / 2); c.style.top = px(p.y - SIGN_H + 1);
+      c.style.width = px(SIGN_W); c.style.height = px(SIGN_H);
+      c.style.zIndex = objZ(q.u, q.v);
+      wrap.appendChild(c);
+    });
+  };
+  const baseRender = renderStreet;
+  renderStreet = function(){ baseRender.apply(this, arguments); try { plant(); } catch (e) {} };
+});
+
 
 // ============ HOLIDAY SEASONS ============
 // The street dresses up for eight holidays (Duncan, 2026-11-06). Each holiday has a limited hat and a
