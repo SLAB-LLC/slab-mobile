@@ -349,6 +349,8 @@ export async function buildGameBoot(args: {
   const ace = isAceCompany(company)
   // No company: the Vault, Ask Marshall, Marshall's videos and the global leaderboard; the rest stays locked
   const solo = !company
+  // Marshall's videos: reps with no company, and companies given them (features.marshallVideos, e.g. ProTerra)
+  const marshallVids = solo || (!ace && !!features.marshallVideos)
   const gear = gearBrand(theme)
   const meRow: GameLeader = { name, streak: args.streakDays, xp: args.totalXp, you: true }
 
@@ -362,7 +364,7 @@ export async function buildGameBoot(args: {
     loadNotif(userId),
     loadVault(ace).catch(() => null),
     loadGlobalLeaders().catch(() => null),
-    solo ? loadMarshallVideos().catch(() => ({ groups: [], videos: {} })) : Promise.resolve({ groups: [], videos: {} }),
+    marshallVids ? loadMarshallVideos().catch(() => ({ groups: [], videos: {} })) : Promise.resolve({ groups: [], videos: {} }),
     loadGoldenDoors([userId]).catch(() => new Map<string, number>()),
   ])
   const goldenDoors = myDoors.get(userId) ?? 0

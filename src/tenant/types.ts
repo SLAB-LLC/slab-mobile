@@ -83,6 +83,8 @@ export interface TenantFeatures {
   monthlyPrize: boolean
   /** The street runs the company's own training videos instead of the standard SLAB levels */
   companyLessons: boolean
+  /** Marshall's training videos on his page in the Vault (always on for reps with no company; Ace has them as its own) */
+  marshallVideos?: boolean
   /** What the owner set in the Owner view's Training tab (required units and books, pass scores) */
   training?: Record<string, unknown> | null
   powerHour: { enabled: boolean; startHour: number; multiplier: number }
