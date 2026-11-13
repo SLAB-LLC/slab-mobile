@@ -40,6 +40,8 @@ export interface TenantTheme {
   cobrand: string | null
   logoUrl: string | null
   wordmarkUrl: string | null
+  /** SLAB's own logo in one of the company's colors (Ace: its gold, ProTerra: its pink); null keeps SLAB's true white and orange */
+  slabLogo?: string | null
   /** Status bar content over the header */
   statusBar: 'light' | 'dark'
   colors: TenantColors

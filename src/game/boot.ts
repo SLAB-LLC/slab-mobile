@@ -79,6 +79,8 @@ export interface GameBoot {
     accent: string
     isAce: boolean
     logoUrl: string | null
+    /** SLAB's logo tinted this color for the company, or null for its true colors */
+    slabLogo: string | null
     /** Page background (the tenant theme's), so a company can run on pure black */
     background: string
     /** Company name for the opening splash (SLAB × their logo), set when the company has its own co-brand and logo */
@@ -404,6 +406,7 @@ export async function buildGameBoot(args: {
         isAce: ace,
         logoUrl: theme.logoUrl,
         background: theme.colors.background,
+        slabLogo: theme.slabLogo ?? null,
         // Companies set up with their own co-brand and logo (company_app_config) open on SLAB × their logo, like Ace
         splash: !solo && !ace && theme.cobrand && theme.logoUrl ? (company?.name ?? theme.brandName) : null,
         // Ace gear is always the gold of the Ace logo, whatever colors the company record carries

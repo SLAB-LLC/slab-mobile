@@ -409,6 +409,10 @@ def main(src):
                "  }\n"
                "  if (bootAuth.get()) { await btCompany(); return; }")
 
+    # ---- the sprite's gear brand can be swapped per rep (bridge.js: each rep in their own company's gear) ----
+    for name in ('ACE_GOLD', 'GEAR_LETTERS', 'GEAR_X0'):
+        html = rep(html, f'const {name} = ', f'let {name} = ')
+
     # ---- owner announcements are signed by the rep's own company ----
     html = rep(html, "|| 'Ace Cooperatives'", "|| (APP && APP.me.companyName) || 'Ace Cooperatives'", 2)
 
