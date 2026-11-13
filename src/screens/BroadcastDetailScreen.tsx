@@ -18,6 +18,7 @@ import { Broadcast, getBroadcast } from '../services/broadcasts.service'
 import { RootStackParamList } from '../types'
 import { colors } from '../theme/tokens'
 import { useCompanyColors } from '../hooks/useCompanyColors'
+import { androidTop } from '../utils/androidInsets'
 
 type RouteProps = RouteProp<RootStackParamList, 'BroadcastDetail'>
 type AudioPlayer = ReturnType<typeof createAudioPlayer>
@@ -205,7 +206,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    paddingTop: Platform.OS === 'ios' ? 60 : 30,
+    paddingTop: Platform.OS === 'ios' ? 60 : androidTop(30),
     paddingBottom: 40,
   },
   loading: {

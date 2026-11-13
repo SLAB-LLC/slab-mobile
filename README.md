@@ -214,9 +214,20 @@ eas build --platform ios
 
 ### Android
 
+Same app, same OTA updates as iOS (package `com.slabvoice.mobile`, runtime `1.1.0`).
+
 ```bash
-eas build --platform android
+# Test build you can install straight onto an Android phone (APK link from EAS)
+eas build --platform android --profile preview
+
+# Store build (AAB) for Google Play
+eas build --platform android --profile production
 ```
+
+- **First Play upload is manual:** Google won't accept the first release through the API, so upload the first `.aab` by hand in Play Console. After that, `eas submit --platform android` sends builds to the Internal testing track as drafts.
+- **Submit key:** create a Google Cloud service account with Play Console access and upload its JSON key with `eas credentials` (never commit it).
+- **Push notifications** need Firebase: add `google-services.json` and set `android.googleServicesFile` in `app.json`, then upload the FCM V1 key in `eas credentials`. Until then Android phones just skip push registration.
+- **OTA updates now reach Android too:** `eas update` with no `--platform` publishes to both. Use `--platform ios` to keep an update iPhone-only.
 
 ## 🧪 Testing
 

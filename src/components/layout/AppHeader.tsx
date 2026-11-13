@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useTenantTheme, useFeatures } from '../../tenant'
 import { useXp, hourLabel } from '../../xp'
 import { PixelSprite, useMyLook } from '../../avatar'
+import { androidTop } from '../../utils/androidInsets'
 
 const slabLogo = require('../../../assets/slab-logo-thermal.png')
 
@@ -110,7 +111,7 @@ export default function AppHeader({ onMenuPress, onProfilePress }: AppHeaderProp
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    paddingTop: Platform.OS === 'ios' ? 50 : androidTop(30),
     borderBottomWidth: 1,
   },
   content: {

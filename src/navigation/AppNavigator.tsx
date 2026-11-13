@@ -48,6 +48,7 @@ import SideDrawer from '../components/layout/SideDrawer'
 import { useTenantTheme, useLabels } from '../tenant'
 import { useMyLook } from '../avatar'
 import type { TabKey, TenantTheme } from '../tenant'
+import { androidBottom } from '../utils/androidInsets'
 
 const RootStack = createNativeStackNavigator<RootStackParamList>()
 const Tab = createBottomTabNavigator<MainTabParamList>()
@@ -152,7 +153,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 const tabStyles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+    paddingBottom: Platform.OS === 'ios' ? 24 : androidBottom(8),
   },
   tab: {
     flex: 1,

@@ -27,6 +27,7 @@ import { colors, spacing, borderRadius } from '../theme/tokens'
 import { useStreakTracker } from '../hooks/useStreakTracker'
 import { useScreenCaptureProtection } from '../hooks/useScreenCaptureProtection'
 import { useCompanyColors } from '../hooks/useCompanyColors'
+import { androidTop } from '../utils/androidInsets'
 
 type TranscriptDetailRouteProp = RouteProp<RootStackParamList, 'TranscriptDetail'>
 
@@ -431,7 +432,7 @@ const styles = StyleSheet.create({
 
   // ─── Header ───────────────────────────────────
   header: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    paddingTop: Platform.OS === 'ios' ? 50 : androidTop(30),
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
