@@ -429,6 +429,12 @@ def main(src):
     html = rep(html, "walk:hex('#34343a'), walkJ:hex('#232327') };",
                "walk:hex('#34343a'), walkJ:hex('#232327'),\n"
                "              ...((APP && APP.brand && APP.brand.light) ? { stone:hex('#c6c9ce'), stoneB:hex('#bec1c7'), joint:hex('#a3a7ae'), edge:hex('#dcdee2'), edgeHi:hex('#eef0f2'), curb:hex('#767a82'), walk:hex('#c1c4c9'), walkJ:hex('#a6aab1') } : {}) };")
+    # A ride you picked stays picked: the start-up check takes rides back with the same XP the locker unlocks
+    # them with (gearXP: admins have everything), not the raw total, which put admins back on foot every launch
+    html = rep(html, "if (ME.look && ME.look.ride === 'scooter' && currentXP < 1500) { ME.look.ride = currentXP >= 500 ? 'segway' : 'none'; saveMe(); }",
+               "if (ME.look && ME.look.ride === 'scooter' && gearXP() < 1500) { ME.look.ride = gearXP() >= 500 ? 'segway' : 'none'; saveMe(); }")
+    html = rep(html, "if (ME.look && ME.look.ride === 'segway' && currentXP < 500) { ME.look.ride = 'none'; saveMe(); }",
+               "if (ME.look && ME.look.ride === 'segway' && gearXP() < 500) { ME.look.ride = 'none'; saveMe(); }")
     html = rep(html, "<b>Ask Marshall</b><small>Answers from Marshall's real door interactions</small>",
                "<b>Ask ${APP_COACH ? bbEsc(APP_COACH.name) : 'Marshall'}</b><small>${APP_COACH ? 'Answers from top reps’ real door interactions' : 'Answers from Marshall’s real door interactions'}</small>")
 

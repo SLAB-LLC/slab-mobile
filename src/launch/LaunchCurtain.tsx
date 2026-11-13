@@ -43,11 +43,14 @@ export interface LaunchBrand {
   logo: string | null
   /** Where the logo came from, so a changed logo is fetched again */
   logoSrc: string | null
+  /** A light-themed company: the curtain is its background color, SLAB's letters in its ink */
+  bg?: string | null
+  ink?: string | null
 }
 
 /** Same company look (the logo may be a phone copy in one and a web address in the other) */
 const sameBrand = (a: LaunchBrand, b: LaunchBrand) =>
-  a.kind === b.kind && a.name === b.name && a.box === b.box && a.accent === b.accent && a.logoSrc === b.logoSrc
+  a.kind === b.kind && a.name === b.name && a.box === b.box && a.accent === b.accent && a.logoSrc === b.logoSrc && (a.bg ?? null) === (b.bg ?? null)
 
 const NEUTRAL: LaunchBrand = { kind: 'slab', name: null, box: ORANGE, accent: ORANGE, logo: null, logoSrc: null }
 
@@ -105,6 +108,9 @@ export function LaunchCurtainProvider({ children }: { children: React.ReactNode 
       accent,
       logo: src,
       logoSrc: src,
+      // dark status bar = a light theme: the curtain runs light too, so a dark logo shows
+      bg: theme.statusBar === 'dark' ? hex(theme.colors.background) : null,
+      ink: theme.statusBar === 'dark' ? hex(theme.colors.text) : null,
     }
   }, [loading, user?.id, tenant.ready, company?.id, company?.name, theme])
 
@@ -331,17 +337,18 @@ function Curtain({
   const rightX = slide.interpolate({ inputRange: [0, 1], outputRange: [0, shift] })
 
   const content = brand ? <CurtainFace brand={brand} logos={logos} tag={tag} /> : null
+  const bgStyle = brand?.bg ? { backgroundColor: brand.bg } : null
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents={shown && parting.current ? 'none' : 'auto'}>
       {/* Left half: the left side of the face, its seam on the right edge */}
-      <Animated.View style={[styles.half, { left: 0, width: half, transform: [{ translateX: leftX }] }]}>
-        <View style={[styles.face, { width, left: 0 }]}>{content}</View>
+      <Animated.View style={[styles.half, bgStyle, { left: 0, width: half, transform: [{ translateX: leftX }] }]}>
+        <View style={[styles.face, bgStyle, { width, left: 0 }]}>{content}</View>
         <Animated.View style={[styles.seam, { right: 0, backgroundColor: brand?.accent ?? ORANGE, shadowColor: brand?.accent ?? ORANGE, opacity: seam }]} />
       </Animated.View>
       {/* Right half: the right side of the face, its seam on the left edge */}
-      <Animated.View style={[styles.half, { left: half, width: width - half, transform: [{ translateX: rightX }] }]}>
-        <View style={[styles.face, { width, left: -half }]}>{content}</View>
+      <Animated.View style={[styles.half, bgStyle, { left: half, width: width - half, transform: [{ translateX: rightX }] }]}>
+        <View style={[styles.face, bgStyle, { width, left: -half }]}>{content}</View>
         <Animated.View style={[styles.seam, { left: 0, backgroundColor: brand?.accent ?? ORANGE, shadowColor: brand?.accent ?? ORANGE, opacity: seam }]} />
       </Animated.View>
     </View>
@@ -350,20 +357,39 @@ function Curtain({
 
 function CurtainFace({ brand, logos, tag }: { brand: LaunchBrand; logos: Animated.Value; tag: Animated.Value }) {
   const [logoFailed, setLogoFailed] = useState(false)
+  // A wide wordmark (Ronin's is 4.4 : 1) would shrink to a sliver in the square badge box: it gets a wide
+  // box instead, and SLAB steps down so the two read about the same size
+  const [aspect, setAspect] = useState<number | null>(null)
+  useEffect(() => {
+    setAspect(null)
+    if (brand.kind !== 'company' || !brand.logo) return
+    let live = true
+    Image.getSize(brand.logo, (w, h) => live && h > 0 && setAspect(w / h), () => {})
+    return () => {
+      live = false
+    }
+  }, [brand.kind, brand.logo])
+  const wide = aspect != null && aspect >= 2
+  const coLogoStyle = wide ? { width: 168, height: Math.round(168 / aspect!) } : styles.coLogo
+  const slabStyle = wide ? styles.slabSmall : styles.slab
   const slab =
     brand.kind === 'ace' ? (
       <Image source={SLAB_ACE} style={styles.slab} resizeMode="contain" />
     ) : (
-      <View style={styles.slab}>
+      <View style={slabStyle}>
         <Image source={SLAB_BOX} style={[StyleSheet.absoluteFill, { width: undefined, height: undefined, tintColor: brand.box }]} resizeMode="contain" />
-        <Image source={SLAB_LETTERS} style={[StyleSheet.absoluteFill, { width: undefined, height: undefined }]} resizeMode="contain" />
+        <Image
+          source={SLAB_LETTERS}
+          style={[StyleSheet.absoluteFill, { width: undefined, height: undefined }, brand.ink ? { tintColor: brand.ink } : null]}
+          resizeMode="contain"
+        />
       </View>
     )
   const other =
     brand.kind === 'ace' ? (
       <Image source={ACE_LOGO} style={styles.coLogo} resizeMode="contain" />
     ) : brand.logo && !logoFailed ? (
-      <Image source={{ uri: brand.logo }} style={styles.coLogo} resizeMode="contain" onError={() => setLogoFailed(true)} />
+      <Image source={{ uri: brand.logo }} style={coLogoStyle} resizeMode="contain" onError={() => setLogoFailed(true)} />
     ) : null
 
   return (
@@ -394,6 +420,8 @@ const styles = StyleSheet.create({
   logos: { flexDirection: 'row', alignItems: 'center' },
   // SLAB's logo is 500 × 274
   slab: { width: 150, height: 82 },
+  // beside a wide wordmark
+  slabSmall: { width: 112, height: 61 },
   x: { fontSize: 24, marginHorizontal: 14 },
   coLogo: { width: 64, height: 64 },
   coName: { maxWidth: 120, fontSize: 14, fontWeight: '800', letterSpacing: 1.5 },

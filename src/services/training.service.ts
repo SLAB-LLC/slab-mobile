@@ -77,17 +77,31 @@ export async function getTrainingVideoById(
 export async function markVideoComplete(
   videoId: string,
   userId: string
-): Promise<VideoCompletion> {
+): Promise<VideoCompletion | null> {
   try {
+    // video_completions.company_id is required: it's the video's company. Without it every save was refused,
+    // so finished lessons came back unfinished the next time the app opened.
+    const { data: video, error: videoError } = await supabase
+      .from('training_videos')
+      .select('company_id')
+      .eq('id', videoId)
+      .single()
+    if (videoError || !video) throw new Error(`Video not found: ${videoError?.message ?? videoId}`)
+
+    // Finishing a lesson again (a review) keeps the first completion
     const { data, error } = await supabase
       .from('video_completions')
-      .insert({
-        video_id: videoId,
-        user_id: userId,
-        completed_at: new Date().toISOString(),
-      })
+      .upsert(
+        {
+          video_id: videoId,
+          user_id: userId,
+          company_id: (video as { company_id: string }).company_id,
+          completed_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,video_id', ignoreDuplicates: true }
+      )
       .select()
-      .single()
+      .maybeSingle()
 
     if (error) {
       console.error('Error marking video as complete:', error)
