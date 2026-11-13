@@ -29,11 +29,28 @@ export function companyIconName(company: Company | null, features: TenantFeature
 let wanted: string | null | undefined
 let retryHooked = false
 
+let lastError = ''
+
+/** One line for the build label under Sign out, so a phone shows why its icon didn't change */
+export function iconStatus(): string {
+  if (Platform.OS !== 'ios') return ''
+  if (!Icons) return 'icon: no module'
+  if (!Icons.supportsAlternateIcons) return 'icon: unsupported'
+  let now = '?'
+  try {
+    now = Icons.getAppIconName() ?? 'SLAB'
+  } catch {}
+  const want = wanted === undefined ? '-' : wanted ?? 'SLAB'
+  return `icon ${now} (want ${want})${lastError ? ' ' + lastError : ''}`
+}
+
 async function setIcon(name: string | null): Promise<boolean> {
   try {
     if (Icons!.getAppIconName() !== name) await Icons!.setAlternateAppIcon(name)
+    lastError = ''
     return true
-  } catch {
+  } catch (e: any) {
+    lastError = `failed ${name ?? 'SLAB'}: ${String(e?.message || e).slice(0, 80)}`
     return false
   }
 }
@@ -55,5 +72,13 @@ export async function applyAppIcon(name: string | null): Promise<void> {
     })
   }
   if (await setIcon(name)) return
+  // iOS often refuses right after launch or a screen change ("resource temporarily unavailable"); try again shortly
+  for (const ms of [1500, 4000]) {
+    await new Promise((r) => setTimeout(r, ms))
+    if (wanted !== name) return
+    if (await setIcon(name)) return
+  }
+  const why = lastError
   if (name !== null && wanted === name) await setIcon(null)
+  if (!lastError) lastError = why
 }
