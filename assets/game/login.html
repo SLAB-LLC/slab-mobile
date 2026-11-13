@@ -153,6 +153,16 @@ async function btWipe(layer) {
 
 (async function intro() {
   const intro = $('bt-intro'), img = intro.querySelector('img'), tag = intro.querySelector('.bt-tag');
+  // Tell the app once the page has painted, so its launch curtain can part onto it
+  const painted = () => requestAnimationFrame(() => requestAnimationFrame(() => appSend('ready')));
+  if (LOGIN.noIntro) {
+    // The app's launch curtain already showed SLAB: open straight on the login
+    intro.classList.remove('bt-on');
+    $('bt-login').hidden = false;
+    painted();
+    return;
+  }
+  painted();
   img.style.opacity = 0; tag.style.opacity = 0;
   intro.classList.add('bt-on');
   $('bt-login').hidden = false;

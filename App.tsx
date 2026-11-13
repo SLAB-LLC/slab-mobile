@@ -8,6 +8,7 @@ import { XpProvider } from './src/xp'
 import { AvatarProvider } from './src/avatar'
 import { useMemo } from 'react'
 import { useOtaUpdates } from './src/utils/otaUpdates'
+import { LaunchCurtainProvider } from './src/launch/LaunchCurtain'
 
 /** Everything below the tenant provider paints in the company's theme */
 function ThemedApp() {
@@ -18,7 +19,10 @@ function ThemedApp() {
     <PaperProvider theme={paperTheme}>
       <XpProvider>
         <AvatarProvider>
-          <AppNavigator />
+          {/* SLAB × the company, held over start-up until the first screen has painted */}
+          <LaunchCurtainProvider>
+            <AppNavigator />
+          </LaunchCurtainProvider>
         </AvatarProvider>
       </XpProvider>
       <StatusBar style={tenantTheme.statusBar} />
