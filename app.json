@@ -60,7 +60,7 @@
             "ios": "./assets/icon-proterra.png",
             "android": {
               "foregroundImage": "./assets/icon-proterra-foreground.png",
-              "backgroundColor": "#0d140e"
+              "backgroundColor": "#000000"
             }
           }
         ]
