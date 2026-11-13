@@ -288,6 +288,8 @@ export default function GameScreen() {
   )
 
   const { colors } = theme
+  // Behind the page and the status bar: the company's background when it runs light, else the page's black
+  const shellBg = theme.statusBar === 'dark' ? colors.background : '#0c0c0e'
 
   if (failed) {
     return (
@@ -310,7 +312,7 @@ export default function GameScreen() {
 
   if (!pageUri || !bootScript) {
     return (
-      <View style={[styles.center, { backgroundColor: '#0c0c0e' }]}>
+      <View style={[styles.center, { backgroundColor: shellBg }]}>
         <ActivityIndicator size="large" color={colors.accent} />
       </View>
     )
@@ -318,7 +320,7 @@ export default function GameScreen() {
 
   return (
     // The page draws edge to edge; keep it below the status bar
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: shellBg }]}>
       <WebView
         ref={webRef}
         source={{ uri: pageUri }}
@@ -340,8 +342,8 @@ export default function GameScreen() {
         textZoom={100}
         contentInsetAdjustmentBehavior="never"
         automaticallyAdjustContentInsets={false}
-        style={styles.web}
-        containerStyle={styles.web}
+        style={[styles.web, { backgroundColor: shellBg }]}
+        containerStyle={[styles.web, { backgroundColor: shellBg }]}
         onContentProcessDidTerminate={() => webRef.current?.reload()}
         onRenderProcessGone={() => webRef.current?.reload()}
       />

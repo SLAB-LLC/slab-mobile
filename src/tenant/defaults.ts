@@ -30,7 +30,7 @@ export const DEFAULT_TENANT_CONFIG: TenantConfig = {
       success: '#10B981',
     },
     gear: { name: null, letters: null, primary: null, dark: '#1b1b20' },
-    coach: { name: 'Marshall', avatarUrl: null },
+    coach: { name: 'Marshall', avatarUrl: null, fullName: null, spriteUrl: null },
     appStyle: 'game',
   },
   features: {
@@ -44,6 +44,7 @@ export const DEFAULT_TENANT_CONFIG: TenantConfig = {
     bookTests: true,
     rookieVet: true,
     monthlyPrize: false,
+    library: true,
     companyLessons: false,
     powerHour: { enabled: true, startHour: 20, multiplier: 2 },
     streakTiers: [

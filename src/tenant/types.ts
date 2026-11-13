@@ -59,8 +59,13 @@ export interface TenantTheme {
     /** Dark base color of branded gear */
     dark: string
   }
-  /** The AI/hype coach reps chat with */
-  coach: { name: string; avatarUrl: string | null }
+  /**
+   * The AI/hype coach reps chat with. `fullName` is shown in the chat header; `spriteUrl` is a 4x2
+   * pixel sheet on magenta (idle, blink, think A/B, four talk frames) that takes Marshall's place in
+   * the game's chat and nav. Nulls keep Marshall's. `vaultTag` gives the coach their own card in the
+   * Vault (with that line under their name), next to Marshall and Rylan; their published days fill it.
+   */
+  coach: { name: string; avatarUrl: string | null; fullName?: string | null; spriteUrl?: string | null; vaultTag?: string | null }
   /** Default app style for reps of this company; reps may switch */
   appStyle: AppStyle
 }
@@ -81,6 +86,8 @@ export interface TenantFeatures {
   bookTests: boolean
   rookieVet: boolean
   monthlyPrize: boolean
+  /** The Library tab opens; false keeps it locked ("coming soon") while the company's library is being filled */
+  library?: boolean
   /** The street runs the company's own training videos instead of the standard SLAB levels */
   companyLessons: boolean
   /** Marshall's training videos on his page in the Vault (always on for reps with no company; Ace has them as its own) */
