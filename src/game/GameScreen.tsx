@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { View, Text, StyleSheet, ActivityIndicator, Linking, TouchableOpacity } from 'react-native'
+import { View, Text, StyleSheet, Linking, TouchableOpacity } from 'react-native'
 import { WebView, WebViewMessageEvent } from 'react-native-webview'
 import type { ShouldStartLoadRequest } from 'react-native-webview/lib/WebViewTypes'
 import * as Haptics from 'expo-haptics'
@@ -22,6 +22,7 @@ import { prepareGameFiles } from './files'
 import * as owner from './owner'
 import * as notifs from '../services/notifications.service'
 import { applyAppIcon, companyIconName } from '../utils/appIcon'
+import { useLaunchCurtain } from '../launch/LaunchCurtain'
 
 /** Optional remote home for the Vault audio (ending in /); by default it plays from the copy in the app */
 const MEDIA_URL = process.env.EXPO_PUBLIC_VAULT_MEDIA_URL || null
@@ -67,6 +68,7 @@ export default function GameScreen() {
   const [dirUri, setDirUri] = useState<string | null>(null)
   const [bootScript, setBootScript] = useState<string | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
+  const curtain = useLaunchCurtain()
 
   // The page and the Vault pack ship inside the app (and with each over-the-air update)
   useEffect(() => {
@@ -102,10 +104,31 @@ export default function GameScreen() {
       .then(({ boot, videos }) => {
         videosRef.current = videos
         // </script> can't appear inside the injected JSON, so escape "<"
-        setBootScript(`window.SLAB_APP = ${JSON.stringify(boot).replace(/</g, '\\u003c')}; true;`)
+        setBootScript(`window.SLAB_APP = ${JSON.stringify({ ...boot, nativeCurtain: true }).replace(/</g, '\\u003c')}; true;`)
       })
       .catch((err) => setFailed(String(err?.message || err)))
   }, [ready, bootKey])
+
+  // SLAB × the company stays up while the page is built and loads (on launch, after signing in, and when
+  // a SLAB admin switches company); the page says when it has painted ('ready') and the curtain parts.
+  // tools/game/bridge.js skips the page's own opening when APP.nativeCurtain is set.
+  const readyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    if (bootScript || failed) return
+    if (readyTimer.current) clearTimeout(readyTimer.current)
+    readyTimer.current = null
+    curtain.hold()
+  }, [bootScript, failed])
+  useEffect(() => {
+    if (failed) curtain.release()
+  }, [failed])
+  useEffect(() => () => { if (readyTimer.current) clearTimeout(readyTimer.current) }, [])
+  const pageReady = useCallback(() => {
+    if (readyTimer.current) clearTimeout(readyTimer.current)
+    readyTimer.current = null
+    // Once the curtain starts parting the page carries on (the owner's "Where to?", onboarding)
+    curtain.release(() => webRef.current?.injectJavaScript('window.__appCurtainOpen && window.__appCurtainOpen(); true;'))
+  }, [curtain])
 
   // Leaving the game screen turns the chat mic off
   useEffect(() => () => stopListening(), [])
@@ -199,6 +222,9 @@ export default function GameScreen() {
         case 'haptic':
           HAPTICS[payload]?.().catch(() => {})
           return null
+        case 'ready':
+          pageReady()
+          return null
         case 'log':
           console.warn('[game]', payload?.where, payload?.msg, payload?.at)
           return null
@@ -255,7 +281,7 @@ export default function GameScreen() {
           throw new Error(`Unknown request: ${type}`)
       }
     },
-    [user?.id, profile, company, theme, engine, saveLook, signOut, navigation, refreshXp, refreshProfile]
+    [user?.id, profile, company, theme, engine, saveLook, signOut, navigation, refreshXp, refreshProfile, pageReady]
   )
 
   const onMessage = useCallback(
@@ -308,13 +334,8 @@ export default function GameScreen() {
     )
   }
 
-  if (!pageUri || !bootScript) {
-    return (
-      <View style={[styles.center, { backgroundColor: '#0c0c0e' }]}>
-        <ActivityIndicator size="large" color={colors.accent} />
-      </View>
-    )
-  }
+  // Building the page's start data: black under the launch curtain
+  if (!pageUri || !bootScript) return <View style={[styles.container, { backgroundColor: '#000' }]} />
 
   return (
     // The page draws edge to edge; keep it below the status bar
@@ -342,6 +363,10 @@ export default function GameScreen() {
         automaticallyAdjustContentInsets={false}
         style={styles.web}
         containerStyle={styles.web}
+        onLoadEnd={() => {
+          // The page says 'ready' once it has painted; if it never does, part the curtain anyway
+          if (!readyTimer.current) readyTimer.current = setTimeout(pageReady, 2500)
+        }}
         onContentProcessDidTerminate={() => webRef.current?.reload()}
         onRenderProcessGone={() => webRef.current?.reload()}
       />

@@ -554,6 +554,23 @@ if (APP) {
       if (/SLAB\s*[×x]\s*ACE/i.test(n.nodeValue)) n.nodeValue = n.nodeValue.replace(/SLAB\s*[×x]\s*ACE/ig, APP.brand.cobrand);
     }
   }
+  // The app holds its own SLAB × company curtain over start-up (src/launch/LaunchCurtain.tsx) and parts it
+  // once this page has painted, so the page's own opening is skipped on the first boot; what follows it
+  // (the owner's "Where to?", onboarding) waits until the curtain starts to part
+  if (APP.nativeCurtain) {
+    const pageBoot = runBoot;
+    let firstBoot = true;
+    runBoot = async function(){
+      if (!firstBoot) return pageBoot();
+      firstBoot = false;
+      $('boot').classList.remove('live');
+      let opened = false;
+      const open = () => { if (opened) return; opened = true; if (bootDone) { const f = bootDone; bootDone = null; f(); } };
+      window.__appCurtainOpen = open;
+      setTimeout(open, 15000);
+      requestAnimationFrame(() => requestAnimationFrame(() => appSend('ready')));
+    };
+  }
   document.documentElement.classList.add('in-app');
   // Ask Marshall starts fresh: the demo's sample conversation is not real
   Object.values(repsData).forEach(r => { r.conversation = [{ who:'bot', text:"Hey, what are you running into out there today?" }]; });

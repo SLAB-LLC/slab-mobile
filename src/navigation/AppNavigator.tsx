@@ -2,7 +2,6 @@ import React, { useState, useCallback, useEffect, useRef } from 'react'
 import {
   View,
   Text,
-  ActivityIndicator,
   StyleSheet,
   TouchableOpacity,
   Platform,
@@ -40,6 +39,7 @@ import NotificationSettingsScreen from '../screens/NotificationSettingsScreen'
 import TermsOfServiceScreen from '../screens/TermsOfServiceScreen'
 import LockerScreen, { RepBuilder } from '../screens/LockerScreen'
 import GameScreen from '../game/GameScreen'
+import { useLaunchCurtain } from '../launch/LaunchCurtain'
 
 // Layout
 import AppHeader from '../components/layout/AppHeader'
@@ -224,6 +224,12 @@ function AuthenticatedShell() {
     navigation.navigate(screen)
   }, [navigation])
 
+  // The native tabs paint right away; the game screen parts the launch curtain itself once its page is up
+  const curtain = useLaunchCurtain()
+  useEffect(() => {
+    if (appStyle !== 'game') curtain.release()
+  }, [appStyle])
+
   // Game-style companies get the full Lab experience (the demo, in a web view)
   if (appStyle === 'game') return <GameScreen />
 
@@ -293,21 +299,9 @@ export default function AppNavigator() {
     return () => sub.remove()
   }, [])
 
-  if (loading) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.accent} />
-      </View>
-    )
-  }
-
-  // Authenticated but still checking TOS — show spinner to avoid flash
-  if (signedIn && tosAccepted === null) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.accent} />
-      </View>
-    )
+  // Still starting up (session, then the TOS check): black under the launch curtain, no spinner
+  if (loading || (signedIn && tosAccepted === null)) {
+    return <View style={[styles.loadingContainer, { backgroundColor: '#000' }]} />
   }
 
   return (

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { View, StyleSheet, ActivityIndicator } from 'react-native'
+import { View, StyleSheet } from 'react-native'
 import { WebView, WebViewMessageEvent } from 'react-native-webview'
 import { StatusBar } from 'expo-status-bar'
 import * as Haptics from 'expo-haptics'
@@ -10,6 +10,7 @@ import { SOLO_COMPANY_SLUG } from '../tenant/defaults'
 // The old native login, if the page can't be put in place
 import LoginScreenFallback from '../screens/LoginScreen'
 import { prepareLoginPage } from './files'
+import { useLaunchCurtain } from '../launch/LaunchCurtain'
 
 const HAPTICS: Record<string, () => Promise<void>> = {
   wrong: () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error),
@@ -28,6 +29,19 @@ export default function LoginGameScreen() {
   const [page, setPage] = useState<{ pageUri: string; dirUri: string } | null>(null)
   const [failed, setFailed] = useState(false)
   const releaseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // The launch curtain (SLAB alone, signed out) parts onto the login once the page has painted
+  const curtain = useLaunchCurtain()
+  const shown = useRef(false)
+  // Under the launch curtain the page skips its own SLAB intro; after a sign-out it plays it
+  const [noIntro] = useState(() => curtain.showing())
+  const pageShown = useCallback(() => {
+    if (shown.current) return
+    shown.current = true
+    curtain.release()
+  }, [curtain])
+  useEffect(() => {
+    if (failed) pageShown()
+  }, [failed])
 
   useEffect(() => {
     prepareLoginPage().then(setPage, () => setFailed(true))
@@ -86,11 +100,14 @@ export default function LoginGameScreen() {
         case 'haptic':
           HAPTICS[payload]?.().catch(() => {})
           return null
+        case 'ready':
+          pageShown()
+          return null
         default:
           throw new Error(`Unknown request: ${type}`)
       }
     },
-    [signIn, holdEntry, release]
+    [signIn, holdEntry, release, pageShown]
   )
 
   const onMessage = useCallback(
@@ -119,7 +136,8 @@ export default function LoginGameScreen() {
           ref={webRef}
           source={{ uri: page.pageUri }}
           originWhitelist={['*']}
-          injectedJavaScriptBeforeContentLoaded={`window.SLAB_LOGIN = ${JSON.stringify({ build: otaStatus() })}; true;`}
+          // noIntro: the app's launch curtain already showed SLAB, so the page opens straight on the login
+          injectedJavaScriptBeforeContentLoaded={`window.SLAB_LOGIN = ${JSON.stringify({ build: otaStatus(), noIntro })}; true;`}
           onMessage={onMessage}
           allowFileAccess
           allowFileAccessFromFileURLs
@@ -133,14 +151,11 @@ export default function LoginGameScreen() {
           keyboardDisplayRequiresUserAction={false}
           style={styles.web}
           containerStyle={styles.web}
+          onLoadEnd={() => setTimeout(pageShown, 1500)}
           onContentProcessDidTerminate={() => webRef.current?.reload()}
           onRenderProcessGone={() => webRef.current?.reload()}
         />
-      ) : (
-        <View style={styles.center}>
-          <ActivityIndicator color="#ff8a2a" />
-        </View>
-      )}
+      ) : null}
     </View>
   )
 }
@@ -148,5 +163,4 @@ export default function LoginGameScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   web: { flex: 1, backgroundColor: '#000' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 })
