@@ -1288,18 +1288,21 @@ if (APP_COACH && APP_COACH.vaultTag) appSafe('coach frame', () => {
 });
 
 // ============ EXTRA RIDES (features.extraRides) ============
-// A company can add rides to the Segway and e-scooter. 'skateboard': a deck in the brand's colors
-// (dark deck, accent stripe, cream wheels), unlocked at 2000 XP.
-if (APP && APP.features && Array.isArray(APP.features.extraRides) && APP.features.extraRides.includes('skateboard')) appSafe('skateboard', () => {
-  const gb = (APP.brand && APP.brand.gear) || {};
-  const DECK = gb.dark || '#0b243b', STRIPE = gb.primary || APP.brand.accent || '#cb272d', GRIP = '#1b1e23';
-  const who = (gb.name && gb.name !== 'SLAB') ? gb.name + ' ' : '';
-  RIDES.skateboard = { lift:10, name:`${who}skateboard` };
+// A company can add rides to the Segway and e-scooter. 'skateboard': Ronin's deck (navy, red stripe, cream
+// wheels), unlocked at 2000 XP. Only a company with the ride can unlock and pick it, but every company's
+// app draws it, so a rep riding one shows on it everywhere: the global board, podiums, flex cards.
+appSafe('skateboard', () => {
+  const canUnlock = !!(APP && APP.features && Array.isArray(APP.features.extraRides) && APP.features.extraRides.includes('skateboard'));
+  const DECK = '#0b243b', STRIPE = '#cb272d', GRIP = '#1b1e23';
+  const NAME = 'Ronin skateboard';
+  RIDES.skateboard = { lift:10, name:NAME };
   if (!GEAR.ride.some(g => g.id === 'skateboard')) {
-    const item = { id:'skateboard', name:`${who}skateboard`, xp:2000 };
-    GEAR.ride.push(item);
-    ALL_GEAR.push({ ...item, slot:'ride' }); ALL_GEAR.sort((a, b) => a.xp - b.xp);
+    const item = { id:'skateboard', name:NAME, xp:2000 };
+    GEAR.ride.push(item);                          // so other reps' cards can name it
     RARITY.skateboard = 4;
+    if (canUnlock) { ALL_GEAR.push({ ...item, slot:'ride' }); ALL_GEAR.sort((a, b) => a.xp - b.xp); }
+    // everywhere else it isn't in the locker
+    else document.head.insertAdjacentHTML('beforeend', '<style>.cr-tile[data-v="skateboard"]{ display:none; }</style>');
   }
   const basePaint = paintRide;
   paintRide = function(g, kind, ox, oy, frame){
