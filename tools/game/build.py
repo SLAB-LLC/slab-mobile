@@ -393,7 +393,7 @@ def main(src):
     # ---- boot: the app already signed them in ----
     html = rep(html, "  if (bootAuth.get()) { await btCompany(); return; }",
                "  if (APP) {\n"
-               "    if (APP.brand && APP.brand.isAce) { await btCompany(); return; }\n"
+               "    if (APP.brand && (APP.brand.isAce || APP.brand.splash)) { await btCompany(); return; }\n"
                "    // SLAB's own reps open on the website's intro: the logo glitches in, then the screen slides up\n"
                "    if (APP.me && APP.me.solo) {\n"
                "      const img = intro.querySelector('img'), tag = intro.querySelector('.bt-tag');\n"

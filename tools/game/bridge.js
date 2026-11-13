@@ -479,6 +479,12 @@ if (APP) {
       if (APP.brand && APP.brand.logoUrl) img.src = APP.brand.logoUrl;
       else { img.remove(); document.querySelectorAll('.topbar .brand .x').forEach(x => x.remove()); }
     });
+    // A company with its own co-brand and logo (APP.brand.splash) also opens on SLAB × their logo,
+    // with their name under it, the way Ace reps open on SLAB × Ace
+    if (APP.brand && APP.brand.splash && APP.brand.logoUrl) {
+      document.querySelectorAll('#bt-co img[data-img="ace"]').forEach(img => { img.src = APP.brand.logoUrl; });
+      document.querySelectorAll('#bt-co .bt-tag').forEach(t => { t.textContent = String(APP.brand.splash).toUpperCase(); });
+    }
     ACE.splice(0, ACE.length);
     const gearName = (APP.brand && APP.brand.gear && APP.brand.gear.name) || APP.brand.cobrand || 'Team';
     const rename = (g) => { g.name = g.name.replace(/\bAce\b/, gearName); };

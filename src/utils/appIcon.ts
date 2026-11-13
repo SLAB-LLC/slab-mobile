@@ -8,7 +8,7 @@ import type { TenantFeatures } from '../tenant'
  * inside the app (app.json, expo-alternate-app-icons), so a new company's icon needs a new build.
  * Phones on an older build don't have the native module and simply keep the SLAB icon.
  */
-const BUNDLED = ['Ace']
+const BUNDLED = ['Ace', 'Proterra']
 
 type IconModule = {
   supportsAlternateIcons: boolean
@@ -20,7 +20,10 @@ const Icons = requireOptionalNativeModule<IconModule>('ExpoAlternateAppIcons')
 export function companyIconName(company: Company | null, features: TenantFeatures): string | null {
   const named = (features as { appIcon?: string | null }).appIcon
   if (named) return BUNDLED.includes(named) ? named : null
-  return company && (/^ace/i.test(company.slug || '') || /^ace/i.test(company.name || '')) ? 'Ace' : null
+  if (!company) return null
+  if (/^ace/i.test(company.slug || '') || /^ace/i.test(company.name || '')) return 'Ace'
+  if (/^pro\s*terra/i.test(company.slug || '') || /^pro\s*terra/i.test(company.name || '')) return 'Proterra'
+  return null
 }
 
 export async function applyAppIcon(name: string | null): Promise<void> {
