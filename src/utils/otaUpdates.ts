@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { AppState } from 'react-native'
 import * as Updates from 'expo-updates'
+import { iconStatus } from './appIcon'
 
 /** What the last update check did, shown with the build code so a tester can tell why an update didn't land */
 let lastStatus = 'not checked'
@@ -9,6 +10,8 @@ export function otaStatus(): string {
   const parts = [id, Updates.channel || 'no channel', Updates.runtimeVersion || 'no runtime']
   if (!Updates.isEnabled) parts.push('updates off')
   parts.push(lastStatus)
+  const icon = iconStatus()
+  if (icon) parts.push(icon)
   return parts.join(' · ')
 }
 
