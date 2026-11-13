@@ -9979,8 +9979,8 @@ async function appFillLines(rid){
 
 // ============ THE COMPANY'S OWN COACH ============
 // A company with its own coach sheet (APP.brand.coach.sprite, build.py puts it in Marshall's slot) gets
-// that coach's name everywhere the chat is named. Marshall keeps his page in the Vault, so the coach no
-// longer climbs out of the nav onto Marshall's card there.
+// that coach's name everywhere the chat is named. Marshall keeps his page in the Vault; with a Vault card
+// of their own the coach climbs out of the nav onto that card instead of Marshall's.
 const coachName = () => (APP && APP.brand && APP.brand.coach && APP.brand.coach.name) || 'Marshall';
 if (APP_COACH) appSafe('coach', () => {
   const nm = APP_COACH.name || 'Coach', full = APP_COACH.fullName || nm;
@@ -10024,10 +10024,23 @@ if (APP_COACH && APP_COACH.vaultTag) appSafe('coach vault card', () => {
   const baseRender = vxRenderDays;
   vxRenderDays = function(){
     baseRender();
+    // the coach (not Marshall) climbs out of the nav onto their own card while the Days list is open
+    document.querySelectorAll('#vx-days canvas.vx-face.rise').forEach(cv => cv.classList.remove('rise'));
+    const face = document.querySelector(`#vx-days .vx-rc[data-rep="${cid}"] canvas.vx-face`); if (face) face.classList.add('rise');
     if (vxRepOpen || vxDaysOf(cid).length) return;
     const card = document.querySelector(`#vx-days .vx-rc[data-rep="${cid}"]`); if (!card) return;
     const sm = card.querySelector('small'); if (sm) sm.textContent = 'Days coming soon';
     card.onclick = () => { haptic('tap'); showToast(`${APP_COACH.name}’s recorded days are on the way`, 'ph-headphones'); };
+  };
+  const headOut = () => vxOnPage() && vxUnlocked() && vxView === 'days' && !vxDoorCovering() && (!vxRepOpen || vxRepOpen === cid) && !($('vx-pl') && $('vx-pl').classList.contains('on'));
+  vxHeadSync = function(){
+    const e = navHead.el, want = $('phone').classList.contains('chat-open') || headOut();
+    if (want === e.classList.contains('away')) return;
+    e.classList.toggle('away', want);
+    if (want) { navHead.clear(); document.querySelectorAll('canvas.vx-face.rise').forEach(cv => { cv.classList.remove('rise'); void cv.offsetWidth; cv.classList.add('rise'); }); return; }
+    e.classList.remove('back'); void e.offsetWidth; e.classList.add('back');
+    setTimeout(() => e.classList.remove('back'), 700);
+    if (avatarFrames.marshall && !reduceMotion) { navHead.draw(0); navHead.later(() => navHead.idle(), 450); }
   };
 });
 
