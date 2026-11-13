@@ -1476,7 +1476,8 @@ if (typeof RIDES !== 'undefined' && RIDES.skateboard) appSafe('skate tricks', ()
 });
 
 // ============ SKATEBOARD TRICKS ON THE PODIUM ============
-// A podium rep on the skateboard stands on it side-on, facing the middle, and every 5 seconds throws a trick:
+// A podium rep on the skateboard stands on it like a skater (facing us, board sideways, nose toward the
+// middle) and every 5 seconds throws a trick:
 // ollie, kickflip, heelflip, 360 or tre flip. Big on purpose (Ronin was a sponsored skater): a deep crouch
 // to load up, high air, the board flipping and spinning, a squash and a dust puff on landing, and the
 // trick's name popping above. The canvas gets extra headroom above the podium for the air.
@@ -1550,12 +1551,13 @@ if (typeof RIDES !== 'undefined' && RIDES.skateboard) appSafe('podium tricks', (
       og.rotate(b.rot || 0); og.scale(clampS(b.sx), clampS(b.sy));
       og.drawImage(brd, -24, -9);
       og.restore();
-      // rider: in a 360 they spin all the way round (side, front, side the other way, back, side)
-      let pose = 'side-0', mirror = false;
+      // rider: a real skate stance, body facing us with the board sideways under their feet;
+      // in a 360 they spin all the way round (front, side, back, the other side, front)
+      let pose = 'down-0', mirror = false;
       if (trick.spin && q >= 0) {
         const k = Math.floor(Math.min(0.999, q) * 5);
-        pose = ['side-0', 'down-0', 'side-0', 'up-0', 'side-0'][k]; mirror = k === 2;
-      } else if (q >= 0) pose = 'side-1';                 // legs tucked apart in the air
+        pose = ['down-0', 'side-0', 'up-0', 'side-0', 'down-0'][k]; mirror = k === 3;
+      }
       const spr = spriteCanvas(look, pose, 'happy');
       const ry = GROUND - 49 - LIFT + Math.round(crouch + land - jump);
       og.save();
