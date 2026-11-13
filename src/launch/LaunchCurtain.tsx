@@ -45,6 +45,10 @@ export interface LaunchBrand {
   logoSrc: string | null
 }
 
+/** Same company look (the logo may be a phone copy in one and a web address in the other) */
+const sameBrand = (a: LaunchBrand, b: LaunchBrand) =>
+  a.kind === b.kind && a.name === b.name && a.box === b.box && a.accent === b.accent && a.logoSrc === b.logoSrc
+
 const NEUTRAL: LaunchBrand = { kind: 'slab', name: null, box: ORANGE, accent: ORANGE, logo: null, logoSrc: null }
 
 const HEX = /^#?[0-9a-f]{6}$/i
@@ -181,13 +185,16 @@ export function LaunchCurtainProvider({ children }: { children: React.ReactNode 
     const t = setTimeout(() => setWaited(true), BRAND_WAIT_MS)
     return () => clearTimeout(t)
   }, [phase, holdId])
+  // While it still holds, a different live brand replaces what's showing: a SLAB admin switching
+  // company starts the hold before the new company has loaded, and the cache can be another company's
   useEffect(() => {
-    if (phase !== 'hold' || brand) return
+    if (phase !== 'hold') return
     if (live) {
+      if (brand && (sameBrand(brand, live) || releaseWanted.current)) return
       // A cached copy of the same company draws its logo from the phone, not the network
-      const sameCo = cached && cached.kind === live.kind && cached.name === live.name && cached.logoSrc === live.logoSrc
-      setBrand(sameCo ? cached! : live)
-    } else if (cached) setBrand(cached)
+      setBrand(cached && sameBrand(cached, live) ? cached : live)
+    } else if (brand) return
+    else if (cached) setBrand(cached)
     else if (cached === null && waited) setBrand(NEUTRAL)
   }, [phase, brand, live, cached, waited])
 
