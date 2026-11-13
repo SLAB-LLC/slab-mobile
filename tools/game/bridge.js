@@ -1474,3 +1474,130 @@ if (typeof RIDES !== 'undefined' && RIDES.skateboard) appSafe('skate tricks', ()
     if (street.rideEl) street.rideEl.classList.remove('on');
   };
 });
+
+// ============ SKATEBOARD TRICKS ON THE PODIUM ============
+// A podium rep on the skateboard stands on it side-on, facing the middle, and every 5 seconds throws a trick:
+// ollie, kickflip, heelflip, 360 or tre flip. Big on purpose (Ronin was a sponsored skater): a deep crouch
+// to load up, high air, the board flipping and spinning, a squash and a dust puff on landing, and the
+// trick's name popping above. The canvas gets extra headroom above the podium for the air.
+if (typeof RIDES !== 'undefined' && RIDES.skateboard) appSafe('podium tricks', () => {
+  const W = 72, H = 102, GROUND = 100, LIFT = RIDES.skateboard.lift;   // 34px of headroom over the usual 68 for big air and the trick name
+  const CYCLE = 5000, TRICK_MS = 1500;
+  const TRICKS = [
+    { name:'OLLIE',    jump:22, board:(q) => ({ rot:-0.55 * Math.max(0, 1 - q / 0.35) + 0.1 * Math.max(0, (q - 0.75) / 0.25), sx:1, sy:1 }) },
+    { name:'KICKFLIP', jump:23, board:(q) => ({ rot:-0.18 * Math.sin(Math.PI * q), sx:1, sy:Math.cos(2 * Math.PI * Math.min(1, q / 0.78)) }) },
+    { name:'HEELFLIP', jump:23, board:(q) => ({ rot:0.18 * Math.sin(Math.PI * q), sx:1, sy:Math.cos(2 * Math.PI * Math.min(1, q / 0.78)), dx:3 * Math.sin(Math.PI * q) }) },
+    { name:'360',      jump:25, spin:true, board:(q) => ({ rot:0, sx:Math.cos(2 * Math.PI * Math.min(1, q / 0.85)), sy:1 }) },
+    { name:'TRE FLIP', jump:26, board:(q) => { const s = Math.min(1, q / 0.8); return { rot:-0.1 * Math.sin(Math.PI * q), sx:Math.cos(2 * Math.PI * s), sy:Math.cos(2 * Math.PI * s) }; } },
+  ];
+  const off = document.createElement('canvas'); off.width = W; off.height = H;
+  const og = off.getContext('2d'); og.imageSmoothingEnabled = false;
+  const brd = document.createElement('canvas'); brd.width = 48; brd.height = 16;
+  const bgc = brd.getContext('2d');
+  const accent = (APP && APP.brand && APP.brand.accent) || '#cb272d';
+  const clampS = (v) => Math.abs(v) < 0.14 ? (v < 0 ? -0.14 : 0.14) : v;
+
+  const isSkater = (canvas, look) => canvas && canvas.classList && canvas.classList.contains('pd-rep') && look && look.ride === 'skateboard';
+
+  function mountSkate(canvas, lookFn){
+    if (canvas.dataset.skate) return;
+    canvas.dataset.skate = '1';
+    // headroom for the air: taller canvas, pulled up by the same amount so the podium below doesn't move
+    canvas.width = W * 2; canvas.height = H * 2;
+    canvas.style.aspectRatio = `${W * 2}/${H * 2}`;
+    canvas.style.marginTop = `-${((H - 68) * 2 / (W * 2) * 100).toFixed(2)}%`;
+    const rank = +canvas.dataset.rank || 1;
+    const faceLeft = rank === 3;                     // second place stands on the left and faces in, third on the right
+    const t0 = performance.now() - (rank === 1 ? 900 : rank === 2 ? 2600 : 4200);   // podium reps don't all go at once
+    let cycleNo = -1, trick = TRICKS[0], lastPick = -1;
+    const g = canvas.getContext('2d');
+
+    // at: a moment in the cycle to draw (for checking a trick frame by frame); the live loop passes nothing
+    const frame = (at, pick) => {
+      if (!document.contains(canvas)) { clearInterval(id); return; }
+      const look = lookFn();
+      if (!look || look.ride !== 'skateboard') { clearInterval(id); delete canvas.dataset.skate; return; }
+      const el = at != null ? at : performance.now() - t0, n = Math.floor(el / CYCLE), ph = el % CYCLE;
+      if (pick != null) trick = TRICKS[pick];
+      else if (n !== cycleNo) {
+        cycleNo = n;
+        let k = Math.floor(Math.random() * TRICKS.length); if (k === lastPick) k = (k + 1) % TRICKS.length;
+        lastPick = k; trick = TRICKS[k];
+      }
+      const start = CYCLE - TRICK_MS, p = (!reduceMotion && ph >= start) ? (ph - start) / TRICK_MS : -1;
+
+      // timing: load up (crouch), air, land (squash)
+      let crouch = 0, jump = 0, boardUp = 0, land = 0, q = -1;
+      if (p >= 0) {
+        if (p < 0.16) crouch = Math.sin((p / 0.16) * Math.PI / 2) * 4;
+        else if (p < 0.84) { q = (p - 0.16) / 0.68; jump = Math.sin(Math.PI * q) * trick.jump; boardUp = jump - Math.sin(Math.PI * q) * 3; }
+        else land = Math.sin(((p - 0.84) / 0.16) * Math.PI) * 4;
+      } else {
+        crouch = Math.floor(ph / 600) % 2 ? 1 : 0;   // a little bounce while they wait
+      }
+
+      og.clearRect(0, 0, W, H);
+      og.save();
+      if (faceLeft) { og.translate(W, 0); og.scale(-1, 1); }
+      // shadow on the ground, shrinking as they go up
+      const sh = Math.max(4, 14 - jump * 0.35);
+      og.fillStyle = 'rgba(0,0,0,0.18)'; og.fillRect(Math.round(W / 2 - sh), GROUND - 1, Math.round(sh * 2), 2);
+      // board
+      const b = q >= 0 ? trick.board(q) : (p >= 0 && p < 0.16 ? { rot:0, sx:1, sy:1 } : { rot:0, sx:1, sy:1 });
+      bgc.clearRect(0, 0, 48, 16); paintRide(bgc, 'skateboard', 24, 15, Math.floor(ph / 120));
+      og.save();
+      og.translate(W / 2 + (b.dx || 0), GROUND - 6 - Math.round(boardUp));
+      og.rotate(b.rot || 0); og.scale(clampS(b.sx), clampS(b.sy));
+      og.drawImage(brd, -24, -9);
+      og.restore();
+      // rider: in a 360 they spin all the way round (side, front, side the other way, back, side)
+      let pose = 'side-0', mirror = false;
+      if (trick.spin && q >= 0) {
+        const k = Math.floor(Math.min(0.999, q) * 5);
+        pose = ['side-0', 'down-0', 'side-0', 'up-0', 'side-0'][k]; mirror = k === 2;
+      } else if (q >= 0) pose = 'side-1';                 // legs tucked apart in the air
+      const spr = spriteCanvas(look, pose, 'happy');
+      const ry = GROUND - 49 - LIFT + Math.round(crouch + land - jump);
+      og.save();
+      if (mirror) { og.translate(W, 0); og.scale(-1, 1); }
+      og.drawImage(spr, W / 2 - 18, ry);
+      og.restore();
+      // dust kicked up on landing
+      if (p >= 0.84) {
+        const s = (p - 0.84) / 0.16, spread = 6 + s * 12;
+        og.fillStyle = `rgba(200,196,186,${(1 - s).toFixed(2)})`;
+        [[-1, 0], [-0.7, -2], [-0.4, -1], [0.4, -1], [0.7, -2], [1, 0]].forEach(([dx, dy]) => og.fillRect(Math.round(W / 2 + dx * spread), GROUND - 3 + Math.round(dy * (1 + s * 2)), 2, 2));
+      }
+      og.restore();
+
+      g.clearRect(0, 0, canvas.width, canvas.height); g.imageSmoothingEnabled = false;
+      g.drawImage(off, 0, 0, canvas.width, canvas.height);
+      // the trick's name pops above them
+      if (p >= 0.16) {
+        const s = Math.min(1, (p - 0.16) / 0.12), a = p > 0.88 ? Math.max(0, 1 - (p - 0.88) / 0.12) : 1;
+        g.save();
+        g.globalAlpha = a;
+        g.font = `${Math.round(11 + 3 * s)}px 'Press Start 2P', monospace`;
+        g.textAlign = 'center'; g.textBaseline = 'top';
+        const ty = 4 + Math.round((1 - s) * 6);
+        g.lineWidth = 4; g.strokeStyle = '#ffffff'; g.strokeText(trick.name + '!', canvas.width / 2, ty);
+        g.fillStyle = accent; g.fillText(trick.name + '!', canvas.width / 2, ty);
+        g.restore();
+      }
+    };
+    frame();
+    const id = setInterval(() => frame(), 40);
+    canvas.skateFrame = frame;
+  }
+
+  const baseLive = liveSprite;
+  liveSprite = function(canvas, lookFn, opts){
+    if (isSkater(canvas, lookFn())) { mountSkate(canvas, lookFn); return { canvas, look:lookFn, opts:opts || {} }; }
+    return baseLive(canvas, lookFn, opts);
+  };
+  const baseLeader = mountLeaderPrize;
+  mountLeaderPrize = function(canvas, look){
+    if (isSkater(canvas, look)) { mountSkate(canvas, () => look); return; }
+    return baseLeader(canvas, look);
+  };
+});
