@@ -1,4 +1,4 @@
-import { Platform } from 'react-native'
+import { AppState, Platform } from 'react-native'
 import { requireOptionalNativeModule } from 'expo'
 import type { Company } from '../types'
 import type { TenantFeatures } from '../tenant'
@@ -26,13 +26,34 @@ export function companyIconName(company: Company | null, features: TenantFeature
   return null
 }
 
+let wanted: string | null | undefined
+let retryHooked = false
+
+async function setIcon(name: string | null): Promise<boolean> {
+  try {
+    if (Icons!.getAppIconName() !== name) await Icons!.setAlternateAppIcon(name)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Puts the company's icon on the home screen. If this build doesn't have that icon (a company added
+ * after the build), it falls back to the SLAB icon rather than leaving another company's icon up.
+ * iOS refuses while the app is in the background or busy, so a failed change is tried again the next
+ * time the app comes to the front.
+ */
 export async function applyAppIcon(name: string | null): Promise<void> {
   // Android swaps launcher aliases, which can close the app; it keeps the default for now
   if (Platform.OS !== 'ios' || !Icons?.supportsAlternateIcons) return
-  try {
-    if (Icons.getAppIconName() === name) return
-    await Icons.setAlternateAppIcon(name)
-  } catch {
-    // iOS refuses while the app is in the background; it tries again next launch
+  wanted = name
+  if (!retryHooked) {
+    retryHooked = true
+    AppState.addEventListener('change', (state) => {
+      if (state === 'active' && wanted !== undefined) setTimeout(() => applyAppIcon(wanted ?? null), 800)
+    })
   }
+  if (await setIcon(name)) return
+  if (name !== null && wanted === name) await setIcon(null)
 }
