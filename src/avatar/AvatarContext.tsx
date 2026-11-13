@@ -20,6 +20,9 @@ const cacheKey = (userId: string) => `slab.repLook.${userId}`
 /** Limited holiday hats and outfits (drawn by the game page, tools/game/seasons.js) */
 const LIMITED_IDS = ['pilgrim', 'fallflannel', 'hanukkahbeanie', 'israel', 'santa', 'ugly', 'boppers', 'heart', 'leprechaun', 'shamrock', 'bunny', 'spring', 'unclesam', 'starsstripes', 'witch', 'skeleton']
 
+/** Rides a company can add (features.extraRides), drawn by the game page; the native sprite shows them on foot */
+const EXTRA_RIDE_IDS = ['skateboard']
+
 /** Fills gaps and drops ids this engine doesn't know, so an old look always draws */
 export function normalizeLook(engine: SpriteEngine, saved: Partial<RepLook> | null | undefined): RepLook {
   const d = engine.DEFAULT_LOOK
@@ -41,7 +44,7 @@ export function normalizeLook(engine: SpriteEngine, saved: Partial<RepLook> | nu
     pants: inList(s.pants, engine.GEAR.pants, d.pants),
     shoes: inList(s.shoes, engine.GEAR.shoes, d.shoes),
     extra: inList(s.extra, engine.GEAR.extra, d.extra),
-    ride: inList(s.ride, engine.GEAR.ride, d.ride),
+    ride: typeof s.ride === 'string' && EXTRA_RIDE_IDS.includes(s.ride) ? s.ride : inList(s.ride, engine.GEAR.ride, d.ride),
     ...(s.eyeStyle ? { eyeStyle: s.eyeStyle } : {}),
     ...(typeof s.shout === 'string' ? { shout: s.shout.trim().slice(0, 60) } : {}),
     ...(limited ? { limited } : {}),

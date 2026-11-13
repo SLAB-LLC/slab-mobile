@@ -1067,7 +1067,11 @@ if (APP_COACH && APP_COACH.vaultTag) appSafe('coach vault card', () => {
 // A wide wordmark (rather than a square badge) gets room on the opening splash next to SLAB
 if (APP && APP.brand && APP.brand.splash && APP.brand.logoUrl) appSafe('splash logo', () => {
   document.querySelectorAll('#bt-co .bt-logos img:last-child').forEach(img => {
-    const fit = () => { if (img.naturalWidth > img.naturalHeight * 2) img.style.width = '132px'; };
+    const fit = () => {
+      if (img.naturalWidth <= img.naturalHeight * 2) return;
+      img.style.width = '168px';
+      const slab = img.parentNode && img.parentNode.querySelector('img:first-child'); if (slab && slab !== img) slab.style.width = '112px';
+    };
     if (img.complete && img.naturalWidth) fit(); else img.addEventListener('load', fit, { once:true });
   });
 });

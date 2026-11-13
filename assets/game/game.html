@@ -9036,8 +9036,8 @@ vxAu.addEventListener('pause', () => { if (vxMode === 'day' && vxOnPage() && !($
 function initRep(){
   if (!ME.level) ME.level = 'rookie';
   applyLevel();
-  if (ME.look && ME.look.ride === 'scooter' && currentXP < 1500) { ME.look.ride = currentXP >= 500 ? 'segway' : 'none'; saveMe(); }
-  if (ME.look && ME.look.ride === 'segway' && currentXP < 500) { ME.look.ride = 'none'; saveMe(); }
+  if (ME.look && ME.look.ride === 'scooter' && gearXP() < 1500) { ME.look.ride = gearXP() >= 500 ? 'segway' : 'none'; saveMe(); }
+  if (ME.look && ME.look.ride === 'segway' && gearXP() < 500) { ME.look.ride = 'none'; saveMe(); }
   applyMe();
   powerTick();
   setInterval(powerTick, 1000);
@@ -10142,7 +10142,11 @@ if (APP_COACH && APP_COACH.vaultTag) appSafe('coach vault card', () => {
 // A wide wordmark (rather than a square badge) gets room on the opening splash next to SLAB
 if (APP && APP.brand && APP.brand.splash && APP.brand.logoUrl) appSafe('splash logo', () => {
   document.querySelectorAll('#bt-co .bt-logos img:last-child').forEach(img => {
-    const fit = () => { if (img.naturalWidth > img.naturalHeight * 2) img.style.width = '132px'; };
+    const fit = () => {
+      if (img.naturalWidth <= img.naturalHeight * 2) return;
+      img.style.width = '168px';
+      const slab = img.parentNode && img.parentNode.querySelector('img:first-child'); if (slab && slab !== img) slab.style.width = '112px';
+    };
     if (img.complete && img.naturalWidth) fit(); else img.addEventListener('load', fit, { once:true });
   });
 });
