@@ -9724,9 +9724,9 @@ if (APP) {
   };
 }
 
-// A rep gets 30 seconds to answer the boss, like a real door. When time runs out whatever is typed
+// A rep gets 50 seconds to answer the boss (was 30; Alston added 20 on 2026-11-13). When time runs out whatever is typed
 // goes in; with nothing typed the round counts as a miss.
-const REPLY_SECONDS = 30;
+const REPLY_SECONDS = 50;
 if (APP) {
   const baseRoundAI = nextRoundAI;
   nextRoundAI = async function(){
@@ -10198,6 +10198,8 @@ if (APP && APP.brand && APP.brand.light) appSafe('light theme', () => {
     html.light .grain-overlay{ mix-blend-mode:multiply; opacity:0.035; }
     html.light .bt-intro, html.light .bt-half{ background:${bg}; }
     html.light .vx-best span{ color:${ink}; text-shadow:2px 2px 0 ${mixC(W, acc, 0.3)}; }
+    /* the boss fight stays a dark scene: its text keeps the dark theme's light colors, not the page ink */
+    html.light #fight-view{ --bg:#0c0c0e; --surface:#161618; --surface-2:#1f1f22; --border:#2b2a27; --hairline:#211f1c; --text:#f2f0e9; --text-dim:#b9b3a6; --amber-dim:#2e2614; --amber-soft:#f3d48a; --green-dim:#173325; color:#f2f0e9; }
   `;
   document.head.appendChild(st);
   // The app's own screens draw some greys straight into their styles. In those rules every neutral color
