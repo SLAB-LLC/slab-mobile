@@ -136,7 +136,7 @@ export default function GameScreen() {
   // The home screen icon follows the company (Ace gets the gold Ace logo)
   useEffect(() => {
     if (tenantReady) applyAppIcon(companyIconName(company, features))
-  }, [tenantReady, company?.id])
+  }, [tenantReady, company?.id, (features as { appIcon?: string | null }).appIcon])
 
   // Keep the build line under Sign out current while update checks run
   useEffect(() => {
