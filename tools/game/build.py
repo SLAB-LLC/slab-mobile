@@ -297,6 +297,13 @@ def slab_default_tee(html):
     return rep(html, me, "if (APP && SLAB_PACK && ME.look.top === 'tee') { ME.look.top = 'logotee'; setTimeout(saveMe, 1500); }\n" + me)
 
 
+def lighter_lab(html):
+    """Duncan 2026-11-13: the Lab's grass a bit lighter for everyone; walkway, season tints and fall
+    leaves stay as they are"""
+    return rep(html, "lawnA:hex('#141917'), lawnB:hex('#171d1a'), lawnSpeck:hex('#1f2622'), lawnDark:hex('#0f1311'),",
+               "lawnA:hex('#2a3530'), lawnB:hex('#2f3b35'), lawnSpeck:hex('#3a4740'), lawnDark:hex('#212a25'),")
+
+
 def main(src):
     html = open(src, encoding='utf-8').read()
 
@@ -597,6 +604,7 @@ appSafe('rep', initRep);
     html = podium_edit(html)
     html = holiday_locker(html)
     html = road_room(html)
+    html = lighter_lab(html)
     html = reels_no_fake(html)
 
     # ---- the bridge itself, just before start-up runs ----
