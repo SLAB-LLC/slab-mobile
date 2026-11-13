@@ -1379,3 +1379,98 @@ if (APP && APP.brand && APP.brand.light) appSafe('sold signs', () => {
   const baseRender = renderStreet;
   renderStreet = function(){ baseRender.apply(this, arguments); try { plant(); } catch (e) {} };
 });
+
+// ============ SKATEBOARD: PUSHING AND KICKFLIPS ============
+// On the skateboard the rep rides like a skater: a couple of pushes off the ground, then a glide, over and
+// over, and one kickflip halfway along each stretch between houses (the rep pops up, the board spins a full
+// flip under their feet, they land it). Everything else on the street draws as before.
+if (typeof RIDES !== 'undefined' && RIDES.skateboard) appSafe('skate tricks', () => {
+  const SK = { odo:0, lx:null, ly:null, trick:null, done:new Set() };
+  const PUSH_EVERY = 96, TRICK_LEN = 52, JUMP = 15;
+  const board = document.createElement('canvas'); board.width = 48; board.height = 16;
+  const bg = board.getContext('2d');
+  const legLen = () => Math.hypot(street.L, street.L / 2);
+  // the sprite's lowest drawn row (the soles), cached per sprite canvas
+  const feetCache = new WeakMap();
+  const feetRow = (c) => {
+    if (feetCache.has(c)) return feetCache.get(c);
+    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    let y = c.height - 1;
+    for (; y > 0; y--) { let any = false; for (let x = 0; x < c.width; x++) if (d[(y * c.width + x) * 4 + 3] > 0) { any = true; break; } if (any) break; }
+    feetCache.set(c, y); return y;
+  };
+  // the stretch you're on: the two bends you're between, and how far you are from the nearer one
+  const where = (x, y) => {
+    let a = -1, b = -1, da = Infinity, db = Infinity;
+    street.verts.forEach((q, i) => {
+      const p = isoPt(q.u, q.v), d = Math.hypot(p.x - x, p.y - y);
+      if (d < da) { b = a; db = da; a = i; da = d; } else if (d < db) { b = i; db = d; }
+    });
+    return { leg:Math.min(a, b), near:da };
+  };
+  const baseDrawMe = drawMe;
+  drawMe = function(bob){
+    const m = street.me, el = street.el;
+    if (!(m && m.mounted && ME.look && ME.look.ride === 'skateboard') || !el) {
+      SK.lx = null; SK.trick = null; SK.done.clear();
+      if (el) el.style.transform = el.style.transform.replace(/ translateY\([^)]*\)$/, '');
+      return baseDrawMe(bob);
+    }
+    // how far the board has rolled
+    if (SK.lx != null) SK.odo += Math.hypot(m.x - SK.lx, m.y - SK.ly);
+    SK.lx = m.x; SK.ly = m.y;
+
+    // kickflip once per stretch, as you pass its middle
+    if (!SK.trick && !reduceMotion && street.verts.length > 1) {
+      const w = where(m.x, m.y);
+      if (w.leg >= 0 && w.near > legLen() * 0.4 && !SK.done.has(w.leg)) { SK.done.add(w.leg); SK.trick = { start:SK.odo }; haptic('tap'); }
+    }
+    let p = -1;
+    if (SK.trick) { p = (SK.odo - SK.trick.start) / TRICK_LEN; if (p >= 1) { SK.trick = null; p = -1; haptic('tap'); } }
+
+    // pose: in the air they stand tall over the board; on the ground two pushes (one leg back), then a glide
+    let jump = 0, flipY = 1, boardLag = 0, push = 0;
+    if (p >= 0) {
+      jump = Math.round(Math.sin(Math.PI * p) * JUMP);
+      const spin = Math.min(1, p / 0.8);                         // the board finishes its flip just before landing
+      flipY = Math.cos(2 * Math.PI * spin);
+      boardLag = Math.round(Math.sin(Math.PI * p) * 3);          // the board hangs a little below their feet
+    } else {
+      // two pushes (the back foot reaches down to the street and sweeps back), then a glide
+      const c = SK.odo % PUSH_EVERY;
+      if (c < 22) push = Math.sin(Math.PI * c / 22); else if (c < 44) push = Math.sin(Math.PI * (c - 22) / 22);
+    }
+
+    const g = street.meCanvas.getContext('2d');
+    g.clearRect(0, 0, RIDER_W, RIDER_H); g.imageSmoothingEnabled = false;
+    g.save(); if (m.flip) { g.translate(RIDER_W, 0); g.scale(-1, 1); }
+    const lift = RIDES.skateboard.lift;
+    // the board, flipping end over end around its length
+    bg.clearRect(0, 0, 48, 16); paintRide(bg, 'skateboard', 24, 15, m.frame || 0);
+    g.save();
+    g.translate(RIDER_OX, RIDER_OY - 9 + boardLag);
+    g.scale(1, Math.abs(flipY) < 0.18 ? (flipY < 0 ? -0.18 : 0.18) : flipY);
+    g.drawImage(board, -24, -6);
+    g.restore();
+    // the rep on top; while pushing, a copy of their legs slants back and down to the street (the pushing leg)
+    const spr = spriteCanvas(ME.look, 'side-0', 'happy'), sy = RIDER_OY - 49 - lift + (bob || 0);
+    if (push > 0.05) {
+      // the legs from the hip down, stretched to reach the street and slanted back from the hip
+      const feet = feetRow(spr), top = feet - 11, h = feet - top + 1, H = h + Math.round((lift + 1) * push);
+      g.save();
+      g.translate(24, sy + top);
+      g.transform(1, 0, -(9 * push) / H, 1, 0, 0);
+      g.drawImage(spr, 0, top, SPR_W, h, 0, 0, SPR_W, H);
+      g.restore();
+    }
+    g.drawImage(spr, 24, sy);
+    g.restore();
+
+    // the whole rider (rep and board) rises off the ground for the trick
+    const base = el.style.transform.replace(/ translateY\([^)]*\)$/, '');
+    el.style.transform = jump ? `${base} translateY(${-Math.round(jump * street.S)}px)` : base;
+    $('st-bubble').style.bottom = Math.round((RIDER_H - (RIDER_OY - 49 - lift)) * street.S) + 'px';
+    el.classList.add('riding');
+    if (street.rideEl) street.rideEl.classList.remove('on');
+  };
+});
