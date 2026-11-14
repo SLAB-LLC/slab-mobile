@@ -65,7 +65,14 @@ export interface TenantTheme {
    * the game's chat and nav. Nulls keep Marshall's. `vaultTag` gives the coach their own card in the
    * Vault (with that line under their name), next to Marshall and Rylan; their published days fill it.
    */
-  coach: { name: string; avatarUrl: string | null; fullName?: string | null; spriteUrl?: string | null; vaultTag?: string | null }
+  coach: { name: string; avatarUrl: string | null; fullName?: string | null; spriteUrl?: string | null; vaultTag?: string | null; vaultFirst?: boolean }
+  /**
+   * More top reps with their own Vault card after Marshall and Rylan (e.g. Ronin in Cade's app): a 4x2
+   * sheet like the coach's and the line under their name. Their published days fill the card.
+   */
+  vaultGuests?: { name: string; tag?: string | null; spriteUrl: string }[]
+  /** A green street sign at the top of the Lab's street (e.g. Sunderland Ln crossing Slab Ave) */
+  streetSign?: { street: string; cross: string } | null
   /** Default app style for reps of this company; reps may switch */
   appStyle: AppStyle
 }
@@ -90,6 +97,8 @@ export interface TenantFeatures {
   library?: boolean
   /** Extra rides this company's reps can unlock with XP, on top of the Segway and e-scooter (e.g. ['skateboard']) */
   extraRides?: string[]
+  /** Extra gear this company's reps get free in the locker (e.g. ['tux', 'pencap'] for Cade) */
+  extraGear?: string[]
   /** The street runs the company's own training videos instead of the standard SLAB levels */
   companyLessons: boolean
   /** Marshall's training videos on his page in the Vault (always on for reps with no company; Ace has them as its own) */
