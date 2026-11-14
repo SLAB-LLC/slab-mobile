@@ -55,7 +55,7 @@ export const DEFAULT_TENANT_CONFIG: TenantConfig = {
     ],
     // Keep in sync with the fallbacks in slabtech sql/xp-engine-migration.sql
     xp: {
-      lesson: 15,
+      lesson: 30,
       askCoach: 8,
       askCoachDailyCap: 40,
       book: 50,

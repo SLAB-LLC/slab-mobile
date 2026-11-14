@@ -2717,7 +2717,7 @@
         <hr>
         <div class="lv-step" id="lv-step-quiz"><b>2</b>Quiz</div>
       </div>
-      <div class="lv-reward" id="lv-reward"><i class="ph-fill ph-lightning" aria-hidden="true"></i>15</div>
+      <div class="lv-reward" id="lv-reward"><i class="ph-fill ph-lightning" aria-hidden="true"></i>30</div>
     </div>
     <div class="lv-scroll" id="lv-scroll">
       <div class="lv-unit" id="lv-unit"></div>
@@ -3026,7 +3026,7 @@ function completeLesson(subRef){
     allSubs[idx + 1].status = 'active';
   }
   renderCourse();
-  xpEvent('lesson_complete', subRef.id || subRef.title, 15, 'lesson complete');
+  xpEvent('lesson_complete', subRef.id || subRef.title, 30, 'lesson complete');
   scrollToActiveLesson(true, 700);
 }
 
