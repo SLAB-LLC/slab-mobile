@@ -442,6 +442,11 @@ def main(src):
                "if (ME.look && ME.look.ride === 'scooter' && gearXP() < 1500) { ME.look.ride = gearXP() >= 500 ? 'segway' : 'none'; saveMe(); }")
     html = rep(html, "if (ME.look && ME.look.ride === 'segway' && currentXP < 500) { ME.look.ride = 'none'; saveMe(); }",
                "if (ME.look && ME.look.ride === 'segway' && gearXP() < 500) { ME.look.ride = 'none'; saveMe(); }")
+    # A finished lesson is worth 30 XP (slabtech sql/lesson-xp-30.sql): the lesson screen's badge says so
+    html = rep(html, '<div class="lv-reward" id="lv-reward"><i class="ph-fill ph-lightning" aria-hidden="true"></i>15</div>',
+               '<div class="lv-reward" id="lv-reward"><i class="ph-fill ph-lightning" aria-hidden="true"></i>30</div>')
+    html = rep(html, "xpEvent('lesson_complete', subRef.id || subRef.title, 15, 'lesson complete');",
+               "xpEvent('lesson_complete', subRef.id || subRef.title, 30, 'lesson complete');")
     html = rep(html, "<b>Ask Marshall</b><small>Answers from Marshall's real door interactions</small>",
                "<b>Ask ${APP_COACH ? bbEsc(APP_COACH.name) : 'Marshall'}</b><small>${APP_COACH ? 'Answers from top reps’ real door interactions' : 'Answers from Marshall’s real door interactions'}</small>")
 
