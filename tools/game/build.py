@@ -616,7 +616,8 @@ appSafe('rep', initRep);
     seasons = open(os.path.join(HERE, 'seasons.js'), encoding='utf-8').read()
     dropoff = open(os.path.join(HERE, 'dropoff.js'), encoding='utf-8').read()
     golden = open(os.path.join(HERE, 'golden.js'), encoding='utf-8').read()
-    html = rep(html, '// ============ INIT ============', bridge + '\n\n' + seasons + '\n\n' + dropoff + '\n\n' + golden + '\n\n// ============ INIT ============')
+    cade = open(os.path.join(HERE, 'cade.js'), encoding='utf-8').read()
+    html = rep(html, '// ============ INIT ============', bridge + '\n\n' + seasons + '\n\n' + dropoff + '\n\n' + golden + '\n\n' + cade + '\n\n// ============ INIT ============')
 
     # ---- styles for the real lesson player ----
     css = """

@@ -21,14 +21,17 @@ const cacheKey = (userId: string) => `slab.repLook.${userId}`
 const LIMITED_IDS = ['pilgrim', 'fallflannel', 'hanukkahbeanie', 'israel', 'santa', 'ugly', 'boppers', 'heart', 'leprechaun', 'shamrock', 'bunny', 'spring', 'unclesam', 'starsstripes', 'witch', 'skeleton']
 
 /** Rides a company can add (features.extraRides), drawn by the game page; the native sprite shows them on foot */
-const EXTRA_RIDE_IDS = ['skateboard']
+const EXTRA_RIDE_IDS = ['skateboard', 'goat']
+
+/** Gear a company can add (features.extraGear), drawn by the game page (tools/game/cade.js) */
+const EXTRA_GEAR_IDS = ['tux', 'pencap']
 
 /** Fills gaps and drops ids this engine doesn't know, so an old look always draws */
 export function normalizeLook(engine: SpriteEngine, saved: Partial<RepLook> | null | undefined): RepLook {
   const d = engine.DEFAULT_LOOK
   const s = saved ?? {}
   const inList = (v: unknown, list: { id: string }[], fallback: string) =>
-    typeof v === 'string' && (list.some((x) => x.id === v) || LIMITED_IDS.includes(v)) ? v : fallback
+    typeof v === 'string' && (list.some((x) => x.id === v) || LIMITED_IDS.includes(v) || EXTRA_GEAR_IDS.includes(v)) ? v : fallback
   const limited = Array.isArray(s.limited) ? s.limited.filter((x): x is string => typeof x === 'string' && LIMITED_IDS.includes(x)) : null
   const inRange = (v: unknown, len: number, fallback: number) =>
     typeof v === 'number' && v >= 0 && v < len ? v : fallback

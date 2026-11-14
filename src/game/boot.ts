@@ -75,7 +75,7 @@ export interface GameBoot {
     goldenDoors: number
   }
   /** library: false keeps the Library tab locked while the company's library is being filled */
-  features: { vaultUnlockXp: number; chatUnlockXp: number; monthlyPrize: boolean; companyLessons: boolean; library: boolean; extraRides: string[] }
+  features: { vaultUnlockXp: number; chatUnlockXp: number; monthlyPrize: boolean; companyLessons: boolean; library: boolean; extraRides: string[]; extraGear: string[] }
   brand: {
     cobrand: string
     accent: string
@@ -95,7 +95,11 @@ export interface GameBoot {
      * The coach in the chat and nav. `sprite` is their 4x2 sheet as a data URL (the page keys and
      * crops it on a canvas, which a remote image would taint), or null to keep Marshall.
      */
-    coach: { name: string; fullName: string; sprite: string | null; vaultTag: string | null }
+    coach: { name: string; fullName: string; sprite: string | null; vaultTag: string | null; vaultFirst: boolean }
+    /** More top reps' Vault cards (theme.vaultGuests), each sheet a data URL like the coach's */
+    vaultGuests: { name: string; tag: string | null; sprite: string }[]
+    /** The green street sign at the top of the Lab's street, or null */
+    streetSign: { street: string; cross: string } | null
     gear: { name: string; letters: string; primary: string; dark: string }
   }
   /** Base URL for the Vault's audio pack (ends with /), or null when it isn't hosted yet */
@@ -382,7 +386,8 @@ export async function buildGameBoot(args: {
   const gear = gearBrand(theme)
   const meRow: GameLeader = { name, streak: args.streakDays, xp: args.totalXp, you: true }
 
-  const [lessons, leaders, doneLessons, notif, vault, globalLeaders, soloVideos, myDoors, coachSprite] = await Promise.all([
+  const guestList = !ace && Array.isArray(theme.vaultGuests) ? theme.vaultGuests.filter((g) => g && typeof g.name === 'string' && typeof g.spriteUrl === 'string') : []
+  const [lessons, leaders, doneLessons, notif, vault, globalLeaders, soloVideos, myDoors, coachSprite, guestSprites] = await Promise.all([
     // Ace's training videos are Marshall's: they play from his page in the Vault even while the street runs the standard levels
     company && (features.companyLessons || ace) ? loadLessons(company.id, userId).catch(() => ({ units: [], videos: {} })) : Promise.resolve({ units: [], videos: {} }),
     company
@@ -398,7 +403,13 @@ export async function buildGameBoot(args: {
       console.warn('Coach sprite unavailable:', e?.message)
       return null
     }),
+    Promise.all(guestList.map((g) => loadCoachSprite(g.spriteUrl).catch(() => null))),
   ])
+  const vaultGuests = guestList
+    .map((g, i) => ({ name: g.name, tag: g.tag ?? null, sprite: guestSprites[i] }))
+    .filter((g): g is { name: string; tag: string | null; sprite: string } => !!g.sprite)
+  const sign = theme.streetSign
+  const streetSign = sign && typeof sign.street === 'string' && typeof sign.cross === 'string' ? { street: sign.street, cross: sign.cross } : null
   const goldenDoors = myDoors.get(userId) ?? 0
   const meLeader = leaders.find((l) => l.you)
   if (meLeader) meLeader.goldenDoors = goldenDoors
@@ -436,6 +447,7 @@ export async function buildGameBoot(args: {
         // Solo reps' Library is locked by the solo rules instead
         library: features.library !== false,
         extraRides: Array.isArray(features.extraRides) ? features.extraRides.filter((r) => typeof r === 'string') : [],
+        extraGear: Array.isArray(features.extraGear) ? features.extraGear.filter((r) => typeof r === 'string') : [],
       },
       brand: {
         cobrand: theme.cobrand || theme.brandName,
@@ -448,7 +460,9 @@ export async function buildGameBoot(args: {
         splash: !solo && !ace && theme.cobrand && theme.logoUrl ? (company?.name ?? theme.brandName) : null,
         light: !ace && isLight(theme.colors.background),
         ink: theme.colors.text,
-        coach: { name: theme.coach.name, fullName: theme.coach.fullName || theme.coach.name, sprite: ace ? null : coachSprite, vaultTag: ace ? null : theme.coach.vaultTag ?? null },
+        coach: { name: theme.coach.name, fullName: theme.coach.fullName || theme.coach.name, sprite: ace ? null : coachSprite, vaultTag: ace ? null : theme.coach.vaultTag ?? null, vaultFirst: !ace && !!theme.coach.vaultFirst },
+        vaultGuests,
+        streetSign: ace ? null : streetSign,
         // Ace gear is always the gold of the Ace logo, whatever colors the company record carries
         gear: { name: gear.name, letters: gear.letters.join(''), primary: ace ? ACE_GOLD : gear.primary, dark: gear.dark },
       },
