@@ -454,7 +454,8 @@ def main(src):
     html = rep(html, "const avatarSheets = { marshall: IMG.marshallSprite, austin: IMG.austinSprite };",
                "const avatarSheets = { marshall: IMG.marshallSprite, austin: IMG.austinSprite, rylan: 'data:image/webp;base64," + rylan + "' };")
     html = rep(html, "const VX_AVK = { m:'marshall', r:'austin' };", "const VX_AVK = { m:'marshall', r:'rylan' };")
-    # Duncan 2026-11-16: Rylan's portrait is his Fox polo and cap sheet, and his card blinks through the
+    # Duncan 2026-11-16: Rylan's portrait is his Fox polo and cap picture framed like the original (shoulders
+    # and crossed arms in the card), and his card blinks through the
     # in-between frames he drew (half shut, shut, half open) instead of one shut frame
     html = rep(html, "const VX_AVK = { m:'marshall', r:'rylan' };", "const VX_AVK = { m:'marshall', r:'rylan' };\nconst AVATAR_BLINK = { rylan:[2, 1, 3] };")
     html = rep(html, BLINK_OLD, BLINK_NEW)
