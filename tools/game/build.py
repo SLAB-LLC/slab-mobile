@@ -304,6 +304,13 @@ def lighter_lab(html):
                "lawnA:hex('#2a3530'), lawnB:hex('#2f3b35'), lawnSpeck:hex('#3a4740'), lawnDark:hex('#212a25'),")
 
 
+BLINK_OLD = """  g.clearRect(0, 0, 92, 84); g.drawImage(f[1], 0, 0, 92, 84);
+  setTimeout(() => { g.clearRect(0, 0, 92, 84); g.drawImage(f[0], 0, 0, 92, 84); }, 140);"""
+BLINK_NEW = """  const seq = (typeof AVATAR_BLINK !== 'undefined' && AVATAR_BLINK[cv.dataset.av]) || [1], step = seq.length > 1 ? 80 : 140;
+  const put = (i) => { g.clearRect(0, 0, 92, 84); g.drawImage(f[i], 0, 0, 92, 84); };
+  seq.forEach((i, n) => setTimeout(() => put(i), n * step)); setTimeout(() => put(0), seq.length * step);"""
+
+
 def support_icons(html):
     """Duncan 2026-11-14: the Support rows' icons were washed out and Instagram showed a picture placeholder.
     Phosphor icons here are masks painted with background-color, so the old tile background (--amber-dim)
@@ -447,6 +454,11 @@ def main(src):
     html = rep(html, "const avatarSheets = { marshall: IMG.marshallSprite, austin: IMG.austinSprite };",
                "const avatarSheets = { marshall: IMG.marshallSprite, austin: IMG.austinSprite, rylan: 'data:image/webp;base64," + rylan + "' };")
     html = rep(html, "const VX_AVK = { m:'marshall', r:'austin' };", "const VX_AVK = { m:'marshall', r:'rylan' };")
+    # Duncan 2026-11-16: Rylan's portrait is his Fox polo and cap picture framed like the original (shoulders
+    # and crossed arms in the card), and his card blinks through the
+    # in-between frames he drew (half shut, shut, half open) instead of one shut frame
+    html = rep(html, "const VX_AVK = { m:'marshall', r:'rylan' };", "const VX_AVK = { m:'marshall', r:'rylan' };\nconst AVATAR_BLINK = { rylan:[2, 1, 3] };")
+    html = rep(html, BLINK_OLD, BLINK_NEW)
 
     # ---- the company's own coach (APP.brand.coach.sprite) takes Marshall's place in the chat and nav ----
     # Everything that animates the coach reads the 'marshall' frames, so the coach's sheet goes there; Marshall's
