@@ -1123,6 +1123,8 @@ if (APP && APP.brand && APP.brand.light) appSafe('light theme', () => {
     html.light .grain-overlay{ mix-blend-mode:multiply; opacity:0.035; }
     html.light .bt-intro, html.light .bt-half{ background:${bg}; }
     html.light .vx-best span{ color:${ink}; text-shadow:2px 2px 0 ${mixC(W, acc, 0.3)}; }
+    /* Support row icons: the accent pulled toward the ink so pale accents still read on white */
+    html.light .me-links > * > i:first-child{ background:${mixC(acc, I, 0.3)}; }
     /* the boss fight stays a dark scene: its text keeps the dark theme's light colors, not the page ink */
     html.light #fight-view{ --bg:#0c0c0e; --surface:#161618; --surface-2:#1f1f22; --border:#2b2a27; --hairline:#211f1c; --text:#f2f0e9; --text-dim:#b9b3a6; --amber-dim:#2e2614; --amber-soft:#f3d48a; --green-dim:#173325; color:#f2f0e9; }
   `;

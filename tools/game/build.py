@@ -304,6 +304,29 @@ def lighter_lab(html):
                "lawnA:hex('#2a3530'), lawnB:hex('#2f3b35'), lawnSpeck:hex('#3a4740'), lawnDark:hex('#212a25'),")
 
 
+def support_icons(html):
+    """Duncan 2026-11-14: the Support rows' icons were washed out and Instagram showed a picture placeholder.
+    Phosphor icons here are masks painted with background-color, so the old tile background (--amber-dim)
+    became the glyph's color. Paint them the solid accent instead (bridge.js darkens it on light themes),
+    and draw the real Instagram logo, which opens @slab_training like the row already does"""
+    html = rep(html, '.me-links > * > i:first-child{ flex:none; width:30px; height:30px; border-radius:9px; display:grid; place-items:center; background:var(--amber-dim); color:var(--amber); font-size:15px; }',
+               '.me-links > * > i:first-child{ flex:none; width:24px; height:24px; margin:0 3px; background:var(--amber); }')
+    html = rep(html, '.me-links i.ig{ background:#3a1f2c; color:#ff6ea3; }',
+               '.me-links .ig-logo{ flex:none; width:30px; height:30px; display:block; border-radius:8px; }')
+    return rep(html, '<i class="ph-fill ph-image ig" aria-hidden="true"></i>', IG_LOGO)
+
+
+IG_LOGO = ('<svg class="ig-logo" viewBox="0 0 32 32" aria-hidden="true">'
+           '<defs><radialGradient id="ig-grad" cx="0.3" cy="1.07" r="1.3">'
+           '<stop offset="0" stop-color="#fdf497"/><stop offset="0.08" stop-color="#fdf497"/>'
+           '<stop offset="0.45" stop-color="#fd5949"/><stop offset="0.6" stop-color="#d6249f"/>'
+           '<stop offset="0.9" stop-color="#285aeb"/></radialGradient></defs>'
+           '<rect width="32" height="32" rx="8" fill="url(#ig-grad)"/>'
+           '<rect x="7" y="7" width="18" height="18" rx="5.2" fill="none" stroke="#fff" stroke-width="2.2"/>'
+           '<circle cx="16" cy="16" r="4.3" fill="none" stroke="#fff" stroke-width="2.2"/>'
+           '<circle cx="21.2" cy="10.8" r="1.35" fill="#fff"/></svg>')
+
+
 def main(src):
     html = open(src, encoding='utf-8').read()
 
@@ -611,6 +634,7 @@ appSafe('rep', initRep);
     html = road_room(html)
     html = lighter_lab(html)
     html = reels_no_fake(html)
+    html = support_icons(html)
 
     # ---- the bridge itself, just before start-up runs ----
     seasons = open(os.path.join(HERE, 'seasons.js'), encoding='utf-8').read()
