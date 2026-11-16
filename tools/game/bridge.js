@@ -1289,6 +1289,17 @@ if (APP_COACH && APP_COACH.vaultTag) appSafe('coach frame', () => {
   };
 });
 
+// ============ VAULT PORTRAITS SIT INSIDE THEIR FRAMES ============
+// Duncan 2026-11-16: the frame's line shows under every rep's portrait (Marshall, Rylan, guests), so the
+// shoulders sit snug inside the box instead of covering its bottom edge. The frame is redrawn over the
+// portrait in the frame's own (themed) color.
+appSafe('vault frames', () => {
+  document.head.insertAdjacentHTML('beforeend', `<style>
+    .vx-fwrap{ position:relative; }
+    .vx-fwrap::after{ content:""; position:absolute; inset:0; box-shadow:inherit; pointer-events:none; z-index:2; }
+  </style>`);
+});
+
 // ============ EXTRA RIDES (features.extraRides) ============
 // A company can add rides to the Segway and e-scooter. 'skateboard': Ronin's deck (navy, red stripe, cream
 // wheels), unlocked at 2000 XP. Only a company with the ride can unlock and pick it, but every company's
