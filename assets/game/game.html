@@ -917,24 +917,24 @@
   @keyframes vx-drift{ to{ transform:translate(-4%, 2%); } }
   .vx-card.playing .logo{ opacity:.12; }
   .vx-cb{ position:absolute; left:14px; right:66px; bottom:22px; z-index:2; }
-  .vx-bgw{ position:absolute; inset:0; z-index:0; pointer-events:none; }
-  .vx-bgv{ display:block; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity .35s; }
-  .vx-card.bg .vx-bgv{ opacity:1; }
-  .vx-card.bg .logo{ display:none; }
-  .vx-card.bg::after{ content:""; position:absolute; inset:0; z-index:1; pointer-events:none; background:linear-gradient(to bottom, rgba(0,0,0,.5), rgba(0,0,0,0) 24%, rgba(0,0,0,0) 60%, rgba(0,0,0,.66)); }
-  .vx-card .vx-cap{ top:50%; transform:translateY(-50%); left:16px; right:16px; font:400 50px/1.05 'Anton', 'Barlow', sans-serif; letter-spacing:.01em; text-transform:uppercase; color:#fff; text-shadow:none; }
-  .vx-cap .w1{ display:inline-block; max-width:100%; overflow-wrap:anywhere; -webkit-text-stroke:9px #000; paint-order:stroke fill; filter:drop-shadow(0 5px 0 #000) drop-shadow(0 8px 14px rgba(0,0,0,.45)); animation:rb-pop .17s cubic-bezier(.3,1.7,.5,1); }
-  .vx-cap .w1.ho{ color:#ffe14d; } .vx-cap .w1.bl{ color:#ff5a4f; }
+  .rb-on .vx-bgw{ position:absolute; inset:0; z-index:0; pointer-events:none; }
+  .rb-on .vx-bgv{ display:block; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity .35s; }
+  .rb-on .vx-card.bg .vx-bgv{ opacity:1; }
+  .rb-on .vx-card.bg .logo{ display:none; }
+  .rb-on .vx-card.bg::after{ content:""; position:absolute; inset:0; z-index:1; pointer-events:none; background:linear-gradient(to bottom, rgba(0,0,0,.5), rgba(0,0,0,0) 24%, rgba(0,0,0,0) 60%, rgba(0,0,0,.66)); }
+  .rb-on .vx-card .vx-cap{ top:50%; transform:translateY(-50%); left:16px; right:16px; font:400 50px/1.05 'Anton', 'Barlow', sans-serif; letter-spacing:.01em; text-transform:uppercase; color:#fff; text-shadow:none; }
+  .rb-on .vx-cap .w1{ display:inline-block; max-width:100%; overflow-wrap:anywhere; -webkit-text-stroke:9px #000; paint-order:stroke fill; filter:drop-shadow(0 5px 0 #000) drop-shadow(0 8px 14px rgba(0,0,0,.45)); animation:rb-pop .17s cubic-bezier(.3,1.7,.5,1); }
+  .rb-on .vx-cap .w1.ho{ color:#ffe14d; } .rb-on .vx-cap .w1.bl{ color:#ff5a4f; }
   @keyframes rb-pop{ from{ transform:scale(.7); opacity:.35; } 65%{ transform:scale(1.08); } }
-  .vx-tc{ position:absolute; left:7%; right:7%; top:25%; z-index:3; background:#fff; color:#141414; border-radius:14px; padding:12px 14px 10px; box-shadow:0 12px 34px rgba(0,0,0,.5); pointer-events:none; opacity:0; transform:translateY(-10px) scale(.96); transition:opacity .22s, transform .3s cubic-bezier(.3,1.5,.5,1); }
-  .vx-card.tc .vx-tc{ opacity:1; transform:none; }
-  .vx-tc .hd{ display:flex; align-items:center; gap:9px; }
-  .vx-tc .av{ flex:none; width:34px; height:34px; border-radius:50%; background:var(--g); color:#141414; font:800 13px/34px 'Barlow', sans-serif; text-align:center; }
-  .vx-tc .nm b{ display:block; font:800 14px/1.15 'Barlow', sans-serif; } .vx-tc .nm small{ font:600 11px/1.2 'Barlow', sans-serif; color:#707070; }
-  .vx-tc .ob{ margin-left:auto; flex:none; font:700 10px/1 'Barlow', sans-serif; padding:5px 8px; border-radius:99px; background:#141414; color:#fff; }
-  .vx-tc .tt{ font:800 18px/1.24 'Barlow', sans-serif; margin:9px 0 9px; }
-  .vx-tc .ft{ display:flex; align-items:center; gap:14px; font:700 12px/1 'Barlow', sans-serif; color:#707070; }
-  .vx-tc .ft svg{ width:15px; height:15px; vertical-align:-3px; margin-right:4px; } .vx-tc .ft .ln{ margin-left:auto; }
+  .rb-on .vx-tc{ position:absolute; left:7%; right:7%; top:25%; z-index:3; background:#fff; color:#141414; border-radius:14px; padding:12px 14px 10px; box-shadow:0 12px 34px rgba(0,0,0,.5); pointer-events:none; opacity:0; transform:translateY(-10px) scale(.96); transition:opacity .22s, transform .3s cubic-bezier(.3,1.5,.5,1); }
+  .rb-on .vx-card.tc .vx-tc{ opacity:1; transform:none; }
+  .rb-on .vx-tc .hd{ display:flex; align-items:center; gap:9px; }
+  .rb-on .vx-tc .av{ flex:none; width:34px; height:34px; border-radius:50%; background:var(--g); color:#141414; font:800 13px/34px 'Barlow', sans-serif; text-align:center; }
+  .rb-on .vx-tc .nm b{ display:block; font:800 14px/1.15 'Barlow', sans-serif; } .rb-on .vx-tc .nm small{ font:600 11px/1.2 'Barlow', sans-serif; color:#707070; }
+  .rb-on .vx-tc .ob{ margin-left:auto; flex:none; font:700 10px/1 'Barlow', sans-serif; padding:5px 8px; border-radius:99px; background:#141414; color:#fff; }
+  .rb-on .vx-tc .tt{ font:800 18px/1.24 'Barlow', sans-serif; margin:9px 0 9px; }
+  .rb-on .vx-tc .ft{ display:flex; align-items:center; gap:14px; font:700 12px/1 'Barlow', sans-serif; color:#707070; }
+  .rb-on .vx-tc .ft svg{ width:15px; height:15px; vertical-align:-3px; margin-right:4px; } .rb-on .vx-tc .ft .ln{ margin-left:auto; }
   .vx-cb .t{ font-size:17px; font-weight:800; margin:8px 0 3px; line-height:1.2; }
   .vx-cb .m{ font-size:12px; color:#a39a89; }
   .vx-cap{ position:absolute; left:22px; right:22px; top:31%; z-index:2; text-align:center; font:700 22px/1.34 'Barlow', sans-serif; color:rgba(255,255,255,.3); text-shadow:0 2px 12px #000; }
@@ -12056,7 +12056,11 @@ if (APP && APP.brand && APP.brand.streetSign && typeof roadV === 'function') app
 // in a row. With no manifest a reel keeps its dark card, with the same title card and captions.
 // Word timings are each clip's `w` (slab-pipeline reel_words.py); clips without them spread each
 // line's words across the line, as the old captions did.
+// Only where it's switched on: the company's features.reelsGameplay (Cade's company for now). Elsewhere
+// APP.reelBackgrounds is null and Reels stay exactly as they were. The demo outside the app always has it.
 const RB_CARD_MS = 3200;
+const RB_ON = !APP || !!APP.reelBackgrounds;
+if (RB_ON) document.documentElement.classList.add('rb-on');
 let rbList = null, rbLast = null, rbCardTimer = 0;
 const rbVid = [0, 1].map(() => { const v = document.createElement('video'); v.className = 'vx-bgv'; v.muted = true; v.defaultMuted = true; v.loop = true; v.playsInline = true; v.preload = 'auto'; v.setAttribute('muted', ''); v.setAttribute('playsinline', ''); v.setAttribute('aria-hidden', 'true'); return v; });
 let rbNext = null; // { q, v, pick } the following card's background, already loading
@@ -12083,6 +12087,7 @@ function rbCue(v, pick, play){
   else go();
 }
 function rbPlay(i){
+  if (!RB_ON) return;
   const c = vxQueue[i], card = document.querySelector(`#vx-feed .vx-card[data-q="${i}"]`);
   if (!c || !card) return;
   // the title card, once each time a reel comes on screen
@@ -12124,6 +12129,7 @@ function rbWords(c){
 }
 const rbShow = (w) => w.includes('[REDACTED]') ? 'BLEEP' : w.replace(/[,.;:]+$/, '').replace(/^["“]|["”]$/g, '');
 function rbTick(c, card){
+  if (!RB_ON) return false;
   const t = vxAu.currentTime, W = rbWords(c), cap = card.querySelector('.vx-cap');
   let i = -1;
   for (let k = 0; k < W.length && W[k][0] <= t + .04; k++) i = k;
@@ -12137,6 +12143,7 @@ function rbTick(c, card){
   return true;
 }
 function rbCardHTML(c){
+  if (!RB_ON) return '';
   const r = vxRep(c.rep), d = c.d, ini = r.name.split(' ').map(s => s[0]).join('').slice(0, 2).toUpperCase();
   return `<div class="vx-bgw" aria-hidden="true"></div>
     <div class="vx-tc" aria-hidden="true"><div class="hd"><span class="av">${vxEsc(ini)}</span><span class="nm"><b>${vxEsc(r.name)}</b><small>${vxEsc(r.days[0].date)} · Door ${d.n}</small></span>${c.obj ? `<span class="ob">${VX_OBJ[c.obj]}</span>` : ''}</div>

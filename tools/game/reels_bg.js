@@ -6,7 +6,11 @@
 // in a row. With no manifest a reel keeps its dark card, with the same title card and captions.
 // Word timings are each clip's `w` (slab-pipeline reel_words.py); clips without them spread each
 // line's words across the line, as the old captions did.
+// Only where it's switched on: the company's features.reelsGameplay (Cade's company for now). Elsewhere
+// APP.reelBackgrounds is null and Reels stay exactly as they were. The demo outside the app always has it.
 const RB_CARD_MS = 3200;
+const RB_ON = !APP || !!APP.reelBackgrounds;
+if (RB_ON) document.documentElement.classList.add('rb-on');
 let rbList = null, rbLast = null, rbCardTimer = 0;
 const rbVid = [0, 1].map(() => { const v = document.createElement('video'); v.className = 'vx-bgv'; v.muted = true; v.defaultMuted = true; v.loop = true; v.playsInline = true; v.preload = 'auto'; v.setAttribute('muted', ''); v.setAttribute('playsinline', ''); v.setAttribute('aria-hidden', 'true'); return v; });
 let rbNext = null; // { q, v, pick } the following card's background, already loading
@@ -33,6 +37,7 @@ function rbCue(v, pick, play){
   else go();
 }
 function rbPlay(i){
+  if (!RB_ON) return;
   const c = vxQueue[i], card = document.querySelector(`#vx-feed .vx-card[data-q="${i}"]`);
   if (!c || !card) return;
   // the title card, once each time a reel comes on screen
@@ -74,6 +79,7 @@ function rbWords(c){
 }
 const rbShow = (w) => w.includes('[REDACTED]') ? 'BLEEP' : w.replace(/[,.;:]+$/, '').replace(/^["“]|["”]$/g, '');
 function rbTick(c, card){
+  if (!RB_ON) return false;
   const t = vxAu.currentTime, W = rbWords(c), cap = card.querySelector('.vx-cap');
   let i = -1;
   for (let k = 0; k < W.length && W[k][0] <= t + .04; k++) i = k;
@@ -87,6 +93,7 @@ function rbTick(c, card){
   return true;
 }
 function rbCardHTML(c){
+  if (!RB_ON) return '';
   const r = vxRep(c.rep), d = c.d, ini = r.name.split(' ').map(s => s[0]).join('').slice(0, 2).toUpperCase();
   return `<div class="vx-bgw" aria-hidden="true"></div>
     <div class="vx-tc" aria-hidden="true"><div class="hd"><span class="av">${vxEsc(ini)}</span><span class="nm"><b>${vxEsc(r.name)}</b><small>${vxEsc(r.days[0].date)} · Door ${d.n}</small></span>${c.obj ? `<span class="ob">${VX_OBJ[c.obj]}</span>` : ''}</div>
