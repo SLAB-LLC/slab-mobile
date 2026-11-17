@@ -46,6 +46,7 @@ export const DEFAULT_TENANT_CONFIG: TenantConfig = {
     monthlyPrize: false,
     library: true,
     companyLessons: false,
+    reelsGameplay: false,
     powerHour: { enabled: true, startHour: 20, multiplier: 2 },
     streakTiers: [
       { days: 0, mult: 1 },

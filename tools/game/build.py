@@ -334,6 +334,39 @@ IG_LOGO = ('<svg class="ig-logo" viewBox="0 0 32 32" aria-hidden="true">'
            '<circle cx="21.2" cy="10.8" r="1.35" fill="#fff"/></svg>')
 
 
+def reels_gameplay(html):
+    """Reels look like the story-time videos (Alston, 2026-11-16): muted gameplay fills the screen, a title
+    card shows the hook for the first few seconds, and the rep's real recording drives big one-word
+    captions. The behaviour is tools/game/reels_bg.js; the backgrounds come from slab-pipeline backgrounds.py."""
+    css = """  .rb-on .vx-bgw{ position:absolute; inset:0; z-index:0; pointer-events:none; }
+  .rb-on .vx-bgv{ display:block; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity .35s; }
+  .rb-on .vx-card.bg .vx-bgv{ opacity:1; }
+  .rb-on .vx-card.bg .logo{ display:none; }
+  .rb-on .vx-card.bg::after{ content:""; position:absolute; inset:0; z-index:1; pointer-events:none; background:linear-gradient(to bottom, rgba(0,0,0,.5), rgba(0,0,0,0) 24%, rgba(0,0,0,0) 60%, rgba(0,0,0,.66)); }
+  .rb-on .vx-card .vx-cap{ top:50%; transform:translateY(-50%); left:16px; right:16px; font:400 50px/1.05 'Anton', 'Barlow', sans-serif; letter-spacing:.01em; text-transform:uppercase; color:#fff; text-shadow:none; }
+  .rb-on .vx-cap .w1{ display:inline-block; max-width:100%; overflow-wrap:anywhere; -webkit-text-stroke:9px #000; paint-order:stroke fill; filter:drop-shadow(0 5px 0 #000) drop-shadow(0 8px 14px rgba(0,0,0,.45)); animation:rb-pop .17s cubic-bezier(.3,1.7,.5,1); }
+  .rb-on .vx-cap .w1.ho{ color:#ffe14d; } .rb-on .vx-cap .w1.bl{ color:#ff5a4f; }
+  @keyframes rb-pop{ from{ transform:scale(.7); opacity:.35; } 65%{ transform:scale(1.08); } }
+  .rb-on .vx-tc{ position:absolute; left:7%; right:7%; top:25%; z-index:3; background:#fff; color:#141414; border-radius:14px; padding:12px 14px 10px; box-shadow:0 12px 34px rgba(0,0,0,.5); pointer-events:none; opacity:0; transform:translateY(-10px) scale(.96); transition:opacity .22s, transform .3s cubic-bezier(.3,1.5,.5,1); }
+  .rb-on .vx-card.tc .vx-tc{ opacity:1; transform:none; }
+  .rb-on .vx-tc .hd{ display:flex; align-items:center; gap:9px; }
+  .rb-on .vx-tc .av{ flex:none; width:34px; height:34px; border-radius:50%; background:var(--g); color:#141414; font:800 13px/34px 'Barlow', sans-serif; text-align:center; }
+  .rb-on .vx-tc .nm b{ display:block; font:800 14px/1.15 'Barlow', sans-serif; } .rb-on .vx-tc .nm small{ font:600 11px/1.2 'Barlow', sans-serif; color:#707070; }
+  .rb-on .vx-tc .ob{ margin-left:auto; flex:none; font:700 10px/1 'Barlow', sans-serif; padding:5px 8px; border-radius:99px; background:#141414; color:#fff; }
+  .rb-on .vx-tc .tt{ font:800 18px/1.24 'Barlow', sans-serif; margin:9px 0 9px; }
+  .rb-on .vx-tc .ft{ display:flex; align-items:center; gap:14px; font:700 12px/1 'Barlow', sans-serif; color:#707070; }
+  .rb-on .vx-tc .ft svg{ width:15px; height:15px; vertical-align:-3px; margin-right:4px; } .rb-on .vx-tc .ft .ln{ margin-left:auto; }
+"""
+    anchor = '  .vx-cb{ position:absolute; left:14px; right:66px; bottom:22px; z-index:2; }\n'
+    html = rep(html, anchor, anchor + css)
+    html = rep(html, '    <div class="vx-cap"></div>\n', '    <div class="vx-cap"></div>${rbCardHTML(c)}\n')
+    html = rep(html, '  vxLoad(c.d.src, c.st, true);\n', '  vxLoad(c.d.src, c.st, true);\n  rbPlay(i);\n')
+    html = rep(html, '    const t = vxAu.currentTime, L = c.d.lines || []; let i = 0;',
+               '    if (rbTick(c, card)) { vxReelRaf = requestAnimationFrame(vxReelTick); return; }\n'
+               '    const t = vxAu.currentTime, L = c.d.lines || []; let i = 0;')
+    return html
+
+
 def main(src):
     html = open(src, encoding='utf-8').read()
 
@@ -646,6 +679,7 @@ appSafe('rep', initRep);
     html = road_room(html)
     html = lighter_lab(html)
     html = reels_no_fake(html)
+    html = reels_gameplay(html)
     html = support_icons(html)
 
     # ---- the bridge itself, just before start-up runs ----
@@ -653,7 +687,8 @@ appSafe('rep', initRep);
     dropoff = open(os.path.join(HERE, 'dropoff.js'), encoding='utf-8').read()
     golden = open(os.path.join(HERE, 'golden.js'), encoding='utf-8').read()
     cade = open(os.path.join(HERE, 'cade.js'), encoding='utf-8').read()
-    html = rep(html, '// ============ INIT ============', bridge + '\n\n' + seasons + '\n\n' + dropoff + '\n\n' + golden + '\n\n' + cade + '\n\n// ============ INIT ============')
+    reels_bg = open(os.path.join(HERE, 'reels_bg.js'), encoding='utf-8').read()
+    html = rep(html, '// ============ INIT ============', bridge + '\n\n' + seasons + '\n\n' + dropoff + '\n\n' + golden + '\n\n' + cade + '\n\n' + reels_bg + '\n\n// ============ INIT ============')
 
     # ---- styles for the real lesson player ----
     css = """

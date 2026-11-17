@@ -106,6 +106,10 @@ export interface GameBoot {
   media: string | null
   /** Published days for the Vault (the pipeline's vault_days), or null to keep the pack in the app */
   vault: VaultData | null
+  /** The Reels gameplay backgrounds' list (slab-pipeline backgrounds.py writes it to the public
+   *  reel-backgrounds bucket): each reel plays a random one, muted, behind the rep's audio.
+   *  null keeps the old Reels (features.reelsGameplay is off) */
+  reelBackgrounds: string | null
   /** Which update the phone runs, shown under Sign out */
   build: string
   /** The phone can turn speech into chat text (src/game/voice.ts): the chat shows a mic */
@@ -468,6 +472,7 @@ export async function buildGameBoot(args: {
       },
       media: args.media,
       vault,
+      reelBackgrounds: !features.reelsGameplay ? null : supabase.storage.from('reel-backgrounds').getPublicUrl('manifest.json').data.publicUrl,
       build: args.build,
       voice: voiceAvailable(),
       // The street opens once a company's own lessons are in. Ace's standard levels are filler for now,
