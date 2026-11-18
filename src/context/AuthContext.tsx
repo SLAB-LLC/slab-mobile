@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react'
-import { AppState, AppStateStatus } from 'react-native'
+import { Alert, AppState, AppStateStatus } from 'react-native'
 import { User } from '@supabase/supabase-js'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from '../utils/supabase'
@@ -7,6 +7,7 @@ import { UserProfile, Company } from '../types'
 import { registerPushTokenSilently, deactivatePushToken } from '../services/notifications.service'
 import { startSession, endSession } from '../services/activitySession.service'
 import { recordHeartbeat } from '../services/streak.service'
+import { isSignInStillValid, reportLogin } from '../services/sessionGuard.service'
 import { SOLO_COMPANY_SLUG } from '../tenant/defaults'
 
 const HEARTBEAT_INTERVAL_MS = 60_000
@@ -115,6 +116,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (error) throw error
 
+    // Login log + login-sharing check on the website (best-effort, not awaited)
+    reportLogin()
+
     // User and profile will be set by onAuthStateChange
     return
   }
@@ -144,6 +148,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   userIdRef.current = user?.id ?? null
   companyIdRef.current = profile?.company_id ?? null
 
+  // One sign-in at a time: if this login was signed in on another device, sign this phone out
+  const kickedRef = useRef(false)
+  const checkSignIn = async () => {
+    if (kickedRef.current || !userIdRef.current) return
+    if (await isSignInStillValid()) return
+    kickedRef.current = true
+    await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+    Alert.alert(
+      'Signed out',
+      'Your account was just signed in on another device. Each SLAB login works on one device at a time.'
+    )
+  }
+  useEffect(() => {
+    if (user?.id) kickedRef.current = false
+  }, [user?.id])
+
   useEffect(() => {
     const clearHeartbeat = () => {
       if (heartbeatTimerRef.current) {
@@ -158,6 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const uid = userIdRef.current
         const cid = companyIdRef.current
         if (uid && cid) recordHeartbeat(uid, cid, 'page_active', '/mobile')
+        checkSignIn()
       }, HEARTBEAT_INTERVAL_MS)
     }
 
@@ -177,8 +198,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
-      if (state === 'active') startHeartbeat()
-      else clearHeartbeat()
+      if (state === 'active') {
+        startHeartbeat()
+        checkSignIn()
+      } else clearHeartbeat()
     })
 
     return () => {
