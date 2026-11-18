@@ -417,3 +417,43 @@ if (APP && APP.brand && APP.brand.streetSign && typeof roadV === 'function') app
   // the names are drawn in Barlow: paint again once the font is in
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { try { plant(); } catch (e) {} });
 });
+
+// ---- Ace's resource library in this company's colors (features.aceLibrary) ----
+// The same sections, files and book list as Ace's Library. Ace's name comes off the labels, and the wooden
+// shelf becomes the company's own: ink frame, spines in its ink and accent, like the Vault's cards.
+if (APP && APP.features && APP.features.aceLibrary && APP.brand && !APP.brand.isAce) appSafe('shared library', () => {
+  const clean = (s) => { const t = String(s).replace(/\bAce[- ]/, ''); return t.charAt(0).toUpperCase() + t.slice(1); };
+  ACE.forEach(it => { it.t = clean(it.t); });
+  ACE_SECTIONS.forEach(s => { s.blurb = s.blurb.replace('The Ace playbook', 'The sales playbook'); });
+  const q = $('ace-q'); if (q) { q.placeholder = 'Search resources'; q.setAttribute('aria-label', 'Search resources'); }
+  document.querySelectorAll('.lib-entry-sub').forEach(e => { e.innerHTML = e.innerHTML.replace('Your Personal Leadership Plan reading list.', 'Your reading list.'); });
+  // the book screens are written for Ace reps
+  const WORDS = [[/your Ace Leader/g, 'your leader'], [/ from Ace\./g, '.'], ['Personal Leadership Plan · Section 16', 'Reading list'], [/\bAce Leader\b/g, 'leader']];
+  const tidy = (root) => { const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); for (let n = w.nextNode(); n; n = w.nextNode()) { let v = n.nodeValue; WORDS.forEach(([a, b]) => { v = v.replace(a, b); }); if (v !== n.nodeValue) n.nodeValue = v; } };
+  const body = $('bv-body'); if (body) new MutationObserver(() => tidy(body)).observe(body, { childList:true, subtree:true });
+
+  const okHex = (v, d) => /^#?[0-9a-f]{6}$/i.test(String(v || '').trim()) ? String(v).trim() : d;
+  const ink = okHex(APP.brand.ink, '#14161b'), acc = okHex(APP.brand.accent, '#cb272d');
+  const rgb = (h) => { const n = parseInt(h.replace('#', ''), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+  const mix = (a, b, t) => { const A = rgb(a), B = rgb(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
+  const spine = (c) => `linear-gradient(90deg, ${mix(c, '#000000', 0.18)} 0 6%, ${mix(c, '#ffffff', 0.16)} 6% 12%, ${c} 12%)`;
+  const inks = [ink, acc, mix(ink, '#ffffff', 0.32), mix(acc, '#000000', 0.3), mix(ink, '#ffffff', 0.16), mix(acc, ink, 0.5)];
+  const card = `background:#f8f9fb; border:3px solid ${ink}; box-shadow:4px 4px 0 ${ink};`;
+  document.head.insertAdjacentHTML('beforeend', `<style>
+    html .lib-entry, html .lib-entry:hover, html .ace-shelf{ ${card} }
+    html .lib-entry .lib-entry-title{ color:${ink}; text-shadow:2px 2px 0 ${mix(acc, '#ffffff', 0.72)}; }
+    html .lib-entry .lib-entry-sub{ color:${mix(ink, '#ffffff', 0.34)}; }
+    html .lib-entry-sub b, html .lib-entry .shelf-count{ color:${acc}; }
+    html .ace-book, html .ace-book:nth-child(n){ border-color:${ink}; box-shadow:inset -6px 0 0 rgba(0,0,0,.2), inset 3px 0 0 rgba(255,255,255,.1); color:#fff; }
+    ${inks.slice(0, 3).map((c, i) => `html .ace-shelf-row:nth-child(1) .ace-book:nth-child(${i + 1}){ background:${spine(c)}; }`).join(' ')}
+    ${inks.slice(3).map((c, i) => `html .ace-shelf-row:nth-child(2) .ace-book:nth-child(${i + 1}){ background:${spine(c)}; }`).join(' ')}
+    html .ace-book::before{ background:#fff; box-shadow:0 5px 0 #fff; opacity:.75; }
+    html .ace-book > i, html .ace-book b{ color:#fff; }
+    html .ace-book span{ color:rgba(255,255,255,.75); }
+    html .ace-plank{ background:linear-gradient(180deg, ${acc} 0 3px, ${ink} 3px); border-color:${ink}; box-shadow:none; }
+    html .ace-ic.k-audio, html .ace-ic.k-doc, html .ace-ic.k-form{ background:${mix(ink, '#ffffff', 0.88)}; color:${ink}; }
+    html .ace-ic.k-pdf, html .ace-ic.k-slides{ background:${mix(acc, '#ffffff', 0.86)}; color:${acc}; }
+    html .ace-ic.k-sheet, html .ace-ic.k-image{ background:${mix(ink, '#ffffff', 0.8)}; color:${mix(ink, '#ffffff', 0.15)}; }
+  </style>`);
+  renderAce();
+});

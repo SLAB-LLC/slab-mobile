@@ -588,7 +588,8 @@ if (APP) {
   // Marshall is the one coach for now
   const repTabs = $('chat-rep-tabs'); if (repTabs) repTabs.style.display = 'none';
   if (!APP.brand || !APP.brand.isAce) {
-    document.documentElement.classList.add('not-ace');
+    const sharedLibrary = !!(APP.features && APP.features.aceLibrary);   // features.aceLibrary: this company carries Ace's resources (cade.js)
+    if (!sharedLibrary) document.documentElement.classList.add('not-ace');
     // Another company: their logo (if they have one) takes Ace's spot next to SLAB, and Ace's own
     // resource library stays out
     document.querySelectorAll('.topbar .brand img[data-img="ace"]').forEach(img => {
@@ -601,7 +602,7 @@ if (APP) {
       document.querySelectorAll('#bt-co img[data-img="ace"]').forEach(img => { img.src = APP.brand.logoUrl; });
       document.querySelectorAll('#bt-co .bt-tag').forEach(t => { t.textContent = String(APP.brand.splash).toUpperCase(); });
     }
-    ACE.splice(0, ACE.length);
+    if (!sharedLibrary) ACE.splice(0, ACE.length);
     // Nothing of the company's own in the library yet: say so under the Book Library
     const aceBase = renderAce;
     renderAce = function(){

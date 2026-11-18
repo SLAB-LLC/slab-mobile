@@ -95,6 +95,8 @@ export interface TenantFeatures {
   monthlyPrize: boolean
   /** The Library tab opens; false keeps it locked ("coming soon") while the company's library is being filled */
   library?: boolean
+  /** The Library carries Ace's resource library, restyled in this company's colors (tools/game/cade.js) */
+  aceLibrary?: boolean
   /** Extra rides this company's reps can unlock with XP, on top of the Segway and e-scooter (e.g. ['skateboard']) */
   extraRides?: string[]
   /** Extra gear this company's reps get free in the locker (e.g. ['tux', 'pencap'] for Cade) */
