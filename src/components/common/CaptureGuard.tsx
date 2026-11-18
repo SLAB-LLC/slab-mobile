@@ -16,7 +16,8 @@ const KEY = 'slab-capture-guard'
  *   while the screen is being recorded or mirrored the app is also covered in black
  * - both: the app is covered when it goes to the background (app switcher snapshot), and a
  *   faint watermark with the viewer's email is tiled over every screen, so a photo of the
- *   phone taken with another camera still says whose login it was
+ *   phone taken with another camera still says whose login it was (prospect logins with
+ *   user_profiles.capture_protected only, Duncan 2026-11-18)
  */
 export function CaptureGuard({ children }: { children: React.ReactNode }) {
   const { user, profile } = useAuth()
@@ -57,7 +58,7 @@ export function CaptureGuard({ children }: { children: React.ReactNode }) {
   return (
     <View style={styles.fill}>
       {children}
-      {on && <Watermark label={`${user?.email ?? ''} · SLAB CONFIDENTIAL`} />}
+      {on && profile?.capture_protected && <Watermark label={`${user?.email ?? ''} · SLAB CONFIDENTIAL`} />}
       {on && (captured || away) && (
         <View style={[StyleSheet.absoluteFill, styles.cover]}>
           <Text style={styles.coverText}>
