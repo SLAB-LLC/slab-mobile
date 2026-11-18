@@ -75,7 +75,7 @@ export interface GameBoot {
     goldenDoors: number
   }
   /** library: false keeps the Library tab locked while the company's library is being filled */
-  features: { vaultUnlockXp: number; chatUnlockXp: number; monthlyPrize: boolean; companyLessons: boolean; library: boolean; extraRides: string[]; extraGear: string[] }
+  features: { vaultUnlockXp: number; chatUnlockXp: number; monthlyPrize: boolean; companyLessons: boolean; library: boolean; aceLibrary: boolean; extraRides: string[]; extraGear: string[] }
   brand: {
     cobrand: string
     accent: string
@@ -450,6 +450,7 @@ export async function buildGameBoot(args: {
         companyLessons: !!features.companyLessons,
         // Solo reps' Library is locked by the solo rules instead
         library: features.library !== false,
+        aceLibrary: !!features.aceLibrary,
         extraRides: Array.isArray(features.extraRides) ? features.extraRides.filter((r) => typeof r === 'string') : [],
         extraGear: Array.isArray(features.extraGear) ? features.extraGear.filter((r) => typeof r === 'string') : [],
       },
