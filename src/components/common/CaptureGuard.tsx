@@ -8,9 +8,8 @@ import { addCapturedChangeListener, isCurrentlyCapturing } from '../../modules/s
 const KEY = 'slab-capture-guard'
 
 /**
- * Screenshot / screen-recording protection for prospect logins: on for one person with
- * user_profiles.capture_protected, or for a whole company with features.captureProtection
- * (slabtech sql/capture-protection.sql). SLAB super admins never get it.
+ * Screenshot / screen-recording protection for every signed-in user except SLAB super admins.
+ * A company can be switched off with features.captureProtection = false.
  *
  * - Android: FLAG_SECURE, so screenshots and recordings come out black (also the app switcher)
  * - iOS: expo-screen-capture's secure layer, so screenshots and recordings come out blank;
@@ -22,10 +21,9 @@ const KEY = 'slab-capture-guard'
 export function CaptureGuard({ children }: { children: React.ReactNode }) {
   const { user, profile } = useAuth()
   const features = useFeatures()
-  const on =
-    !!user &&
-    profile?.role !== 'super_admin' &&
-    (!!profile?.capture_protected || features.captureProtection === true)
+  // Everyone except SLAB super admins (Duncan, 2026-11-18); a company can opt out with
+  // features.captureProtection = false
+  const on = !!user && !!profile && profile.role !== 'super_admin' && features.captureProtection !== false
 
   const [captured, setCaptured] = useState(false)
   const [away, setAway] = useState(false)
@@ -37,7 +35,7 @@ export function CaptureGuard({ children }: { children: React.ReactNode }) {
     const shot =
       Platform.OS === 'ios'
         ? ScreenCapture.addScreenshotListener(() =>
-            Alert.alert('Content protected', 'Screenshots of SLAB are turned off for this login.')
+            Alert.alert('Content protected', 'Screenshots of SLAB are turned off.')
           )
         : null
     const rec = addCapturedChangeListener((e) => setCaptured(e.isCaptured))
@@ -63,7 +61,7 @@ export function CaptureGuard({ children }: { children: React.ReactNode }) {
       {on && (captured || away) && (
         <View style={[StyleSheet.absoluteFill, styles.cover]}>
           <Text style={styles.coverText}>
-            {captured ? 'Screen recording is turned off for this login.' : 'SLAB'}
+            {captured ? 'Screen recording is turned off in SLAB.' : 'SLAB'}
           </Text>
         </View>
       )}
