@@ -101,6 +101,8 @@ export interface TenantFeatures {
   extraRides?: string[]
   /** Extra gear this company's reps get free in the locker (e.g. ['tux', 'pencap'] for Cade) */
   extraGear?: string[]
+  /** Every rep of this company gets screenshot/recording protection and the email watermark (components/common/CaptureGuard) */
+  captureProtection?: boolean
   /** The street runs the company's own training videos instead of the standard SLAB levels */
   companyLessons: boolean
   /** Marshall's training videos on his page in the Vault (always on for reps with no company; Ace has them as its own) */

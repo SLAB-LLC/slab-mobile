@@ -9,6 +9,7 @@ import { AvatarProvider } from './src/avatar'
 import { useMemo } from 'react'
 import { useOtaUpdates } from './src/utils/otaUpdates'
 import { LaunchCurtainProvider } from './src/launch/LaunchCurtain'
+import { CaptureGuard } from './src/components/common/CaptureGuard'
 
 /** Everything below the tenant provider paints in the company's theme */
 function ThemedApp() {
@@ -21,7 +22,10 @@ function ThemedApp() {
         <AvatarProvider>
           {/* SLAB × the company, held over start-up until the first screen has painted */}
           <LaunchCurtainProvider>
-            <AppNavigator />
+            {/* Prospect logins: no screenshots/recordings, email watermark over everything */}
+            <CaptureGuard>
+              <AppNavigator />
+            </CaptureGuard>
           </LaunchCurtainProvider>
         </AvatarProvider>
       </XpProvider>

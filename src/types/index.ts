@@ -76,6 +76,8 @@ export interface UserProfile {
   role: 'user' | 'manager' | 'company_admin' | 'super_admin'
   /** Vets get every lesson, the Vault and chat open; set by owners on the website */
   level?: 'rookie' | 'vet' | null
+  /** Prospect logins: screenshots/recordings blocked and the email watermarked over the app (components/common/CaptureGuard) */
+  capture_protected?: boolean
   company_id?: string
   full_name?: string
   display_name?: string
