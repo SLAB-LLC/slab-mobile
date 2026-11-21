@@ -3,7 +3,7 @@ import { supabase } from '../utils/supabase'
 import { getNotificationPreferences } from '../services/notifications.service'
 import { getCompanyLeaderboard } from '../services/stats.service'
 import * as avatarService from '../services/avatar.service'
-import type { TenantFeatures, TenantTheme } from '../tenant'
+import type { TenantFeatures, TenantLabels, TenantTheme } from '../tenant'
 import type { Company, UserProfile } from '../types'
 import type { RepLook } from '../avatar'
 import { gearBrand } from '../avatar'
@@ -100,6 +100,10 @@ export interface GameBoot {
     vaultGuests: { name: string; tag: string | null; sprite: string }[]
     /** The green street sign at the top of the Lab's street, or null */
     streetSign: { street: string; cross: string } | null
+    /** The company's whole-app skin (theme.skin, e.g. 'military'), or null for SLAB's own */
+    skin: string | null
+    /** Bottom-bar names that differ from SLAB's (labels.tabs), keyed by the page's tab ids */
+    tabs: Partial<Record<'courses' | 'recordings' | 'chat' | 'leaderboard' | 'library', string>>
     gear: { name: string; letters: string; primary: string; dark: string }
   }
   /** Base URL for the Vault's audio pack (ends with /), or null when it isn't hosted yet */
@@ -141,6 +145,19 @@ async function loadCoachSprite(url: string | null | undefined): Promise<string |
   if (!res.ok) throw new Error(`coach sprite ${res.status}`)
   const type = res.headers.get('content-type')?.split(';')[0] || (/\.png$/i.test(url) ? 'image/png' : 'image/webp')
   return `data:${type};base64,${base64Encode(await res.arrayBuffer())}`
+}
+
+/** labels.tabs in the page's own tab ids, only the names that differ from SLAB's */
+const PAGE_TAB_IDS = { lab: 'courses', vault: 'recordings', chat: 'chat', leaderboard: 'leaderboard', library: 'library' } as const
+const SLAB_TAB_NAMES: Record<string, string> = { lab: 'The Lab', vault: 'The Vault', chat: 'Chat', leaderboard: 'Leaderboard', library: 'Library' }
+function pageTabs(labels?: TenantLabels): GameBoot['brand']['tabs'] {
+  const out: GameBoot['brand']['tabs'] = {}
+  const tabs = (labels?.tabs ?? {}) as Record<string, unknown>
+  for (const [k, id] of Object.entries(PAGE_TAB_IDS)) {
+    const v = tabs[k]
+    if (typeof v === 'string' && v.trim() && v !== SLAB_TAB_NAMES[k]) out[id] = v.trim().slice(0, 16)
+  }
+  return out
 }
 
 /** A light background (white, cream): the page runs its light theme */
@@ -374,6 +391,8 @@ export async function buildGameBoot(args: {
   company: Company | null
   theme: TenantTheme
   features: TenantFeatures
+  /** The company's labels (bottom-bar names); missing keeps SLAB's */
+  labels?: TenantLabels
   totalXp: number
   streakDays: number
   look: Partial<RepLook> | null
@@ -468,6 +487,8 @@ export async function buildGameBoot(args: {
         coach: { name: theme.coach.name, fullName: theme.coach.fullName || theme.coach.name, sprite: ace ? null : coachSprite, vaultTag: ace ? null : theme.coach.vaultTag ?? null, vaultFirst: !ace && !!theme.coach.vaultFirst },
         vaultGuests,
         streetSign: ace ? null : streetSign,
+        skin: ace || solo ? null : theme.skin ?? null,
+        tabs: ace || solo ? {} : pageTabs(args.labels),
         // Ace gear is always the gold of the Ace logo, whatever colors the company record carries
         gear: { name: gear.name, letters: gear.letters.join(''), primary: ace ? ACE_GOLD : gear.primary, dark: gear.dark },
       },
