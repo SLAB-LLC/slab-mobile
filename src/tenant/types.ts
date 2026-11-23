@@ -73,6 +73,12 @@ export interface TenantTheme {
   vaultGuests?: { name: string; tag?: string | null; spriteUrl: string }[]
   /** A green street sign at the top of the Lab's street (e.g. Sunderland Ln crossing Slab Ave) */
   streetSign?: { street: string; cross: string } | null
+  /**
+   * A whole-app look on top of the colors (tools/game/militia.js). 'military': stencil type, camo
+   * top and nav bars, XP ranks from Recruit to General, military copy and free camo gear (Militia
+   * Marketing, 2026-11-21). Null keeps SLAB's own.
+   */
+  skin?: 'military' | null
   /** Default app style for reps of this company; reps may switch */
   appStyle: AppStyle
 }

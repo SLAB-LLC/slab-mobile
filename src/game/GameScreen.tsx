@@ -7,7 +7,7 @@ import { otaStatus } from '../utils/otaUpdates'
 import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '../context/AuthContext'
-import { useTenant, useTenantTheme, useFeatures } from '../tenant'
+import { useTenant, useTenantTheme, useFeatures, useLabels } from '../tenant'
 import { useXp } from '../xp'
 import { useMyLook, normalizeLook, useSpriteEngine } from '../avatar'
 import type { RepLook } from '../avatar'
@@ -55,6 +55,7 @@ export default function GameScreen() {
   const navigation = useNavigation<any>()
   const { user, profile, company, signOut, refreshProfile } = useAuth()
   const theme = useTenantTheme()
+  const labels = useLabels()
   const features = useFeatures()
   const { ready: tenantReady } = useTenant()
   const { totalXp, streakDays, xpLoaded, refreshXp } = useXp()
@@ -95,6 +96,7 @@ export default function GameScreen() {
       company,
       theme,
       features,
+      labels,
       totalXp,
       streakDays,
       look: hasLook ? look : null,

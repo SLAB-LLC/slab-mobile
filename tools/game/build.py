@@ -688,7 +688,8 @@ appSafe('rep', initRep);
     golden = open(os.path.join(HERE, 'golden.js'), encoding='utf-8').read()
     cade = open(os.path.join(HERE, 'cade.js'), encoding='utf-8').read()
     reels_bg = open(os.path.join(HERE, 'reels_bg.js'), encoding='utf-8').read()
-    html = rep(html, '// ============ INIT ============', bridge + '\n\n' + seasons + '\n\n' + dropoff + '\n\n' + golden + '\n\n' + cade + '\n\n' + reels_bg + '\n\n// ============ INIT ============')
+    militia = open(os.path.join(HERE, 'militia.js'), encoding='utf-8').read()
+    html = rep(html, '// ============ INIT ============', bridge + '\n\n' + seasons + '\n\n' + dropoff + '\n\n' + golden + '\n\n' + cade + '\n\n' + reels_bg + '\n\n' + militia + '\n\n// ============ INIT ============')
 
     # ---- styles for the real lesson player ----
     css = """
