@@ -13094,6 +13094,14 @@ if (MIL && typeof renderStreet === 'function' && typeof playDropoff === 'functio
       if (route.some(r => l + pad < r.x + 9 && l + w - pad > r.x - 9 && foot > r.y - 14 && foot < r.y + 2)) { e.style.display = 'none'; cleared++; }
     });
     street.propsCleared = cleared;
+    // Duncan 2026-11-24: tapping the helipad flies the helicopter in again
+    const houseTap = wrap.onclick;
+    wrap.onclick = (e) => {
+      const r = wrap.getBoundingClientRect(), wx = (e.clientX - r.left) / S, wy = (e.clientY - r.top) / S;
+      const a = wx - street.X0, b = 2 * (wy - street.Y0), P = padUV();
+      if (Math.hypot((b + a) / 2 - P.u, (b - a) / 2 - P.v) <= PAD_R + 4 && !street.busy && !dropoffRunning) { e.stopPropagation(); haptic('tap'); playDropoff(true); return; }
+      if (houseTap) houseTap.call(wrap, e);
+    };
   };
   // lizards dart a few steps, freeze, and turn around now and then; a tumbleweed rolls through every so often
   if (!reduceMotion) {
