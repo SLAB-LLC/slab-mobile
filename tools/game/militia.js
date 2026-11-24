@@ -531,11 +531,11 @@ const ART = {
   crate(c){ c.width = 16; c.height = 15; const g = c.getContext('2d');
     R(g, 1, 4, 14, 10, '#4b5320'); R(g, 1, 1, 14, 3, '#66702e'); R(g, 1, 4, 14, 1, '#363b17'); R(g, 1, 9, 14, 1, '#3d4319');
     R(g, 3, 6, 1, 7, '#59622a'); R(g, 12, 6, 1, 7, '#59622a'); R(g, 6, 6, 4, 2, '#cdb95a'); R(g, 6, 11, 4, 1, '#cdb95a'); outline(c); },
-  flag(c){ c.width = 22; c.height = 66; const g = c.getContext('2d');
+  flag(c, t = 0){ c.width = 22; c.height = 66; const g = c.getContext('2d');
     R(g, 3, 3, 2, 60, '#9aa0a8'); R(g, 4, 3, 1, 60, '#6b7078'); R(g, 2, 1, 4, 2, '#cfd3d8'); R(g, 0, 61, 8, 4, '#55585e');
-    for (let x = 0; x < 15; x++) { const dy = Math.round(Math.sin(x / 2.2) * 1); for (let y = 0; y < 10; y++) R(g, 5 + x, 4 + y + dy, 1, 1, '#0d0d0f'); }
+    for (let x = 0; x < 15; x++) { const dy = Math.round(Math.sin(x / 2.2 - t) * (0.6 + x * 0.12)); for (let y = 0; y < 10; y++) R(g, 5 + x, 4 + y + dy, 1, 1, '#0d0d0f'); }
     // the white M with its slash
-    [[3,0],[3,1],[3,2],[3,3],[3,4],[4,1],[5,2],[6,1],[7,0],[7,1],[7,2],[7,3],[7,4],[9,4],[10,3],[11,2],[12,1]].forEach(([x, y]) => { const dy = Math.round(Math.sin((x + 1) / 2.2)); R(g, 6 + x, 7 + y + dy, 1, 1, '#f2f2ee'); });
+    [[3,0],[3,1],[3,2],[3,3],[3,4],[4,1],[5,2],[6,1],[7,0],[7,1],[7,2],[7,3],[7,4],[9,4],[10,3],[11,2],[12,1]].forEach(([x, y]) => { const dy = Math.round(Math.sin((x + 1) / 2.2 - t) * (0.6 + (x + 1) * 0.12)); R(g, 6 + x, 7 + y + dy, 1, 1, '#f2f2ee'); });
     outline(c); },
   tower(c){ c.width = 44; c.height = 84; const g = c.getContext('2d');
     const W = '#5b4631', D = '#3b2c1e', L = '#7a6044';
@@ -559,6 +559,7 @@ const ART = {
 };
 
 
+  window.MIL_ART = ART;
   const none = () => [];
   const TENT = (wall, roof) => ({ H:14, roof:'gable', ridge:'perp', Hr:40, wall, tex:'batten', roofC:roof, roofTex:'metal', trim:'#24271a', door:'#16180e', doorStyle:'plain', front:none, side:(n) => [{ k:'win', s0:Math.round(n / 2) - 5, s1:Math.round(n / 2) + 5, z0:4, z1:10 }] });
   Object.assign(ISO_STYLES, {
@@ -666,6 +667,8 @@ const ART = {
     g.fillStyle = '#16120c'; edge.forEach(([x, y]) => g.fillRect(x, y, 1, 1));
     return { ax:OX, ay:OY };
   };
+  // the flag waves in the breeze
+  if (!reduceMotion) setInterval(() => { const t = performance.now() / 260; document.querySelectorAll('canvas.st-flag').forEach(c => ART.flag(c, t)); }, 110);
   const baseRender = renderStreet;
   renderStreet = function(){
     baseRender.apply(this, arguments);
@@ -692,6 +695,8 @@ const ART = {
       if (k % 3 === 0) { put(ART.crate, yard(k, 88, 26), 8, 14); put(ART.crate, yard(k, 96, 22), 8, 14); }
       if (k === 0) put(ART.flag, yard(k, 50, 80), 4, 64);
     }
+    // tag the flag so it can wave
+    wrap.querySelectorAll('canvas.st-camp').forEach(c => { if (c.width === 22 && c.height === 66) c.classList.add('st-flag'); });
     (street.yellers || []).forEach(y => { y.bub.textContent = YELL; });
   };
 });
@@ -707,12 +712,11 @@ if (MIL && typeof renderStreet === 'function' && typeof playDropoff === 'functio
     add.forEach(([x, y]) => R(g, x, y, 1, 1, col || '#0b0b0e')); };
   // rocks in a few sizes and shapes: blobs lit from the top left, with a crack or two and a shadow
   const ROCKS = [
-    { W:30, H:20, b:[[11, 12, 9, 7], [20, 14, 7, 5]] },                                   // a pair of boulders
+    { W:30, H:20, b:[[14, 13, 12, 6], [17, 9, 7, 5]] },                                   // a lumpy boulder (one rock, not two)
     { W:46, H:28, b:[[22, 15, 18, 11], [34, 19, 9, 7], [10, 20, 7, 5]], crack:true },     // a big outcrop
-    { W:20, H:30, b:[[10, 17, 6, 11], [10, 9, 4, 7]] },                                    // a standing spire
     { W:42, H:14, b:[[21, 8, 19, 5]] },                                                    // a flat slab
     { W:24, H:12, b:[[5, 7, 4, 3], [12, 8, 4, 3], [19, 6, 3, 2.5], [15, 4, 2.5, 2]] },   // pebbles
-    { W:34, H:22, b:[[10, 13, 8, 8], [23, 12, 9, 9]], crack:true },                      // a split rock
+    { W:36, H:20, b:[[18, 13, 16, 6], [13, 9, 8, 5], [24, 10, 5, 3]], crack:true },      // a wide cracked boulder with a ridge
   ];
   const rock = (c, n) => { const R0 = ROCKS[n % ROCKS.length], { W, H } = R0; c.width = W; c.height = H; const g = c.getContext('2d');
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const inb = R0.b.find(([cx, cy, rx, ry]) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1); if (!inb) continue;
@@ -721,6 +725,7 @@ if (MIL && typeof renderStreet === 'function' && typeof playDropoff === 'functio
     if (R0.crack) { let x = Math.round(W * 0.45), y = 3; const d = im => im; for (let i = 0; i < H - 6; i++) { R(g, x, y + i, 1, 1, '#463a2b'); if ((i * 5 + n) % 3 === 0) x += (i % 2 ? 1 : -1); } }
     outline(c); g.globalCompositeOperation = 'destination-over'; R(g, 3, H - 2, W - 4, 2, 'rgba(0,0,0,.35)'); g.globalCompositeOperation = 'source-over'; };
   // a desert lizard seen from above: spotted sandy back, splayed legs that swap as it runs, a long curled tail
+  window.MIL_ART = Object.assign(window.MIL_ART || {}, { rock });
   const lizard = (c, f) => { c.width = 28; c.height = 14; const g = c.getContext('2d'); g.clearRect(0, 0, 28, 14);
     const B = '#c48c4a', D = '#8a5a2c', L = '#e3b878', S = '#6b4322';
     for (let x = 5; x <= 15; x++) { const t = (x - 5) / 10, half = Math.round(2.6 - Math.abs(t - 0.45) * 2.2); R(g, x, 7 - half, 1, half * 2 + 1, B); R(g, x, 7 - half, 1, 1, L); }
@@ -800,14 +805,16 @@ if (MIL && typeof renderStreet === 'function' && typeof playDropoff === 'functio
     heli.style.width = Math.round(HELI.W * K * S) + 'px'; heli.style.height = Math.round(HELI.H * K * S) + 'px'; heli.style.zIndex = 1960000 - 10;
     const shade = document.createElement('div'); shade.className = 'st-mil';
     Object.assign(shade.style, { width:Math.round(46 * S) + 'px', height:Math.round(14 * S) + 'px', borderRadius:'50%', background:'rgba(0,0,0,.4)', zIndex:1400 });
-    wrap.appendChild(shade); wrap.appendChild(heli);
     let frame = 0, alive = true;
-    const spin = () => { if (!alive || !document.contains(heli)) return; paintHeli(heli, frame++); setTimeout(spin, 45); }; spin();
     const at = (x, y, alt) => {
       heli.style.transform = `translate(${Math.round((x - HELI.AX * K) * S)}px, ${Math.round((y - alt - HELI.AY * K) * S)}px)`;
       const k = Math.max(0.35, 1 - alt / 220);
       shade.style.transform = `translate(${Math.round((x - 23) * S)}px, ${Math.round((y - 7) * S)}px) scale(${k})`; shade.style.opacity = String(k);
     };
+    // painted and parked at its start (off to the right, up high) before it joins the page, so it never flashes at the corner
+    paintHeli(heli, frame++); at(pad.x + 240, pad.y, 170);
+    wrap.appendChild(shade); wrap.appendChild(heli);
+    const spin = () => { if (!alive || !document.contains(heli)) return; paintHeli(heli, frame++); setTimeout(spin, 45); }; spin();
     const fly = (from, to, ms, ease) => new Promise(res => { const t0 = performance.now(); const tick = (now) => {
       if (!document.contains(heli)) { res(); return; } const f = Math.min(1, (now - t0) / ms), e = ease(f);
       at(from[0] + (to[0] - from[0]) * e, from[1] + (to[1] - from[1]) * e, from[2] + (to[2] - from[2]) * e);
@@ -833,8 +840,9 @@ if (MIL && typeof renderStreet === 'function' && typeof playDropoff === 'functio
       await walkPoints([hop, out]);
       const say = document.createElement('div');
       say.className = 'st-yell st-carsay'; say.setAttribute('aria-hidden', 'true'); say.textContent = HELI_LINE;
-      const sx = Math.max(95, Math.min(street.WW - 95, pad.x - 20));
-      say.style.left = Math.round(sx * S) + 'px'; say.style.top = Math.round((pad.y - 62) * S) + 'px';
+      // beside the helicopter, low enough to stay clear of the top of the screen
+      const sx = Math.max(95, Math.min(street.WW - 95, pad.x - 96));
+      say.style.left = Math.round(sx * S) + 'px'; say.style.top = Math.round((pad.y - 22) * S) + 'px';
       wrap.appendChild(say);
       requestAnimationFrame(() => say.classList.add('on'));
       await wait(3000);
@@ -956,5 +964,222 @@ if (MIL && typeof categories !== 'undefined') appSafe('all doors open', () => {
     categories.forEach(c => c.subs.forEach(s => { s.status = done.has(s.id || s.title) ? 'done' : 'locked'; }));
   }
   ME.level = 'vet';
+  if (typeof normalizePath === 'function') normalizePath();   // every door active before the street first draws, so the rep starts at the first one
   const chip = $('vet-chip'); if (chip) chip.textContent = 'All doors open';
+});
+
+
+// ============ THE BASE FILLS OUT (round 3) ============
+// Duncan 2026-11-24: humvees by the helipad, a soldier doing pushups, pebbles in the sand, a drill sergeant in
+// place of the old man on the bench (and on the name screen), props spread across the whole base instead of a
+// line down the middle, and room above the helipad for the pilot's line.
+if (MIL && typeof renderStreet === 'function') appSafe('outpost round 3', () => {
+  const MIL_ART = window.MIL_ART || {};
+  const R = (g, x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+  const outline = (c, col) => { const g = c.getContext('2d'), W = c.width, H = c.height, im = g.getImageData(0, 0, W, H), d = im.data, a = (x, y) => x >= 0 && y >= 0 && x < W && y < H && d[(y * W + x) * 4 + 3] > 200;
+    const add = []; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (!a(x, y) && (a(x - 1, y) || a(x + 1, y) || a(x, y - 1) || a(x, y + 1))) add.push([x, y]);
+    add.forEach(([x, y]) => R(g, x, y, 1, 1, col || '#0b0b0e')); };
+
+  // the street may draw above its own top edge (the helicopter flies in from up there, and the pilot's line sits there)
+  document.head.insertAdjacentHTML('beforeend', `<style>
+    .skin-military #page-courses .path-wrap{ overflow-x:clip !important; overflow-y:visible !important; }
+    .st-r3{ position:absolute; image-rendering:pixelated; pointer-events:none; }
+  </style>`);
+
+  // ---- a small voxel painter (the tank's, in general): solids in local x/y/z, turned by th, drawn back to front ----
+  const voxel = (W, H, OX, OY, th, build) => (c) => {
+    c.width = W; c.height = H; const g = c.getContext('2d'), co = Math.cos(th), si = Math.sin(th), pts = [];
+    const add = (x, y, z, nx, ny, nz, col) => pts.push([x * co - y * si, x * si + y * co, z, nx * co - ny * si, nx * si + ny * co, nz, col]);
+    const box = (x0, x1, y0, y1, ztop, col, z0 = 0) => {
+      for (let x = x0; x <= x1; x += 0.5) for (let y = y0; y <= y1; y += 0.5) {
+        const zt = typeof ztop === 'function' ? ztop(x, y) : ztop; if (zt <= z0) continue;
+        add(x, y, zt, 0, 0, 1, col(x, y, zt, 'top'));
+        [[x === x0, -1, 0], [x >= x1 - 0.25, 1, 0], [y === y0, 0, -1], [y >= y1 - 0.25, 0, 1]].forEach(([on, nx, ny]) => { if (on) for (let z = z0; z < zt; z += 0.5) add(x, y, z, nx, ny, 0, col(x, y, z, nx ? (nx > 0 ? 'front' : 'back') : 'side')); });
+      }
+    };
+    const wheel = (cx, y0, y1, cz, r, tire, hub) => { for (let a = 0; a < 6.28; a += 0.12) for (let y = y0; y <= y1; y += 0.5) add(cx + Math.cos(a) * r, y, cz + Math.sin(a) * r, Math.cos(a), 0, Math.sin(a), tire);
+      [y0, y1].forEach((y, i) => { for (let rr = 0; rr <= r; rr += 0.5) for (let a = 0; a < 6.28; a += 0.25) add(cx + Math.cos(a) * rr, y, cz + Math.sin(a) * rr, 0, i ? 1 : -1, 0, rr < r * 0.55 ? hub : tire); }); };
+    build({ add, box, wheel });
+    pts.sort((a, b) => (a[0] + a[1]) - (b[0] + b[1]) || a[2] - b[2]);
+    const buf = new Map(), shade = (hex, k) => { const n = parseInt(hex.slice(1), 16), f = (v) => Math.max(0, Math.min(255, Math.round(v * k))); return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`; };
+    pts.forEach(([u, v, z, nu, nv, nz, col]) => { if (nz < 0.5 && nu < -0.05 && nv < -0.05) return; const k = nz > 0.5 ? 1.08 : nu > 0 && nu >= nv ? 0.72 : 0.95; buf.set(Math.round(u - v + OX) + ',' + Math.floor((u + v) / 2 - z + OY), shade(col, k)); });
+    g.fillStyle = 'rgba(0,0,0,0.33)';
+    build({ add:() => {}, box:(x0, x1, y0, y1) => { for (let x = x0 - 1; x <= x1 + 1; x += 0.5) for (let y = y0 - 1; y <= y1 + 2; y += 0.5) { const u = x * co - y * si, v = x * si + y * co; g.fillRect(Math.round(u - v + OX + 2), Math.floor((u + v) / 2 + OY + 1), 1, 1); } }, wheel:() => {}, shadowOnly:true });
+    buf.forEach((col, key) => { const [x, y] = key.split(',').map(Number); g.fillStyle = col; g.fillRect(x, y, 1, 1); });
+    const edge = []; buf.forEach((_, key) => { const [x, y] = key.split(',').map(Number); [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([a, b]) => { if (!buf.has((x + a) + ',' + (y + b))) edge.push([x + a, y + b]); }); });
+    g.fillStyle = '#16120c'; edge.forEach(([x, y]) => g.fillRect(x, y, 1, 1));
+  };
+  // ---- a desert humvee, after Duncan's reference: tan body, olive-dark glass, grille, a gunner's ring and gun ----
+  const HUMVEE = { W:84, H:56, OX:34, OY:36 };
+  const paintHumvee = (th) => voxel(HUMVEE.W, HUMVEE.H, HUMVEE.OX, HUMVEE.OY, th, ({ add, box, wheel, shadowOnly }) => {
+    const L = 34, Wd = 18, ox = -L / 2, oy = -Wd / 2;
+    const T = '#c9a46a', TS = '#b08b55', TD = '#8a6a3a', GL = '#55552a';
+    const X = (x) => x + ox, Y = (y) => y + oy;
+    if (shadowOnly) { box(X(0), X(L), Y(0), Y(Wd)); return; }
+    [[7, 0], [27, 0], [7, Wd - 3.5], [27, Wd - 3.5]].forEach(([x, y]) => wheel(X(x), Y(y), Y(y + 3.5), 4, 4, '#1f1d19', '#a8874f'));
+    box(X(1), X(L - 1), Y(1), Y(Wd - 1), 9, (x, y, z, f) => f === 'top' ? T : z < 5.5 ? TD : f === 'front' && z > 5.5 && z < 8.5 ? ((Math.round(y * 2) % 2) ? '#3a3020' : '#d8d2bf') : TS, 4);
+    box(X(23), X(L - 1), Y(1), Y(Wd - 1), (x) => 10.5 - (x - X(23)) * 0.12, (x, y, z, f) => f === 'top' ? (Math.abs(y - Y(Wd / 2)) < 3 && x > X(26) && x < X(31) && (Math.round(x * 2) % 2) ? '#3a3020' : T) : TS, 9);
+    box(X(7), X(23), Y(1.5), Y(Wd - 1.5), 16.5, (x, y, z, f) => f === 'top' ? T : (z > 11 && z < 15.5 && (f === 'front' || (f === 'side' && ((x > X(9) && x < X(15)) || (x > X(16) && x < X(21.5)))))) ? GL : TS, 9);
+    box(X(1), X(7), Y(1.5), Y(Wd - 1.5), 12, (x, y, z, f) => f === 'top' ? TS : TS, 9);
+    for (let a = 0; a < 6.28; a += 0.2) for (let z = 16.5; z < 19; z += 0.5) add(X(15) + Math.cos(a) * 3.5, Y(Wd / 2) + Math.sin(a) * 3.5, z, Math.cos(a), Math.sin(a), 0, '#b99a62');
+    for (let x = X(15); x <= X(27); x += 0.5) for (let a = 0; a < 6.28; a += 0.5) add(x, Y(Wd / 2) + Math.cos(a) * 0.8, 19.5 + Math.sin(a) * 0.8, 0, Math.cos(a), Math.sin(a), '#2e2a22');
+    [[2.5], [Wd - 3.5]].forEach(([y]) => { for (let yy = y; yy <= y + 1; yy += 0.5) for (let z = 7; z <= 8; z += 0.5) add(X(L - 1) + 0.2, Y(yy), z, 1, 0, 0, '#fff5cf'); });
+  });
+
+  // ---- a soldier doing pushups, side on: arms straight (up) and bent (down) ----
+  const pushup = (c, down) => { c.width = 30; c.height = 14; const g = c.getContext('2d'); g.clearRect(0, 0, 30, 14);
+    const F = '#5b6438', FD = '#3f4626', K = '#c58a5e', H = '#4b5320', B = '#16140f';
+    const y0 = down ? 8 : 5, slope = down ? 0.08 : 0.22;
+    for (let x = 5; x <= 24; x++) { const y = Math.round(y0 + (x - 5) * slope); R(g, x, y, 1, x < 15 ? 3 : 2, ((x * 3) % 7 === 0) ? FD : F); }
+    R(g, 25, Math.round(y0 + 20 * slope) + 1, 3, 2, B);
+    R(g, 1, y0 - 2, 5, 3, H); R(g, 2, y0 + 1, 3, 2, K); R(g, 0, y0, 1, 1, H);
+    if (down) { R(g, 7, y0 + 3, 4, 1, F); R(g, 10, y0 + 3, 1, 3, F); } else { R(g, 6, y0 + 3, 2, 7, F); }
+    R(g, down ? 9 : 5, 12, 3, 1, K);
+    outline(c, '#1a170f'); R(g, 3, 13, 25, 1, 'rgba(0,0,0,.35)'); };
+
+  // ---- the drill sergeant (campaign hat, olive fatigues, boots) ----
+  const DRILL = { skin:2, eyes:0, eyeStyle:'dot', hair:'buzz', hairColor:1, face:'none', top:'olivefatigues', hat:'campaignhat', pants:'olivecargo', shoes:'combat', extra:'none' };
+  const DRILL_LINES = ['Pick it up, private! Next door!', 'Drop and give me twenty, recruit!', 'Knock like you mean it!', 'Did I say you could slow down?!', 'Move it, move it, MOVE IT!', 'That door ain’t gonna knock itself!'];
+  // standing, not on a bench: he fills a taller canvas, and the street's box for him is resized after each render
+  paintBench = function(canvas, frame){
+    canvas.width = 44; canvas.height = 58; const g = canvas.getContext('2d'); g.clearRect(0, 0, 44, 58);
+    g.fillStyle = 'rgba(0,0,0,0.38)'; g.fillRect(10, 56, 24, 2);
+    g.drawImage(spriteCanvas(DRILL, frame ? 'win' : 'down-0', frame ? 'shout' : 'grumpy'), 4, 5);
+  };
+  // the name screen: he comes out instead of the lady, and he yells instead of cussing
+  const SARGE = ['NAME?! Drop and give me twenty!', 'Is that a name or a sneeze, NAME?!', 'NAME! Front and center, recruit!', 'I can’t HEAR you, NAME!', 'NAME, you’re in my army now!'];
+  if (typeof heckle === 'function') heckle = function(name){
+    const h = $('ob-heckler'); if (!h) return;
+    const b = h.querySelector('.ob-heckle');
+    if (!name) { h.classList.remove('on'); return; }
+    const line = SARGE[(name.length + name.charCodeAt(0)) % SARGE.length].replace('NAME', name);
+    if (b.textContent === line && h.classList.contains('on')) return;
+    b.textContent = line;
+    h.classList.remove('on'); void h.offsetWidth; h.classList.add('on');
+    drawSprite(h.querySelector('canvas'), DRILL, { crop:'bust', mood:'shout' });
+  };
+
+  // ---- pebbles in the sand ----
+  const baseGround = paintGround;
+  paintGround = function(){
+    baseGround.apply(this, arguments);
+    const cv = street.ground, g = cv.getContext('2d'), W = cv.width, H = cv.height, im = g.getImageData(0, 0, W, H), d = im.data;
+    let seed = 29; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const sandy = (x, y) => { if (x < 1 || y < 1 || x >= W - 2 || y >= H - 2) return false; const o = (y * W + x) * 4; return d[o] > 85 && d[o] > d[o + 2] + 18 && d[o + 1] > 70; };
+    const set = (x, y, c) => { const o = (y * W + x) * 4; d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; };
+    const n = Math.round(W * H / 55);
+    for (let i = 0; i < n; i++) {
+      const x = (rnd() * W) | 0, y = (rnd() * H) | 0; if (!sandy(x, y) || !sandy(x + 1, y + 1)) continue;
+      const big = rnd() < 0.25, tone = rnd();
+      const dark = tone < 0.5 ? [84, 70, 52] : [96, 82, 62], lite = [158, 140, 110];
+      set(x, y, dark); if (big) { set(x + 1, y, dark); set(x, y - 1, lite); set(x + 1, y + 1, [66, 55, 40]); } else if (tone > 0.8) set(x, y - 1, lite);
+    }
+    g.putImageData(im, 0, 0);
+  };
+
+  const MIL_DENSITY = 0.5;                                              // share of props kept across the base (1, 0.75 or 0.5)
+  // a big pixel radar dish on a lattice mast with an olive shelter at its foot
+  const paintRadar = (c) => { c.width = 54; c.height = 66; const g = c.getContext('2d');
+    // shelter
+    R(g, 10, 50, 34, 12, '#4b5320'); R(g, 10, 46, 34, 4, '#66702e'); R(g, 10, 50, 34, 1, '#363b17'); R(g, 14, 53, 6, 7, '#363b17'); R(g, 30, 53, 10, 3, '#59622a'); R(g, 9, 62, 36, 2, 'rgba(0,0,0,.35)');
+    // lattice mast
+    for (let y = 30; y < 47; y++) { const s = (y - 30) >> 2; R(g, 23 - s, y, 1, 1, '#55585e'); R(g, 31 + s, y, 1, 1, '#3e4146'); if ((y & 3) === 0) R(g, 23 - s, y, 9 + s * 2, 1, '#6b7078'); if ((y & 3) === 2) R(g, 26, y, 3, 1, '#55585e'); }
+    R(g, 24, 26, 7, 5, '#6b7078'); R(g, 24, 30, 7, 1, '#3e4146');
+    // dish, tipped up and to the right
+    const cx = 27, cy = 16, rx = 23, ry = 12, an = -0.42, ca = Math.cos(an), sa = Math.sin(an);
+    for (let y = 0; y < 34; y++) for (let x = 0; x < 54; x++) { const dx = x + 0.5 - cx, dy = y + 0.5 - cy, u = (dx * ca + dy * sa) / rx, v = (-dx * sa + dy * ca) / ry, d = u * u + v * v;
+      if (d > 1) continue; const col = d > 0.78 ? '#8a8576' : (u + v < -0.35 ? '#e4dfcf' : u + v < 0.35 ? '#c9c4b4' : '#aba696'); R(g, x, y, 1, 1, col); }
+    // feed horn on three struts
+    const fx = cx + 6, fy = cy - 9;
+    [[-14, 6], [12, -3], [4, 9]].forEach(([ox, oy]) => { const sx = cx + ox, sy = cy + oy; for (let t = 0; t <= 1; t += 0.08) R(g, Math.round(sx + (fx - sx) * t), Math.round(sy + (fy - sy) * t), 1, 1, '#55585e'); });
+    R(g, fx - 2, fy - 2, 4, 4, '#3e4146'); R(g, fx - 1, fy - 1, 2, 2, '#d9463b');
+    outline(c); };
+  let pushers = [];
+  const baseRender = renderStreet;
+  renderStreet = function(){
+    baseRender.apply(this, arguments);
+    const wrap = $('path-wrap'), S = street.S, N = street.stops.length, f = street.L / 180, WW = street.WW;
+    const yard = (k, a, b) => { const p = street.verts[k]; return k % 2 === 0 ? { u:p.u + a * f, v:p.v - b * f } : { u:p.u - b * f, v:p.v + a * f }; };
+    const place = (c, q, ax, ay, k = 1, cls = 'st-camp') => { const p = isoPt(q.u, q.v); c.className = cls; c.setAttribute('aria-hidden', 'true');
+      Object.assign(c.style, { position:'absolute', imageRendering:'pixelated', pointerEvents:'none', left:Math.round((p.x - ax * k) * S) + 'px', top:Math.round((p.y - ay * k) * S) + 'px', width:Math.round(c.width * k * S) + 'px', height:Math.round(c.height * k * S) + 'px', zIndex:objZ(q.u, q.v) });
+      wrap.appendChild(c); return p; };
+
+    // the drill sergeant stands where the bench was
+    (street.yellers || []).forEach(y => { const el = y.el; el.style.height = Math.round(58 * S) + 'px'; el.style.top = Math.round(parseFloat(el.style.top) - 12 * S) + 'px'; paintBench(el, 0); y.bub.style.top = Math.round(parseFloat(y.bub.style.top) - 10 * S) + 'px'; });
+
+    // two humvees parked up the old road from the helipad
+    const rv = roadV();
+    // parked side by side, door to door, the same way round; offset across their width (local y), drawn 1.3x
+    const HTH = -0.3, gap = 19 * 1.3, hu = -104, hv = rv + 62;
+    [[hu + gap * Math.sin(-HTH), hv - gap * Math.cos(HTH), HTH], [hu - gap * Math.sin(-HTH), hv + gap * Math.cos(HTH), HTH]].forEach(([u, v, th]) => { const c = document.createElement('canvas'); paintHumvee(th)(c); place(c, { u, v }, HUMVEE.OX, HUMVEE.OY, 1.3, 'st-camp st-tank'); });
+
+    // where things can go: open sand, off the walks, off the houses, on screen, and not on top of another prop
+    const route = [];
+    for (let k = -1; k < N - 1; k++) { const a = isoPt(street.verts[k].u, street.verts[k].v), b = isoPt(street.verts[k + 1].u, street.verts[k + 1].v);
+      for (let t = 0; t <= 1; t += 0.03) route.push({ x:a.x + (b.x - a.x) * t, y:a.y + (b.y - a.y) * t }); }
+    street.stops.forEach(st => { const w = st.walk, d = st.stand; for (let t = 0; t <= 1; t += 0.2) route.push({ x:w.x + (d.x - w.x) * t, y:w.y + (d.y - w.y) * t }); });
+    const feet = [];
+    wrap.querySelectorAll('.st-camp, .st-tree, .st-bench, .st-light').forEach(e => { if (e.style.display === 'none') return; const w = parseFloat(e.style.width) / S, h = parseFloat(e.style.height) / S;
+      const tank = e.classList.contains('st-tank'); feet.push({ x:parseFloat(e.style.left) / S + w / 2, y:parseFloat(e.style.top) / S + h - (tank ? h * 0.35 : 0), r:tank ? w * 0.55 : Math.max(12, w * 0.45) }); });
+    const pu = isoPt(-4, rv + 2); feet.push({ x:pu.x, y:pu.y, r:40 });
+    const onHouse = (x, y) => street.stops.some(s => houseOpaque(s, x, y) || houseOpaque(s, x, y - 14) || houseOpaque(s, x - 10, y - 6) || houseOpaque(s, x + 10, y - 6) || houseOpaque(s, x, y + 6));
+    const free = (x, y, r, need) => x > 8 && x < WW - 8 && y > 0 && !onHouse(x, y) && route.every(p => Math.hypot((p.x - x) * 0.8, p.y - y) > need) && feet.every(o => Math.hypot(o.x - x, (o.y - y) * 1.6) > Math.max(o.r, r));
+    let seed = 41; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const spots = [];
+    // the grid reaches past each yard's old edge so the outskirts of the base fill in too
+    for (let k = 0; k < N - 1; k++) for (let a = 6; a < 216; a += 15) for (let b = 6; b < 236 - a; b += 15) spots.push([k, a + (rnd() - 0.5) * 10, b + (rnd() - 0.5) * 10, a + b < 186]);
+    spots.sort(() => rnd() - 0.5);
+
+    // the soldier doing pushups gets the first good open spot near the middle of the base
+    pushers = [];
+    const pk = Math.min(N - 2, 2 + ((Date.now() / 60000) | 0) % Math.max(1, N - 4));
+    for (const [k, a, b, inner] of spots) { if (!inner || k !== pk && k !== pk + 1) continue; const q = yard(k, a, b), p = isoPt(q.u, q.v); if (!free(p.x, p.y, 34, 22)) continue;
+      const c = document.createElement('canvas'); pushup(c, false); place(c, q, 15, 13, 1.7, 'st-camp st-keep'); feet.push({ x:p.x, y:p.y, r:34 }); pushers.push({ el:c, n:0, down:false, rest:0 }); break; }
+
+    // one big radar dish out on the edge of the base, like the tank
+    // Duncan's spot: the open sand beside Hank the Haggler's stop, clear of the doors; fall back to the left side if that stop isn't there
+    const RK = 11, rq = RK < N ? { u:street.verts[RK].u - 59.5, v:street.verts[RK].v + 71.5 } : null, rp = rq && isoPt(rq.u, rq.v);
+    if (rq && !onHouse(rp.x, rp.y)) { const c = document.createElement('canvas'); paintRadar(c); place(c, rq, 27, 62, 1.35, 'st-camp st-tank'); feet.push({ x:rp.x, y:rp.y, r:46 }); }
+    else for (const [k, a, b] of spots) { if (k < 1 || k > 3) continue; const q = yard(k, a, b), p = isoPt(q.u, q.v); if (p.x < 34 || p.x > 120 || !free(p.x, p.y, 46, 30)) continue;
+      const c = document.createElement('canvas'); paintRadar(c); place(c, q, 27, 62, 1.35, 'st-camp st-tank'); feet.push({ x:p.x, y:p.y, r:46 }); break; }
+
+    // fill the open sand: palms, Hesco, sandbags, crate stacks and rocks, spread across every yard
+    const kinds = [['palm', 0.32], ['hesco', 0.16], ['sandbags', 0.16], ['crates', 0.14], ['rock', 0.22]];
+    const pick = () => { let r = rnd(); for (const [k, w] of kinds) { if ((r -= w) <= 0) return k; } return 'rock'; };
+    let added = 0, innerAdded = 0;
+    const before = wrap.querySelectorAll('.st-camp, .st-tree').length;
+    for (const [k, a, b, inner] of spots) {
+      if (rnd() > 0.4) continue;
+      const q = yard(k, a, b), p = isoPt(q.u, q.v), kind = pick(), r = kind === 'palm' ? 22 : kind === 'rock' ? 20 : 26;
+      if (!free(p.x, p.y, r, kind === 'palm' ? 14 : 18)) continue;
+      const c = document.createElement('canvas');
+      if (kind === 'palm') { paintTree(c, 0); place(c, q, 14, 44, 1, 'st-tree'); }
+      else if (kind === 'crates') { const c2 = document.createElement('canvas'); MIL_ART.crate(c); place(c, q, 8, 14); MIL_ART.crate(c2); place(c2, { u:q.u + 6, v:q.v - 4 }, 8, 14); }
+      else if (kind === 'rock') { MIL_ART.rock(c, (rnd() * 5) | 0); place(c, q, c.width / 2, c.height - 2); }
+      else { MIL_ART[kind](c); place(c, q, c.width / 2, c.height - 1); }
+      feet.push({ x:p.x, y:p.y, r }); added++; if (inner) innerAdded++;
+    }
+    street.propsAdded = added;
+
+    // thin it out: keep MIL_DENSITY of what the base used to carry, pulling from the most crowded spots (near the walks) first
+    const dens = typeof window.MIL_DENSITY === 'number' ? window.MIL_DENSITY : MIL_DENSITY;
+    const pts = [...wrap.querySelectorAll('.st-camp, .st-tree')].filter(e => e.style.display !== 'none' && !e.classList.contains('st-tank') && !e.classList.contains('st-flag') && !e.classList.contains('st-keep') && !(e.width === 44 && e.height === 84))
+      .map(e => { const w = parseFloat(e.style.width) / S, h = parseFloat(e.style.height) / S, x = parseFloat(e.style.left) / S + w / 2, y = parseFloat(e.style.top) / S + h;
+        return { e, x, y, near:route.reduce((m, p) => Math.min(m, Math.hypot(p.x - x, p.y - y)), 1e9) }; });
+    const target = Math.round((before + innerAdded) * dens) - (wrap.querySelectorAll('.st-camp, .st-tree').length - pts.length);
+    let live = pts.slice();
+    while (live.length > Math.max(0, target)) {
+      let worst = null, ws = -1;
+      for (const a of live) { let n = 0; for (const o of live) if (o !== a && Math.hypot(o.x - a.x, (o.y - a.y) * 1.6) < 44) n++; const sc = n + (a.near < 34 ? 2 : 0) + rnd() * 0.5; if (sc > ws) { ws = sc; worst = a; } }
+      worst.e.style.display = 'none'; live = live.filter(a => a !== worst);
+    }
+    street.propsShown = live.length;
+  };
+  if (!reduceMotion) setInterval(() => {
+    pushers.forEach(z => { if (!document.contains(z.el)) return;
+      if (z.rest > 0) { z.rest--; return; }
+      z.down = !z.down; pushup(z.el, z.down);
+      if (!z.down && ++z.n % 12 === 0) z.rest = 8;                    // a breather every twelve
+    });
+  }, 380);
 });
