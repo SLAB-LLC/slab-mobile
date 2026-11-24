@@ -437,3 +437,73 @@ if (MIL) appSafe('military skin', () => {
     return baseToast(t, icon);
   };
 });
+
+// ============ MILITARY VAULT: A GUNMETAL DOOR IN A RIVETED STEEL WALL ============
+// Duncan 2026-11-23: the Vault goes dark metal, the way Cade's and Ronin's went concrete. The wall around the
+// door becomes riveted gunmetal plates (scuffed and brushed), and the door's brass turns to steel. The hole in
+// the wall grows the same way when the door rolls away.
+if (MIL && typeof vxDoorEl === 'function') appSafe('military vault', () => {
+  const tex = (() => {
+    const N = 96, c = document.createElement('canvas'); c.width = c.height = N;
+    const g = c.getContext('2d'); let seed = 11;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const rowTone = [];
+    for (let y = 0; y < N; y++) rowTone.push(Math.round((rnd() - 0.5) * 6));   // brushed grain runs sideways
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const r = rnd(); let v = 40 + rowTone[y] + Math.round((r - 0.5) * 4);
+      if (r > 0.985) v = 58; else if (r < 0.012) v = 28;
+      g.fillStyle = `rgb(${v},${v + 3},${v + 7})`; g.fillRect(x, y, 1, 1);
+    }
+    // plates 48 tall, staggered every other row like a bulkhead
+    const seamH = (y) => { g.fillStyle = '#0d0e11'; g.fillRect(0, y, N, 1); g.fillStyle = '#4d525b'; g.fillRect(0, y + 1, N, 1); };
+    const seamV = (x, y0, h) => { g.fillStyle = '#0d0e11'; g.fillRect(x, y0, 1, h); g.fillStyle = '#4d525b'; g.fillRect(x + 1, y0, 1, h); };
+    seamH(0); seamH(48); seamV(0, 0, 48); seamV(48, 48, 48);
+    // rivets along every seam
+    const rivet = (x, y) => {
+      g.fillStyle = '#0b0c0e'; g.fillRect(x - 1, y - 1, 4, 4);
+      g.fillStyle = '#5c616b'; g.fillRect(x, y, 2, 2);
+      g.fillStyle = '#9aa1ab'; g.fillRect(x, y, 1, 1);
+    };
+    for (let x = 6; x < N; x += 12) { rivet(x, 5); rivet(x, 53); }
+    for (let y = 12; y < 48; y += 12) { rivet(5, y); rivet(53, y + 48); }
+    // scuffs and scratches
+    const scratch = (x, y, n, dy) => { for (let i = 0; i < n; i++) { g.fillStyle = i % 3 ? '#565b64' : '#363a41'; g.fillRect(x, y, 1, 1); x++; if (rnd() < 0.3) y += dy; } };
+    scratch(18, 24, 16, 1); scratch(62, 70, 20, -1); scratch(70, 20, 9, 1); scratch(10, 80, 12, -1);
+    return c.toDataURL();
+  })();
+  document.head.insertAdjacentHTML('beforeend', `<style>
+    .vx-door .vx-mil{ position:absolute; inset:0; pointer-events:none; --r:158px;
+      background:url(${tex}) 0 0 / 288px 288px repeat; image-rendering:pixelated;
+      -webkit-mask:radial-gradient(circle at 50% 46%, transparent var(--r), #000 calc(var(--r) + 1px));
+              mask:radial-gradient(circle at 50% 46%, transparent var(--r), #000 calc(var(--r) + 1px)); }
+    .vx-door .vx-mil::after{ content:""; position:absolute; inset:0; background:radial-gradient(circle at 50% 46%, transparent 170px, rgba(0,0,0,.45) 520px); }
+    .skin-military .vx-door .hole{ box-shadow:0 0 0 8px #3b3f46, 0 0 0 12px #0c0d0f, 0 0 34px 18px rgba(0,0,0,.7); }
+    .skin-military .vx-door.reveal .hole{ box-shadow:none; }
+    .skin-military .vx-door .hint{ color:#B4BBC3; text-shadow:2px 2px 0 #000; }
+    .vx-door.reveal .vx-mil{ --r:860px; transition:--r .8s cubic-bezier(.65,0,.35,1); }
+  </style>`);
+  if (window.CSS && CSS.registerProperty) { try { CSS.registerProperty({ name:'--r', syntax:'<length>', inherits:false, initialValue:'158px' }); } catch (e) {} }
+  const baseDoorEl = vxDoorEl;
+  vxDoorEl = function(){
+    const had = $('vx-door'), d = baseDoorEl();
+    if (!had && !d.querySelector('.vx-mil')) { const m = document.createElement('div'); m.className = 'vx-mil'; d.insertBefore(m, d.firstChild); }
+    return d;
+  };
+  // the brass (or the company tint over it) turns to gunmetal steel, keeping its light and shade
+  const steel = (cv) => {
+    if (!cv || !cv.getContext) return;
+    const g = cv.getContext('2d'), im = g.getImageData(0, 0, cv.width, cv.height), d = im.data;
+    for (let i = 0; i < d.length; i += 4) {
+      if (!d[i + 3]) continue;
+      const l = 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2];
+      d[i] = Math.min(255, l * 0.93); d[i + 1] = Math.min(255, l * 0.98); d[i + 2] = Math.min(255, l * 1.06 + 4);
+    }
+    g.putImageData(im, 0, 0);
+  };
+  const doorBase = paintVaultDoor, wheelBase = paintVaultWheel;
+  paintVaultDoor = function(c){ doorBase(c); steel(c); };
+  paintVaultWheel = function(c){ wheelBase(c); steel(c); };
+  const dd = $('vx-door');
+  if (dd && !dd.querySelector('.vx-mil')) { const m = document.createElement('div'); m.className = 'vx-mil'; dd.insertBefore(m, dd.firstChild); }
+  if (dd) { paintVaultDoor(dd.querySelector('.d')); paintVaultWheel(dd.querySelector('.w')); }
+});
