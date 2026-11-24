@@ -13543,6 +13543,8 @@ limitedHint = function(id){ return LIMITED[id] && LIMITED[id].season === 'slots'
 const SLOT_IDS = new Set(SLOT_GEAR.map(g => g[1]));
 
 // ---- drawing the slot-only gear over the normal sprite ----
+// which way the sprite faces: front, side (facing right) or back
+const slotView = (pose) => /^(up|knock-)/.test(pose || '') ? 'back' : /^(side|knockside)/.test(pose || '') ? 'side' : 'front';
 // iridescent rainbow that drifts with t, with glitter pixels that twinkle
 function slotPrism(x, y, t){
   const seed = ((x * 73856093) ^ (y * 19349663) ^ ((t | 0) * 83492791)) >>> 0;
@@ -13610,13 +13612,23 @@ const SLOT_DRAW = (() => {
     sl_rainbow: { pants:(x, y, t) => slotPrism(x, y, t), shoes:(x, y, top, t) => slotPrism(x + 3, y, t + 2) },
   };
   const HATS = {
-    sl_trout(g){
+    sl_trout(g, pose){
       span(g, 0, 11, 24, O);
       for (let y = 1; y <= 5; y++) { span(g, y, 10, 25, O); span(g, y, 11, 24, y === 5 ? '#2c5038' : '#3e6b4c'); }
       span(g, 6, 4, 31, O); span(g, 7, 4, 31, '#355e43'); span(g, 8, 5, 30, O);
+      if (slotView(pose) === 'back') return;
+      if (slotView(pose) === 'side') { span(g, 3, 19, 22, '#FF6C00'); px(g, 23, 2, '#FF6C00'); px(g, 23, 4, '#FF6C00'); return; }
       span(g, 3, 15, 19, '#FF6C00'); span(g, 4, 16, 18, '#FF6C00'); px(g, 20, 3, '#FF6C00'); px(g, 21, 2, '#FF6C00'); px(g, 21, 4, '#FF6C00'); px(g, 16, 3, '#f4f1ea');
     },
-    sl_visor(g){
+    sl_visor(g, pose){
+      const view = slotView(pose);
+      if (view === 'back') { span(g, 5, 8, 27, O); span(g, 6, 8, 27, '#1f8a4f'); span(g, 7, 8, 27, '#1f8a4f'); span(g, 8, 8, 27, O); return; }
+      if (view === 'side') {
+        span(g, 5, 9, 27, O); span(g, 6, 9, 27, '#1f8a4f'); span(g, 7, 9, 27, '#1f8a4f');
+        px(g, 21, 6, '#ff3b3b'); px(g, 22, 6, '#ff3b3b'); px(g, 22, 7, '#ff3b3b');
+        g.fillStyle = 'rgba(57,255,158,0.45)'; g.fillRect(20, 8, 12, 2); span(g, 8, 18, 31, '#1f8a4f'); span(g, 9, 26, 31, O);
+        return;
+      }
       span(g, 5, 8, 27, O); span(g, 6, 8, 27, '#1f8a4f'); span(g, 7, 8, 27, '#1f8a4f');
       [13, 17, 21].forEach(x => { px(g, x, 6, '#ff3b3b'); px(g, x + 1, 6, '#ff3b3b'); px(g, x + 1, 7, '#ff3b3b'); });
       g.fillStyle = 'rgba(57,255,158,0.45)'; g.fillRect(6, 8, 24, 3); span(g, 8, 6, 29, '#1f8a4f');
@@ -13624,11 +13636,12 @@ const SLOT_DRAW = (() => {
     sl_hood(g, pose){
       // hood over the whole head, a dark visor with a gas mask behind it
       const Y = '#f2c230', Yd = '#d3a51f', K = '#1b1b20';
+      const w = slotView(pose) === 'side' ? 2 : 0;
       span(g, 0, 11, 24, O);
       span(g, 1, 9, 26, O); span(g, 1, 10, 25, Y);
-      for (let y = 2; y <= 23; y++) { span(g, y, 6, 29, O); span(g, y, 7, 28, y >= 21 ? Yd : Y); }
-      if (/^(up|knock-)/.test(pose)) { span(g, 3, 17, 18, K); for (let y = 6; y <= 22; y += 4) span(g, y, 17, 18, Yd); return; }
-      if (/^(side|knockside)/.test(pose)) {
+      for (let y = 2; y <= 23; y++) { span(g, y, 6 + w, 29 - w / 2, O); span(g, y, 7 + w, 28 - w / 2, y >= 21 ? Yd : Y); }
+      if (slotView(pose) === 'back') { span(g, 3, 17, 18, K); for (let y = 6; y <= 22; y += 4) span(g, y, 17, 18, Yd); return; }
+      if (slotView(pose) === 'side') {
         for (let y = 7; y <= 19; y++) { span(g, y, 18, 28, K); span(g, y, 19, 28, '#0d1418'); }
         span(g, 10, 22, 24, '#5d6a70'); span(g, 11, 22, 24, '#a9bcc4'); span(g, 12, 22, 24, '#5d6a70');
         span(g, 15, 24, 28, '#2b2b31'); span(g, 16, 24, 28, '#3c3c44'); span(g, 17, 25, 28, '#2b2b31'); px(g, 20, 8, '#5f7a86');
@@ -13649,7 +13662,16 @@ const SLOT_DRAW = (() => {
     },
   };
   const EXTRAS = {
-    sl_goggles(g){
+    sl_goggles(g, pose){
+      const view = slotView(pose);
+      if (view === 'back') { span(g, 13, 8, 27, '#1b1b20'); span(g, 12, 16, 19, '#5d6a70'); span(g, 13, 16, 19, '#8a949a'); span(g, 14, 16, 19, '#5d6a70'); return; }
+      if (view === 'side') {
+        span(g, 14, 9, 19, '#1b1b20');
+        for (let y = 12; y <= 17; y++) span(g, y, 19, 25, O);
+        for (let y = 13; y <= 16; y++) span(g, y, 20, 24, '#4fd1a5');
+        px(g, 23, 13, '#c8fff0'); px(g, 24, 13, '#9cf3d4'); px(g, 24, 14, '#c8fff0');
+        return;
+      }
       span(g, 12, 8, 27, '#1b1b20');
       [11, 19].forEach(x0 => {
         for (let y = 11; y <= 16; y++) span(g, y, x0, x0 + 5, O);
@@ -13657,7 +13679,14 @@ const SLOT_DRAW = (() => {
         px(g, x0 + 1, 12, '#c8fff0'); px(g, x0 + 2, 12, '#9cf3d4');
       });
     },
-    sl_neon(g){
+    sl_neon(g, pose){
+      const view = slotView(pose);
+      if (view === 'back') return;
+      if (view === 'side') {
+        [[16, 22], [17, 23], [18, 23], [19, 24], [20, 24], [21, 25]].forEach(([x, y]) => px(g, x, y, '#39ff9e'));
+        px(g, 22, 25, '#f2efe6'); span(g, 26, 21, 23, '#39ff9e'); span(g, 27, 21, 23, '#39ff9e'); px(g, 22, 26, '#c8ffe4');
+        return;
+      }
       [[13, 22], [14, 23], [15, 24], [16, 25], [22, 22], [21, 23], [20, 24], [19, 25]].forEach(([x, y]) => px(g, x, y, '#39ff9e'));
       px(g, 17, 26, '#f2efe6'); px(g, 18, 26, '#f2efe6');
       span(g, 27, 16, 19, '#39ff9e'); span(g, 28, 16, 19, '#39ff9e'); px(g, 17, 27, '#c8ffe4');
@@ -13715,8 +13744,15 @@ spriteCanvas = function(look, pose, mood, flash){
     g.putImageData(img, 0, 0);
     if (fit && fit.after && !/^(side|up|knock)/.test(pose || '')) fit.after(g);
   }
-  if (extra) SLOT_DRAW.EXTRAS[extra](g);
-  if (hat) SLOT_DRAW.HATS[hat](g, pose || '');
+  if (extra || hat) {
+    // follow the head when the sprite bobs: the gear is drawn for a head whose top row is 2
+    const A = a.getContext('2d').getImageData(0, 0, SPR_W, SPR_H).data; let top = 2;
+    for (let y = 0; y < SPR_H; y++) { let hit = false; for (let x = 0; x < SPR_W; x++) if (A[(y * SPR_W + x) * 4 + 3]) { hit = true; break; } if (hit) { top = y; break; } }
+    g.save(); g.translate(0, top - 2);
+    if (extra) SLOT_DRAW.EXTRAS[extra](g, pose || '');
+    if (hat) SLOT_DRAW.HATS[hat](g, pose || '');
+    g.restore();
+  }
   if (slotWearCache.size > 300) slotWearCache.clear(); slotWearCache.set(key, c);
   return c;
 };
