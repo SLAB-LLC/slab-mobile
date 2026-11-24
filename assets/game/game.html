@@ -13273,7 +13273,7 @@ if (MIL && typeof renderStreet === 'function') appSafe('outpost round 3', () => 
     g.putImageData(im, 0, 0);
   };
 
-  const MIL_DENSITY = 1;                                                // share of props kept across the base (1, 0.75 or 0.5)
+  const MIL_DENSITY = 0.5;                                              // share of props kept across the base (1, 0.75 or 0.5)
   // a big pixel radar dish on a lattice mast with an olive shelter at its foot
   const paintRadar = (c) => { c.width = 54; c.height = 66; const g = c.getContext('2d');
     // shelter
