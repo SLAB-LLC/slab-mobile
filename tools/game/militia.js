@@ -1195,13 +1195,13 @@ if (MIL && typeof renderStreet === 'function') appSafe('outpost round 3', () => 
 
     // one big radar dish out on the edge of the base, like the tank
     // the rocket launcher fills the empty bottom-right corner past the last walk; tap it to fire
-    if (N >= 3) { const vq = street.verts[N - 2], lq = { u:vq.u + 94, v:vq.v + 98 }, lp = isoPt(lq.u, lq.v), LK = 1.35;
+    if (N >= 3) { const vq = street.verts[N - 2], lq = { u:vq.u + 80, v:vq.v + 112 }, lp = isoPt(lq.u, lq.v), LK = 1.75;
       wrap.querySelectorAll('.st-camp, .st-tree').forEach(t => { const bx = (parseFloat(t.style.left) + parseFloat(t.style.width) / 2) / S, by = (parseFloat(t.style.top) + parseFloat(t.style.height)) / S;
-        if (Math.abs(bx - lp.x) < 60 && by > lp.y - 40 && by < lp.y + 28) t.style.display = 'none'; });
+        if (Math.abs(bx - lp.x) < 76 && by > lp.y - 52 && by < lp.y + 34) t.style.display = 'none'; });
       const c = document.createElement('canvas'); paintLauncher(c); place(c, lq, LAUNCHER.OX, LAUNCHER.OY, LK, 'st-camp st-tank st-launcher'); c._k = LK;
       Object.assign(c.style, { pointerEvents:'auto', cursor:'pointer' }); c.setAttribute('role', 'button'); c.setAttribute('aria-label', 'Fire a rocket');
       c.addEventListener('click', e => { e.stopPropagation(); fireLauncher(c, wrap, S); });
-      feet.push({ x:lp.x, y:lp.y - 6, r:58 }); }
+      feet.push({ x:lp.x, y:lp.y - 8, r:72 }); }
 
     // Duncan's spot: the open sand beside Hank the Haggler's stop, clear of the doors; fall back to the left side if that stop isn't there
     const RK = 11, rq = RK < N ? { u:street.verts[RK].u - 59.5, v:street.verts[RK].v + 71.5 } : null, rp = rq && isoPt(rq.u, rq.v);
