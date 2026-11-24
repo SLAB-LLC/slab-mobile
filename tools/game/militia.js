@@ -1078,6 +1078,23 @@ if (MIL && typeof renderStreet === 'function') appSafe('outpost round 3', () => 
     g.putImageData(im, 0, 0);
   };
 
+  const MIL_DENSITY = 1;                                                // share of props kept across the base (1, 0.75 or 0.5)
+  // a big pixel radar dish on a lattice mast with an olive shelter at its foot
+  const paintRadar = (c) => { c.width = 54; c.height = 66; const g = c.getContext('2d');
+    // shelter
+    R(g, 10, 50, 34, 12, '#4b5320'); R(g, 10, 46, 34, 4, '#66702e'); R(g, 10, 50, 34, 1, '#363b17'); R(g, 14, 53, 6, 7, '#363b17'); R(g, 30, 53, 10, 3, '#59622a'); R(g, 9, 62, 36, 2, 'rgba(0,0,0,.35)');
+    // lattice mast
+    for (let y = 30; y < 47; y++) { const s = (y - 30) >> 2; R(g, 23 - s, y, 1, 1, '#55585e'); R(g, 31 + s, y, 1, 1, '#3e4146'); if ((y & 3) === 0) R(g, 23 - s, y, 9 + s * 2, 1, '#6b7078'); if ((y & 3) === 2) R(g, 26, y, 3, 1, '#55585e'); }
+    R(g, 24, 26, 7, 5, '#6b7078'); R(g, 24, 30, 7, 1, '#3e4146');
+    // dish, tipped up and to the right
+    const cx = 27, cy = 16, rx = 23, ry = 12, an = -0.42, ca = Math.cos(an), sa = Math.sin(an);
+    for (let y = 0; y < 34; y++) for (let x = 0; x < 54; x++) { const dx = x + 0.5 - cx, dy = y + 0.5 - cy, u = (dx * ca + dy * sa) / rx, v = (-dx * sa + dy * ca) / ry, d = u * u + v * v;
+      if (d > 1) continue; const col = d > 0.78 ? '#8a8576' : (u + v < -0.35 ? '#e4dfcf' : u + v < 0.35 ? '#c9c4b4' : '#aba696'); R(g, x, y, 1, 1, col); }
+    // feed horn on three struts
+    const fx = cx + 6, fy = cy - 9;
+    [[-14, 6], [12, -3], [4, 9]].forEach(([ox, oy]) => { const sx = cx + ox, sy = cy + oy; for (let t = 0; t <= 1; t += 0.08) R(g, Math.round(sx + (fx - sx) * t), Math.round(sy + (fy - sy) * t), 1, 1, '#55585e'); });
+    R(g, fx - 2, fy - 2, 4, 4, '#3e4146'); R(g, fx - 1, fy - 1, 2, 2, '#d9463b');
+    outline(c); };
   let pushers = [];
   const baseRender = renderStreet;
   renderStreet = function(){
@@ -1110,20 +1127,26 @@ if (MIL && typeof renderStreet === 'function') appSafe('outpost round 3', () => 
     const free = (x, y, r, need) => x > 8 && x < WW - 8 && y > 0 && !onHouse(x, y) && route.every(p => Math.hypot((p.x - x) * 0.8, p.y - y) > need) && feet.every(o => Math.hypot(o.x - x, (o.y - y) * 1.6) > Math.max(o.r, r));
     let seed = 41; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
     const spots = [];
-    for (let k = 0; k < N - 1; k++) for (let a = 6; a < 186; a += 15) for (let b = 6; b < 186 - a; b += 15) spots.push([k, a + (rnd() - 0.5) * 10, b + (rnd() - 0.5) * 10]);
+    // the grid reaches past each yard's old edge so the outskirts of the base fill in too
+    for (let k = 0; k < N - 1; k++) for (let a = 6; a < 216; a += 15) for (let b = 6; b < 236 - a; b += 15) spots.push([k, a + (rnd() - 0.5) * 10, b + (rnd() - 0.5) * 10, a + b < 186]);
     spots.sort(() => rnd() - 0.5);
 
     // the soldier doing pushups gets the first good open spot near the middle of the base
     pushers = [];
     const pk = Math.min(N - 2, 2 + ((Date.now() / 60000) | 0) % Math.max(1, N - 4));
-    for (const [k, a, b] of spots) { if (k !== pk && k !== pk + 1) continue; const q = yard(k, a, b), p = isoPt(q.u, q.v); if (!free(p.x, p.y, 34, 22)) continue;
-      const c = document.createElement('canvas'); pushup(c, false); place(c, q, 15, 13, 1.7); feet.push({ x:p.x, y:p.y, r:34 }); pushers.push({ el:c, n:0, down:false, rest:0 }); break; }
+    for (const [k, a, b, inner] of spots) { if (!inner || k !== pk && k !== pk + 1) continue; const q = yard(k, a, b), p = isoPt(q.u, q.v); if (!free(p.x, p.y, 34, 22)) continue;
+      const c = document.createElement('canvas'); pushup(c, false); place(c, q, 15, 13, 1.7, 'st-camp st-keep'); feet.push({ x:p.x, y:p.y, r:34 }); pushers.push({ el:c, n:0, down:false, rest:0 }); break; }
+
+    // one big radar dish out on the edge of the base, like the tank
+    for (const [k, a, b] of spots) { if (k > 2) continue; const q = yard(k, a, b), p = isoPt(q.u, q.v); if (p.x < WW - 120 || p.x > WW - 34 || !free(p.x, p.y, 46, 30)) continue;
+      const c = document.createElement('canvas'); paintRadar(c); place(c, q, 27, 62, 1.35, 'st-camp st-tank'); feet.push({ x:p.x, y:p.y, r:46 }); break; }
 
     // fill the open sand: palms, Hesco, sandbags, crate stacks and rocks, spread across every yard
     const kinds = [['palm', 0.32], ['hesco', 0.16], ['sandbags', 0.16], ['crates', 0.14], ['rock', 0.22]];
     const pick = () => { let r = rnd(); for (const [k, w] of kinds) { if ((r -= w) <= 0) return k; } return 'rock'; };
-    let added = 0;
-    for (const [k, a, b] of spots) {
+    let added = 0, innerAdded = 0;
+    const before = wrap.querySelectorAll('.st-camp, .st-tree').length;
+    for (const [k, a, b, inner] of spots) {
       if (rnd() > 0.4) continue;
       const q = yard(k, a, b), p = isoPt(q.u, q.v), kind = pick(), r = kind === 'palm' ? 22 : kind === 'rock' ? 20 : 26;
       if (!free(p.x, p.y, r, kind === 'palm' ? 14 : 18)) continue;
@@ -1132,9 +1155,23 @@ if (MIL && typeof renderStreet === 'function') appSafe('outpost round 3', () => 
       else if (kind === 'crates') { const c2 = document.createElement('canvas'); MIL_ART.crate(c); place(c, q, 8, 14); MIL_ART.crate(c2); place(c2, { u:q.u + 6, v:q.v - 4 }, 8, 14); }
       else if (kind === 'rock') { MIL_ART.rock(c, (rnd() * 6) | 0); place(c, q, c.width / 2, c.height - 2); }
       else { MIL_ART[kind](c); place(c, q, c.width / 2, c.height - 1); }
-      feet.push({ x:p.x, y:p.y, r }); added++;
+      feet.push({ x:p.x, y:p.y, r }); added++; if (inner) innerAdded++;
     }
     street.propsAdded = added;
+
+    // thin it out: keep MIL_DENSITY of what the base used to carry, pulling from the most crowded spots (near the walks) first
+    const dens = typeof window.MIL_DENSITY === 'number' ? window.MIL_DENSITY : MIL_DENSITY;
+    const pts = [...wrap.querySelectorAll('.st-camp, .st-tree')].filter(e => e.style.display !== 'none' && !e.classList.contains('st-tank') && !e.classList.contains('st-flag') && !e.classList.contains('st-keep') && !(e.width === 44 && e.height === 84))
+      .map(e => { const w = parseFloat(e.style.width) / S, h = parseFloat(e.style.height) / S, x = parseFloat(e.style.left) / S + w / 2, y = parseFloat(e.style.top) / S + h;
+        return { e, x, y, near:route.reduce((m, p) => Math.min(m, Math.hypot(p.x - x, p.y - y)), 1e9) }; });
+    const target = Math.round((before + innerAdded) * dens) - (wrap.querySelectorAll('.st-camp, .st-tree').length - pts.length);
+    let live = pts.slice();
+    while (live.length > Math.max(0, target)) {
+      let worst = null, ws = -1;
+      for (const a of live) { let n = 0; for (const o of live) if (o !== a && Math.hypot(o.x - a.x, (o.y - a.y) * 1.6) < 44) n++; const sc = n + (a.near < 34 ? 2 : 0) + rnd() * 0.5; if (sc > ws) { ws = sc; worst = a; } }
+      worst.e.style.display = 'none'; live = live.filter(a => a !== worst);
+    }
+    street.propsShown = live.length;
   };
   if (!reduceMotion) setInterval(() => {
     pushers.forEach(z => { if (!document.contains(z.el)) return;
