@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '../context/AuthContext'
 import { useTenant, useTenantTheme, useFeatures, useLabels } from '../tenant'
 import { useXp } from '../xp'
-import { useMyLook, normalizeLook, useSpriteEngine } from '../avatar'
+import { useMyLook } from '../avatar'
 import type { RepLook } from '../avatar'
 import { supabase } from '../utils/supabase'
 import { grantXp } from '../services/xp.service'
@@ -59,8 +59,7 @@ export default function GameScreen() {
   const features = useFeatures()
   const { ready: tenantReady } = useTenant()
   const { totalXp, streakDays, xpLoaded, refreshXp } = useXp()
-  const { look, hasLook, saveLook } = useMyLook()
-  const engine = useSpriteEngine()
+  const { savedLook, hasLook, saveLook } = useMyLook()
 
   const insets = useSafeAreaInsets()
   const webRef = useRef<WebView>(null)
@@ -99,7 +98,8 @@ export default function GameScreen() {
       labels,
       totalXp,
       streakDays,
-      look: hasLook ? look : null,
+      // The saved look as is, so gear only the game page draws (Militia kit and the like) survives
+      look: hasLook ? savedLook : null,
       media: MEDIA_URL,
       build: otaStatus(),
     })
@@ -208,7 +208,7 @@ export default function GameScreen() {
           return (data ?? []).map((r: any) => ({ d: r.local_date, xp: r.amount }))
         }
         case 'saveLook':
-          await saveLook(normalizeLook(engine, payload?.look as Partial<RepLook>))
+          await saveLook(payload?.look as Partial<RepLook>)
           return null
         case 'password': {
           const { error } = await supabase.auth.updateUser({ password: String(payload?.password ?? '') })
@@ -283,7 +283,7 @@ export default function GameScreen() {
           throw new Error(`Unknown request: ${type}`)
       }
     },
-    [user?.id, profile, company, theme, engine, saveLook, signOut, navigation, refreshXp, refreshProfile, pageReady]
+    [user?.id, profile, company, theme, saveLook, signOut, navigation, refreshXp, refreshProfile, pageReady]
   )
 
   const onMessage = useCallback(

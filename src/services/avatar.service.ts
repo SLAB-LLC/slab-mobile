@@ -18,7 +18,7 @@ export async function getMyLook(userId: string): Promise<Partial<RepLook> | null
   return (data?.look as Partial<RepLook>) ?? null
 }
 
-export async function saveMyLook(userId: string, companyId: string | null, look: RepLook) {
+export async function saveMyLook(userId: string, companyId: string | null, look: Partial<RepLook>) {
   const { error } = await supabase
     .from('user_avatars')
     .upsert({ user_id: userId, company_id: companyId, look }, { onConflict: 'user_id' })
