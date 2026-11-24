@@ -13222,14 +13222,17 @@ if (MIL && typeof renderStreet === 'function') appSafe('outpost round 3', () => 
   });
 
   // ---- a soldier doing pushups, side on: arms straight (up) and bent (down) ----
+  // pivots on the toes: the boots and hands stay planted, the body is one straight plank from toes to shoulders, and the arms bend
   const pushup = (c, down) => { c.width = 30; c.height = 14; const g = c.getContext('2d'); g.clearRect(0, 0, 30, 14);
     const F = '#5b6438', FD = '#3f4626', K = '#c58a5e', H = '#4b5320', B = '#16140f';
-    const y0 = down ? 8 : 5, slope = down ? 0.08 : 0.22;
-    for (let x = 5; x <= 24; x++) { const y = Math.round(y0 + (x - 5) * slope); R(g, x, y, 1, x < 15 ? 3 : 2, ((x * 3) % 7 === 0) ? FD : F); }
-    R(g, 25, Math.round(y0 + 20 * slope) + 1, 3, 2, B);
-    R(g, 1, y0 - 2, 5, 3, H); R(g, 2, y0 + 1, 3, 2, K); R(g, 0, y0, 1, 1, H);
-    if (down) { R(g, 7, y0 + 3, 4, 1, F); R(g, 10, y0 + 3, 1, 3, F); } else { R(g, 6, y0 + 3, 2, 7, F); }
-    R(g, down ? 9 : 5, 12, 3, 1, K);
+    const tx = 27, ty = 11.5, sx = 7, sy = down ? 9 : 4;                        // toe pivot and shoulder
+    const yAt = x => ty + (sy - ty) * (tx - x) / (tx - sx);
+    for (let x = sx - 1; x <= tx - 3; x++) { const y = Math.round(yAt(x) - 1); R(g, x, y, 1, x < 16 ? 3 : 2, ((x * 3) % 7 === 0) ? FD : F); }
+    for (let x = tx - 3; x <= tx; x++) R(g, x, Math.round(yAt(x) - 1), 1, 2, B);   // boots ride the same line down to the toes
+    const hy = Math.round(sy) - 2; R(g, sx - 6, hy - 2, 5, 3, H); R(g, sx - 5, hy + 1, 3, 2, K); R(g, sx - 7, hy - 1, 1, 1, H);
+    if (down) { R(g, sx - 1, 10, 4, 1, F); R(g, sx - 1, 10, 2, 2, F); }       // elbows bent back over the hands
+    else { R(g, sx - 1, sy + 1, 2, 12 - sy - 1, F); }                          // straight arms
+    R(g, sx - 2, 12, 3, 1, K);                                                   // hands planted, same spot both frames
     outline(c, '#1a170f'); R(g, 3, 13, 25, 1, 'rgba(0,0,0,.35)'); };
 
   // ---- the drill sergeant (campaign hat, olive fatigues, boots) ----
@@ -13289,6 +13292,60 @@ if (MIL && typeof renderStreet === 'function') appSafe('outpost round 3', () => 
     [[-14, 6], [12, -3], [4, 9]].forEach(([ox, oy]) => { const sx = cx + ox, sy = cy + oy; for (let t = 0; t <= 1; t += 0.08) R(g, Math.round(sx + (fx - sx) * t), Math.round(sy + (fy - sy) * t), 1, 1, '#55585e'); });
     R(g, fx - 2, fy - 2, 4, 4, '#3e4146'); R(g, fx - 1, fy - 1, 2, 2, '#d9463b');
     outline(c); };
+  // ---- a tracked rocket launcher: low tan hull on tracks, a cab up front, a six-tube pod raised over the cab ----
+  const LAUNCHER = { W:96, H:84, OX:50, OY:56, TH:Math.PI / 2 - 0.35, A:0.55, muzzle:null, dir:null };
+  const paintLauncher = (c, empty = -1) => voxel(LAUNCHER.W, LAUNCHER.H, LAUNCHER.OX, LAUNCHER.OY, LAUNCHER.TH, ({ add, box, wheel, shadowOnly }) => {
+    const L = 36, Wd = 18, ox = -L / 2, oy = -Wd / 2, X = (x) => x + ox, Y = (y) => y + oy;
+    const T = '#c4a066', TS = '#a8854f', TD = '#7c6238', TR = '#2a2620', OL = '#59622a';
+    if (shadowOnly) { box(X(0), X(L), Y(0), Y(Wd)); return; }
+    // tracks with road wheels
+    [[0, 3.5], [Wd - 3.5, Wd]].forEach(([y0, y1]) => { box(X(1), X(L - 1), Y(y0), Y(y1), 5, (x, y, z, f) => f === 'top' ? '#3a352c' : (Math.round(x) % 2 ? TR : '#3a352c'));
+      [5, 11, 17, 23, 29].forEach(x => { for (let a = 0; a < 6.28; a += 0.3) add(X(x) + Math.cos(a) * 1.8, Y(y0 < 1 ? -0.1 : Wd + 0.1), 2.6 + Math.sin(a) * 1.8, 0, y0 < 1 ? -1 : 1, 0, '#6b6250'); }); });
+    // hull
+    box(X(0.5), X(L - 0.5), Y(3.5), Y(Wd - 3.5), 9, (x, y, z, f) => f === 'top' ? T : z < 6 ? TD : TS, 4);
+    // cab at the front (+x), windows dark
+    box(X(L - 9), X(L - 0.5), Y(3), Y(Wd - 3), 15, (x, y, z, f) => f === 'top' ? T : (z > 11 && z < 14 && f !== 'back') ? '#3b3a22' : TS, 9);
+    // the launch pod: a box tipped up by A, hinged at the back of the hull, its open end aimed forward and up over the cab
+    const A = LAUNCHER.A, ca = Math.cos(A), sa = Math.sin(A), Lp = 22, Tk = 9, px0 = X(1), pz0 = 10, y0 = Y(1.5), y1 = Y(Wd - 1.5);
+    const P = (s, t) => [px0 + s * ca - t * sa, pz0 + s * sa + t * ca];
+    for (let s = 0; s <= Lp; s += 0.5) for (let y = y0; y <= y1; y += 0.5) { const [x, z] = P(s, Tk); add(x, y, z, -sa, 0, ca, (Math.round(s) % 6 === 0) ? TS : T); }
+    for (let s = 0; s <= Lp; s += 0.5) for (let t = 0; t <= Tk; t += 0.5) [[y0, -1], [y1, 1]].forEach(([y, ny]) => { const [x, z] = P(s, t); add(x, y, z, 0, ny, 0, t < 1 ? TD : (Math.round(s) % 6 === 0 ? TD : OL)); });
+    // the open end: six tubes, 2 rows of 3; a fired tube shows the flame-black hole only
+    for (let t = 0; t <= Tk; t += 0.5) for (let y = y0; y <= y1; y += 0.5) { const [x, z] = P(Lp, t);
+      const col = Math.min(2, Math.floor((y - y0) / ((y1 - y0) / 3))), row = t < Tk / 2 ? 0 : 1, cy = y0 + (col + 0.5) * (y1 - y0) / 3, ct = (row + 0.5) * Tk / 2, dd = Math.hypot(y - cy, t - ct);
+      add(x, y, z, ca, 0, sa, dd < 1.9 ? (row * 3 + col === empty ? '#0c0b09' : dd < 0.9 ? '#e8e2cf' : '#1d1b16') : (dd < 2.4 ? '#6b5a3a' : '#d8be8a')); }
+    // hydraulic rams under the pod
+    [y0 + 1.5, y1 - 1.5].forEach(y => { for (let s = 0; s <= 8; s += 0.4) for (let w = -0.5; w <= 0.5; w += 0.5) add(X(16) - s * 0.55 + w, y, 9 + s * 0.75, 0, y < 0 ? -1 : 1, 0, '#3e4146'); });
+    // where a rocket leaves, in canvas pixels, and which way it flies on screen
+    const co = Math.cos(LAUNCHER.TH), si = Math.sin(LAUNCHER.TH), proj = (x, y, z) => { const u = x * co - y * si, v = x * si + y * co; return { x:u - v + LAUNCHER.OX, y:(u + v) / 2 - z + LAUNCHER.OY }; };
+    const [mx, mz] = P(Lp + 1, Tk / 2), m = proj(mx, (y0 + y1) / 2, mz), [fx, fz] = P(Lp + 11, Tk / 2), f = proj(fx, (y0 + y1) / 2, fz);
+    LAUNCHER.muzzle = m; const d = Math.hypot(f.x - m.x, f.y - m.y); LAUNCHER.dir = { x:(f.x - m.x) / d, y:(f.y - m.y) / d };
+  })(c);
+  const rocketArt = (c) => { c.width = 14; c.height = 5; const g = c.getContext('2d');
+    R(g, 2, 1, 9, 3, '#c9c4b4'); R(g, 2, 3, 9, 1, '#8a8576'); R(g, 11, 1, 2, 3, '#d9463b'); R(g, 13, 2, 1, 1, '#d9463b'); R(g, 0, 0, 3, 1, '#55585e'); R(g, 0, 4, 3, 1, '#55585e'); R(g, 4, 1, 1, 3, '#55585e'); outline(c, '#16120c'); };
+  // fire one: flash, a kick, a rocket that climbs away on a smoke trail; the tube reloads a moment later
+  const fireLauncher = (el, wrap, S) => {
+    const st = el._st || (el._st = { next:0, busy:0 }); if (st.busy >= 3) return; const n = st.next; st.next = (n + 1) % 6; st.busy++;
+    paintLauncher(el, n); try { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type:'haptic', style:'heavy' })); } catch (e) {}
+    const k = el._k, ox = parseFloat(el.style.left), oy = parseFloat(el.style.top), m = LAUNCHER.muzzle, dir = LAUNCHER.dir;
+    const x0 = ox + m.x * k * S, y0 = oy + m.y * k * S, z = 9000;
+    el.animate([{ transform:'translate(0,0)' }, { transform:`translate(${-dir.x * 3}px,${-dir.y * 3 + 1}px)` }, { transform:'translate(0,0)' }], { duration:180 });
+    const flash = document.createElement('div'); Object.assign(flash.style, { position:'absolute', left:(x0 - 14) + 'px', top:(y0 - 14) + 'px', width:'28px', height:'28px', borderRadius:'50%', background:'radial-gradient(#fff7cf,#ffb340 45%,rgba(255,90,20,0) 70%)', zIndex:z, pointerEvents:'none' });
+    wrap.appendChild(flash); flash.animate([{ opacity:1, transform:'scale(.6)' }, { opacity:0, transform:'scale(1.6)' }], { duration:260 }).onfinish = () => flash.remove();
+    const r = document.createElement('canvas'); rocketArt(r); Object.assign(r.style, { position:'absolute', width:Math.round(14 * S * 1.2) + 'px', height:Math.round(5 * S * 1.2) + 'px', imageRendering:'pixelated', zIndex:z + 1, pointerEvents:'none', transformOrigin:'50% 50%' });
+    wrap.appendChild(r);
+    const t0 = performance.now(), dur = 2200, rw = 14 * S * 1.2, rh = 5 * S * 1.2; let lastPuff = 0;
+    const step = (now) => { const t = (now - t0) / 1000;
+      const dist = (60 * t + 200 * t * t) * S, lift = 240 * t * t * S;                       // speeds up and bends skyward
+      const x = x0 + dir.x * dist, y = y0 + dir.y * dist - lift, vx = dir.x * (60 + 400 * t), vy = dir.y * (60 + 400 * t) - 480 * t;
+      r.style.left = (x - rw / 2) + 'px'; r.style.top = (y - rh / 2) + 'px'; r.style.transform = `rotate(${Math.atan2(vy, vx)}rad)`;
+      if (now - lastPuff > 35) { lastPuff = now; const pf = document.createElement('div'), sz = (6 + Math.random() * 4) * S;
+        Object.assign(pf.style, { position:'absolute', left:(x - dir.x * rw * 0.5 - sz / 2) + 'px', top:(y - dir.y * rw * 0.5 - sz / 2) + 'px', width:sz + 'px', height:sz + 'px', borderRadius:'50%', background:t < 0.15 ? '#ffcf70' : '#d8d2c4', zIndex:z, pointerEvents:'none', imageRendering:'pixelated' });
+        wrap.appendChild(pf); pf.animate([{ opacity:0.9, transform:'scale(.6)' }, { opacity:0, transform:`scale(2.2) translate(${(Math.random() - 0.5) * 6}px,-4px)` }], { duration:1300, easing:'ease-out' }).onfinish = () => pf.remove(); }
+      if (now - t0 < dur && y > -60) requestAnimationFrame(step); else r.remove(); };
+    requestAnimationFrame(step);
+    setTimeout(() => { st.busy--; if (document.contains(el)) paintLauncher(el, st.busy ? (st.next + 5) % 6 : -1); }, 1500);
+  };
   let pushers = [];
   const baseRender = renderStreet;
   renderStreet = function(){
@@ -13332,6 +13389,15 @@ if (MIL && typeof renderStreet === 'function') appSafe('outpost round 3', () => 
       const c = document.createElement('canvas'); pushup(c, false); place(c, q, 15, 13, 1.7, 'st-camp st-keep'); feet.push({ x:p.x, y:p.y, r:34 }); pushers.push({ el:c, n:0, down:false, rest:0 }); break; }
 
     // one big radar dish out on the edge of the base, like the tank
+    // the rocket launcher fills the empty bottom-right corner past the last walk; tap it to fire
+    if (N >= 3) { const vq = street.verts[N - 2], lq = { u:vq.u + 80, v:vq.v + 112 }, lp = isoPt(lq.u, lq.v), LK = 1.75;
+      wrap.querySelectorAll('.st-camp, .st-tree').forEach(t => { const bx = (parseFloat(t.style.left) + parseFloat(t.style.width) / 2) / S, by = (parseFloat(t.style.top) + parseFloat(t.style.height)) / S;
+        if (Math.abs(bx - lp.x) < 76 && by > lp.y - 52 && by < lp.y + 34) t.style.display = 'none'; });
+      const c = document.createElement('canvas'); paintLauncher(c); place(c, lq, LAUNCHER.OX, LAUNCHER.OY, LK, 'st-camp st-tank st-launcher'); c._k = LK;
+      Object.assign(c.style, { pointerEvents:'auto', cursor:'pointer' }); c.setAttribute('role', 'button'); c.setAttribute('aria-label', 'Fire a rocket');
+      c.addEventListener('click', e => { e.stopPropagation(); fireLauncher(c, wrap, S); });
+      feet.push({ x:lp.x, y:lp.y - 8, r:72 }); }
+
     // Duncan's spot: the open sand beside Hank the Haggler's stop, clear of the doors; fall back to the left side if that stop isn't there
     const RK = 11, rq = RK < N ? { u:street.verts[RK].u - 59.5, v:street.verts[RK].v + 71.5 } : null, rp = rq && isoPt(rq.u, rq.v);
     if (rq && !onHouse(rp.x, rp.y)) { const c = document.createElement('canvas'); paintRadar(c); place(c, rq, 27, 62, 1.35, 'st-camp st-tank'); feet.push({ x:rp.x, y:rp.y, r:46 }); }
