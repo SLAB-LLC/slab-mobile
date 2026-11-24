@@ -48,7 +48,7 @@
     "typescript": "~5.9.2"
   },
   "private": true,
-  "description": "React Native mobile app for SLAB Voice - AI-powered sales call transcription with PII redaction and sales training.",
+  "description": "React Native mobile app for SLAB - AI-powered sales call transcription with PII redaction and sales training.",
   "keywords": [],
   "author": "",
   "license": "ISC",

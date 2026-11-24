@@ -50,7 +50,7 @@ export async function registerPushToken(userId: string): Promise<string | null> 
 
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('default', {
-        name: 'SLAB Voice',
+        name: 'SLAB',
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#f39c12',

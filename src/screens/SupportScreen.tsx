@@ -95,7 +95,7 @@ export default function SupportScreen() {
       {/* Footer note */}
       <View style={styles.footer}>
         <Text style={styles.footerText}>
-          SLAB Voice Support{'\n'}
+          SLAB Support{'\n'}
           Typical response time: within a few hours
         </Text>
       </View>

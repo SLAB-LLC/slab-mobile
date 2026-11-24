@@ -29,14 +29,14 @@ export default function TermsOfServiceScreen() {
         <View style={styles.header}>
           <Text style={styles.headerIcon}>📋</Text>
           <Text style={styles.title}>Terms of Service</Text>
-          <Text style={styles.subtitle}>SLAB Voice</Text>
+          <Text style={styles.subtitle}>SLAB</Text>
           <Text style={styles.lastUpdated}>Last updated: {LAST_UPDATED}</Text>
         </View>
 
         {/* Intro */}
         <View style={styles.introBanner}>
           <Text style={styles.introText}>
-            Please read these Terms carefully before using SLAB Voice. They govern your use of our app and services.
+            Please read these Terms carefully before using SLAB. They govern your use of our app and services.
           </Text>
         </View>
 

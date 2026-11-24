@@ -1,7 +1,7 @@
 # SLAB Mobile App - Testing Guide
 
 ## Overview
-This guide provides comprehensive testing procedures for the SLAB Voice mobile app to ensure production readiness.
+This guide provides comprehensive testing procedures for the SLAB mobile app to ensure production readiness.
 
 ---
 

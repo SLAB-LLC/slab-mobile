@@ -202,7 +202,7 @@ export default function SideDrawer({ visible, onClose, onNavigate }: SideDrawerP
         {/* Footer */}
         <View style={styles.footer}>
           <Image source={logoImage} style={styles.footerLogo} resizeMode="contain" />
-          <Text style={styles.footerText}>SLAB Voice v1.0</Text>
+          <Text style={styles.footerText}>SLAB</Text>
         </View>
       </Animated.View>
     </View>
