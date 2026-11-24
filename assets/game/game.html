@@ -12803,12 +12803,64 @@ const ART = {
     g.putImageData(im, 0, 0);
   };
   paintTree = function(c){ ART.palm(c); };
-  paintMailbox = function(c){ ART.crate(c); };
+  // nothing on the stoop corner (a crate there sat at the rep's feet), and the rep stands centered on the walk
+  paintMailbox = function(c){ c.width = 12; c.height = 18; };
+  if (typeof STAND_IN !== 'undefined') STAND_IN = 0;
   document.head.insertAdjacentHTML('beforeend', `<style>
     .skin-military .st-pond, .skin-military .st-frog, .skin-military .st-frogfly, .skin-military .st-fisher, .skin-military .st-garden, .skin-military .st-season{ display:none !important; }
     .st-camp{ position:absolute; image-rendering:pixelated; pointer-events:none; }
   </style>`);
 
+
+  // ---- one desert-tan tank, parked at an angle in the yard between the tents ----
+  const TANK_YARD = 4;
+  const paintTank = (c) => {
+    const W = 106, H = 58, OX = 38, OY = 36; c.width = W; c.height = H; const g = c.getContext('2d');
+    const LEN = 42, WID = 24, th = -0.45, co = Math.cos(th), si = Math.sin(th);
+    const pts = [];
+    const hash = (a, b) => ((Math.floor(a) * 73856093) ^ (Math.floor(b) * 19349663)) >>> 0;
+    const camo = (x, y) => { const h = Math.sin(x * 0.35) + Math.cos(y * 0.5 + x * 0.12) + Math.sin((x + y) * 0.21); return h > 1 ? 2 : h < -1.1 ? 1 : 0; };
+    const add = (x, y, z, nx, ny, nz, col) => { const lx = x - LEN / 2, ly = y - WID / 2; pts.push([lx * co - ly * si, lx * si + ly * co, z, nx * co - ny * si, nx * si + ny * co, nz, col]); };
+    const solid = (x0, x1, y0, y1, ztop, part) => {
+      for (let x = x0; x <= x1; x += 0.5) for (let y = y0; y <= y1; y += 0.5) {
+        const zt = ztop(x, y); if (zt <= 0) continue;
+        add(x, y, zt, 0, 0, 1, part(x, y, zt, 'top'));
+        const sides = [[x === x0, -1, 0], [x >= x1 - 0.25, 1, 0], [y === y0, 0, -1], [y >= y1 - 0.25, 0, 1]];
+        sides.forEach(([on, nx, ny]) => { if (on) for (let z = 0; z < zt; z += 0.5) add(x, y, z, nx, ny, 0, part(x, y, z, 'side')); });
+      }
+    };
+    const trackTop = (x) => 7 - Math.max(0, Math.abs(x - LEN / 2) - (LEN / 2 - 4)) * 0.9;
+    const track = (x, y, z, f) => f === 'top' ? ((Math.floor(x * 2) % 3) ? '#3a342a' : '#2a251e') : (z > 1.5 && z < 5.5 && Math.hypot(((x % 6) + 6) % 6 - 3, z - 3.5) < 2.2 ? '#5d5547' : '#2c2720');
+    solid(0, LEN, 0, 5, trackTop, track); solid(0, LEN, WID - 5, WID, trackTop, track);
+    const hullTop = (x) => x > LEN - 9 ? 11 - (x - (LEN - 9)) * 0.55 : x < 4 ? 10 : 11;
+    const hull = (x, y, z, f) => { const k = camo(x, y + z); const base = ['#a99266', '#7d6a48', '#c2ad7f'][k]; return f === 'top' ? base : z < 6.5 ? '#6b5a3d' : base; };
+    solid(2, LEN - 2, 4, WID - 4, hullTop, hull);
+    const TX = LEN * 0.42, TY = WID / 2;
+    for (let x = TX - 10; x <= TX + 10; x += 0.5) for (let y = TY - 8; y <= TY + 8; y += 0.5) {
+      const e = ((x - TX) / 10) ** 2 + ((y - TY) / 8) ** 2; if (e > 1) continue;
+      const rim = e > 0.82;
+      for (let z = 11; z < 17; z += 0.5) if (rim) add(x, y, z, (x - TX) / 10, (y - TY) / 8, 0, ['#a99266', '#7d6a48', '#c2ad7f'][camo(x + 7, y + z)]);
+      add(x, y, 17, 0, 0, 1, Math.hypot(x - TX + 3, y - TY - 3) < 2.4 ? '#4a3f2c' : e > 0.7 ? '#9a8660' : ['#b8a274', '#8f7b55', '#cdb889'][camo(x + 7, y)]);
+    }
+    for (let x = TX + 8; x <= LEN + 20; x += 0.5) for (let a = 0; a < 6.28; a += 0.3) { const r = x > LEN + 16 ? 2 : 1.5; add(x, TY + Math.cos(a) * r, 14 + Math.sin(a) * r, 0, Math.cos(a), Math.sin(a), x > LEN + 16 ? '#2e271c' : '#4f4433'); }
+    // painter's order: back to front, bottom to top
+    pts.sort((a, b) => (a[0] + a[1]) - (b[0] + b[1]) || a[2] - b[2]);
+    const buf = new Map();
+    const shade = (hex, k) => { const n = parseInt(hex.slice(1), 16), f = (v) => Math.max(0, Math.min(255, Math.round(v * k))); return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`; };
+    pts.forEach(([u, v, z, nu, nv, nz, col]) => {
+      if (nz < 0.5 && nu < -0.05 && nv < -0.05) return;            // faces turned away from the camera
+      const k = nz > 0.5 ? 1.08 : nu > 0 && nu >= nv ? 0.72 : 0.95;
+      buf.set(Math.round(u - v + OX) + ',' + Math.floor((u + v) / 2 - z + OY), shade(col, k));
+    });
+    // a shadow on the sand under it, then the tank, then its outline
+    g.fillStyle = 'rgba(0,0,0,0.35)';
+    for (let x = -2; x <= LEN + 2; x += 0.5) for (let y = -2; y <= WID + 3; y += 0.5) { const lx = x - LEN / 2, ly = y - WID / 2, u = lx * co - ly * si, v = lx * si + ly * co; g.fillRect(Math.round(u - v + OX + 2), Math.floor((u + v) / 2 + OY + 1), 1, 1); }
+    buf.forEach((col, key) => { const [x, y] = key.split(',').map(Number); g.fillStyle = col; g.fillRect(x, y, 1, 1); });
+    const has = (x, y) => buf.has(x + ',' + y), edge = [];
+    buf.forEach((_, key) => { const [x, y] = key.split(',').map(Number); [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([a, b]) => { if (!has(x + a, y + b)) edge.push([x + a, y + b]); }); });
+    g.fillStyle = '#16120c'; edge.forEach(([x, y]) => g.fillRect(x, y, 1, 1));
+    return { ax:OX, ay:OY };
+  };
   const baseRender = renderStreet;
   renderStreet = function(){
     baseRender.apply(this, arguments);
@@ -12817,11 +12869,22 @@ const ART = {
     const put = (paint, q, ax, ay) => { const c = document.createElement('canvas'); c.className = 'st-camp'; c.setAttribute('aria-hidden', 'true'); paint(c);
       const p = isoPt(q.u, q.v); Object.assign(c.style, { left:Math.round((p.x - ax) * S) + 'px', top:Math.round((p.y - ay) * S) + 'px', width:Math.round(c.width * S) + 'px', height:Math.round(c.height * S) + 'px', zIndex:objZ(q.u, q.v) });
       wrap.appendChild(c); };
+    if (TANK_YARD < N - 1) {
+      const q = yard(TANK_YARD, 66, 60), c = document.createElement('canvas'), a = paintTank(c), p = isoPt(q.u, q.v);
+      c.className = 'st-camp st-tank'; c.setAttribute('aria-hidden', 'true');
+      const TK = 1.45;                                                            // drawn a size up, like the drop-off car
+      Object.assign(c.style, { left:Math.round((p.x - a.ax * TK) * S) + 'px', top:Math.round((p.y - a.ay * TK) * S) + 'px', width:Math.round(c.width * TK * S) + 'px', height:Math.round(c.height * TK * S) + 'px', zIndex:objZ(q.u, q.v) });
+      wrap.appendChild(c);
+      // clear the palms it parks on
+      wrap.querySelectorAll('.st-tree').forEach(t => { const bx = (parseFloat(t.style.left) + parseFloat(t.style.width) / 2) / S, by = (parseFloat(t.style.top) + parseFloat(t.style.height)) / S;
+        if (Math.abs(bx - p.x) < 62 && by > p.y - 36 && by < p.y + 30) t.style.display = 'none'; });
+    }
     for (let k = 0; k < N - 1; k++) {
+      if (k === TANK_YARD) continue;
       [[36, 18], [62, 64], [100, 30]].forEach(([a, b], n) => { if ((k + n) % 3 !== 2) put(ART.hesco, yard(k, a, b), 16, 17); });
       if (k % 2 === 0) put(ART.sandbags, yard(k, 76, 40), 17, 15);
       if (k % 4 === 1) put(ART.tower, yard(k, 74, 78), 22, 82);
-      if (k % 3 === 0) put(ART.crate, yard(k, 88, 20), 8, 14);
+      if (k % 3 === 0) { put(ART.crate, yard(k, 88, 26), 8, 14); put(ART.crate, yard(k, 96, 22), 8, 14); }
       if (k === 0) put(ART.flag, yard(k, 50, 80), 4, 64);
     }
     (street.yellers || []).forEach(y => { y.bub.textContent = YELL; });
@@ -12837,18 +12900,32 @@ if (MIL && typeof renderStreet === 'function' && typeof playDropoff === 'functio
   const outline = (c, col) => { const g = c.getContext('2d'), W = c.width, H = c.height, im = g.getImageData(0, 0, W, H), d = im.data, a = (x, y) => x >= 0 && y >= 0 && x < W && y < H && d[(y * W + x) * 4 + 3] > 200;
     const add = []; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (!a(x, y) && (a(x - 1, y) || a(x + 1, y) || a(x, y - 1) || a(x, y + 1))) add.push([x, y]);
     add.forEach(([x, y]) => R(g, x, y, 1, 1, col || '#0b0b0e')); };
-  const rock = (c, n) => { c.width = 30; c.height = 20; const g = c.getContext('2d');
-    const blobs = n % 2 ? [[11, 12, 9, 7], [20, 14, 7, 5]] : [[15, 11, 12, 8], [7, 15, 5, 4]];
-    for (let y = 0; y < 20; y++) for (let x = 0; x < 30; x++) { const inb = blobs.find(([cx, cy, rx, ry]) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1); if (!inb) continue;
-      const [cx, cy, rx, ry] = inb, lx = (x - cx) / rx, ly = (y - cy) / ry, lit = -lx * 0.6 - ly * 0.8, h = ((x * 7 + y * 13) % 11 === 0);
-      R(g, x, y, 1, 1, lit > 0.45 ? '#b5a283' : lit > 0 ? (h ? '#8e7c60' : '#9a8769') : lit > -0.5 ? '#76664e' : '#5a4c39'); }
-    R(g, 9, 9, 3, 1, '#c9b796'); outline(c); g.globalCompositeOperation = 'destination-over'; R(g, 4, 18, 24, 2, 'rgba(0,0,0,.35)'); g.globalCompositeOperation = 'source-over'; };
-  const lizard = (c, f) => { c.width = 18; c.height = 8; const g = c.getContext('2d'); g.clearRect(0, 0, 18, 8);
-    const B = '#6f7a3a', D = '#4c5428', L = '#8f9a4c';
-    R(g, 3, 3, 8, 2, B); R(g, 11, 3, 2, 2, B); R(g, 13, 4, 3, 1, D); R(g, 16, 5, 2, 1, D); R(g, 1, 3, 2, 2, L); R(g, 0, 4, 1, 1, L); R(g, 2, 3, 1, 1, '#0b0b0e');
-    for (let i = 4; i < 10; i += 2) R(g, i, 3, 1, 1, L);
-    const k = f % 2; R(g, 4 + k, 5, 1, 2, D); R(g, 9 - k, 5, 1, 2, D); R(g, 4 - k, 1 + k, 1, 2, D); R(g, 9 + k, 1 + k, 1, 2, D);
-    outline(c, '#1a1a10'); };
+  // rocks in a few sizes and shapes: blobs lit from the top left, with a crack or two and a shadow
+  const ROCKS = [
+    { W:30, H:20, b:[[11, 12, 9, 7], [20, 14, 7, 5]] },                                   // a pair of boulders
+    { W:46, H:28, b:[[22, 15, 18, 11], [34, 19, 9, 7], [10, 20, 7, 5]], crack:true },     // a big outcrop
+    { W:20, H:30, b:[[10, 17, 6, 11], [10, 9, 4, 7]] },                                    // a standing spire
+    { W:42, H:14, b:[[21, 8, 19, 5]] },                                                    // a flat slab
+    { W:24, H:12, b:[[5, 7, 4, 3], [12, 8, 4, 3], [19, 6, 3, 2.5], [15, 4, 2.5, 2]] },   // pebbles
+    { W:34, H:22, b:[[10, 13, 8, 8], [23, 12, 9, 9]], crack:true },                      // a split rock
+  ];
+  const rock = (c, n) => { const R0 = ROCKS[n % ROCKS.length], { W, H } = R0; c.width = W; c.height = H; const g = c.getContext('2d');
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const inb = R0.b.find(([cx, cy, rx, ry]) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1); if (!inb) continue;
+      const [cx, cy, rx, ry] = inb, lx = (x - cx) / rx, ly = (y - cy) / ry, lit = -lx * 0.6 - ly * 0.8, h = ((x * 7 + y * 13 + n) % 11 === 0);
+      R(g, x, y, 1, 1, lit > 0.5 ? '#bba887' : lit > 0.05 ? (h ? '#8e7c60' : '#9d8a6b') : lit > -0.5 ? (h ? '#6c5d47' : '#78684f') : '#5a4c39'); }
+    if (R0.crack) { let x = Math.round(W * 0.45), y = 3; const d = im => im; for (let i = 0; i < H - 6; i++) { R(g, x, y + i, 1, 1, '#463a2b'); if ((i * 5 + n) % 3 === 0) x += (i % 2 ? 1 : -1); } }
+    outline(c); g.globalCompositeOperation = 'destination-over'; R(g, 3, H - 2, W - 4, 2, 'rgba(0,0,0,.35)'); g.globalCompositeOperation = 'source-over'; };
+  // a desert lizard seen from above: spotted sandy back, splayed legs that swap as it runs, a long curled tail
+  const lizard = (c, f) => { c.width = 28; c.height = 14; const g = c.getContext('2d'); g.clearRect(0, 0, 28, 14);
+    const B = '#c48c4a', D = '#8a5a2c', L = '#e3b878', S = '#6b4322';
+    for (let x = 5; x <= 15; x++) { const t = (x - 5) / 10, half = Math.round(2.6 - Math.abs(t - 0.45) * 2.2); R(g, x, 7 - half, 1, half * 2 + 1, B); R(g, x, 7 - half, 1, 1, L); }
+    R(g, 1, 6, 4, 3, B); R(g, 0, 7, 1, 1, B); R(g, 2, 5, 2, 1, L); R(g, 2, 6, 1, 1, '#120c06'); R(g, 2, 8, 1, 1, '#120c06');
+    [[7, 6], [10, 8], [13, 6], [9, 5], [12, 8]].forEach(([x, y]) => R(g, x, y, 1, 1, S));
+    for (let i = 0; i < 11; i++) { const x = 16 + i, y = 7 + Math.round(Math.sin(i / 3.2 + 0.6) * 2.2); R(g, x, y, 1, i < 4 ? 2 : 1, i % 3 ? D : B); }
+    const k = f % 2;
+    const leg = (x, y, dx, dy) => { R(g, x, y, 1, 1, D); R(g, x + dx, y + dy, 1, 1, D); R(g, x + dx * 2, y + dy, 1, 1, S); };
+    leg(6, 4, k ? -1 : 0, -2); leg(6, 10, k ? 0 : -1, 2); leg(13, 4, k ? 0 : 1, -2); leg(13, 10, k ? 1 : 0, 2);
+    outline(c, '#2a1a0c'); };
   const tumble = (c) => { c.width = 20; c.height = 20; const g = c.getContext('2d');
     for (let i = 0; i < 420; i++) { const a = i * 2.39996, r = 8.6 * Math.sqrt((i * 37 % 420) / 420), x = 10 + Math.cos(a) * r, y = 10 + Math.sin(a) * r * 0.92;
       R(g, Math.round(x), Math.round(y), 1, 1, i % 5 === 0 ? '#d8bf8c' : i % 3 === 0 ? '#5e4a2c' : '#a3875a'); }
@@ -12987,16 +13064,44 @@ if (MIL && typeof renderStreet === 'function' && typeof playDropoff === 'functio
       Object.assign(c.style, { left:Math.round((p.x - ax) * S) + 'px', top:Math.round((p.y - ay) * S) + 'px', width:Math.round(c.width * S) + 'px', height:Math.round(c.height * S) + 'px', zIndex:objZ(q.u, q.v) });
       wrap.appendChild(c); return p; };
     for (let k = 0; k < N - 1; k++) {
-      if (k % 3 === 1) { const c = document.createElement('canvas'); rock(c, k); place(c, yard(k, 104, 70), 15, 18); }
-      if (k % 4 === 2) { const c = document.createElement('canvas'); rock(c, k + 1); place(c, yard(k, 24, 44), 15, 18); }
+      if (k === 4) continue;                                                      // the tank's yard
+      const stone = (n, q) => { const c = document.createElement('canvas'); rock(c, n); place(c, q, c.width / 2, c.height - 2); };
+      if (k % 3 === 1) stone(k, yard(k, 104, 70));
+      if (k % 4 === 2) stone(k + 3, yard(k, 24, 44));
+      if (k % 5 === 3) stone(k + 1, yard(k, 120, 96));
     }
+    // no dogs on the base
+    (street.dogs || []).forEach(d => d.el && d.el.remove()); street.dogs = [];
     lizards = [];
     [1, 6, 12, 17].filter(k => k < N - 1).forEach((k, n) => {
       const c = document.createElement('canvas'); lizard(c, 0);
       const q = yard(k, 50 + n * 6, 30 + (n % 2) * 26), p = place(c, q, 9, 6);
-      c.style.width = Math.round(27 * S) + 'px'; c.style.height = Math.round(12 * S) + 'px';
+      c.style.width = Math.round(36 * S) + 'px'; c.style.height = Math.round(18 * S) + 'px';
       lizards.push({ el:c, x0:p.x, y0:p.y, dx:0, dir:n % 2 ? 1 : -1, next:performance.now() + 1500 + n * 1300, S });
     });
+    // Duncan 2026-11-23: the rep should never look like he walks across the front of the base's props. Anything
+    // standing just behind the walks (where his body would cover it as he passes) is cleared; props in front of the
+    // walks stay and he passes behind them.
+    const route = [];
+    for (let k = -1; k < N - 1; k++) { const a = isoPt(street.verts[k].u, street.verts[k].v), b = isoPt(street.verts[k + 1].u, street.verts[k + 1].v);
+      for (let t = 0; t <= 1; t += 0.04) route.push({ x:a.x + (b.x - a.x) * t, y:a.y + (b.y - a.y) * t }); }
+    street.stops.forEach(st => { const w = st.walk, d = st.stand; for (let t = 0; t <= 1; t += 0.25) route.push({ x:w.x + (d.x - w.x) * t, y:w.y + (d.y - w.y) * t }); });
+    let cleared = 0;
+    wrap.querySelectorAll('.st-camp, .st-tree').forEach(e => {
+      if (e.style.display === 'none' || e.classList.contains('st-tank')) return;
+      const l = parseFloat(e.style.left) / S, tp = parseFloat(e.style.top) / S, w = parseFloat(e.style.width) / S, h = parseFloat(e.style.height) / S, foot = tp + h;
+      const pad = e.classList.contains('st-tree') ? 11 : 3;           // a palm's trunk is narrow; its canvas is not
+      if (route.some(r => l + pad < r.x + 9 && l + w - pad > r.x - 9 && foot > r.y - 14 && foot < r.y + 2)) { e.style.display = 'none'; cleared++; }
+    });
+    street.propsCleared = cleared;
+    // Duncan 2026-11-24: tapping the helipad flies the helicopter in again
+    const houseTap = wrap.onclick;
+    wrap.onclick = (e) => {
+      const r = wrap.getBoundingClientRect(), wx = (e.clientX - r.left) / S, wy = (e.clientY - r.top) / S;
+      const a = wx - street.X0, b = 2 * (wy - street.Y0), P = padUV();
+      if (Math.hypot((b + a) / 2 - P.u, (b - a) / 2 - P.v) <= PAD_R + 4 && !street.busy && !dropoffRunning) { e.stopPropagation(); haptic('tap'); playDropoff(true); return; }
+      if (houseTap) houseTap.call(wrap, e);
+    };
   };
   // lizards dart a few steps, freeze, and turn around now and then; a tumbleweed rolls through every so often
   if (!reduceMotion) {
@@ -13033,6 +13138,20 @@ if (MIL && typeof renderStreet === 'function' && typeof playDropoff === 'functio
     };
     setTimeout(blowTumbleweed, 6000);
   }
+});
+
+
+// ============ BOOT CAMP: EVERY DOOR OPEN (for now) ============
+// Duncan 2026-11-23: until Militia's own training is in, every door on the base is open with the standard demo
+// lessons behind them (and every boss ready), whatever the rep's level.
+if (MIL && typeof categories !== 'undefined') appSafe('all doors open', () => {
+  APP.labOpen = true;
+  if (!(APP.features.companyLessons && APP.lessons && APP.lessons.length)) {
+    const done = new Set(APP.doneLessons || []);
+    categories.forEach(c => c.subs.forEach(s => { s.status = done.has(s.id || s.title) ? 'done' : 'locked'; }));
+  }
+  ME.level = 'vet';
+  const chip = $('vet-chip'); if (chip) chip.textContent = 'All doors open';
 });
 
 
