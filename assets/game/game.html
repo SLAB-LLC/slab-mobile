@@ -13333,7 +13333,10 @@ if (MIL && typeof renderStreet === 'function') appSafe('outpost round 3', () => 
       const c = document.createElement('canvas'); pushup(c, false); place(c, q, 15, 13, 1.7, 'st-camp st-keep'); feet.push({ x:p.x, y:p.y, r:34 }); pushers.push({ el:c, n:0, down:false, rest:0 }); break; }
 
     // one big radar dish out on the edge of the base, like the tank
-    for (const [k, a, b] of spots) { if (k < 1 || k > 3) continue; const q = yard(k, a, b), p = isoPt(q.u, q.v); if (p.x < 34 || p.x > 120 || !free(p.x, p.y, 46, 30)) continue;
+    // Duncan's spot: the open sand beside Hank the Haggler's stop, clear of the doors; fall back to the left side if that stop isn't there
+    const RK = 11, rq = RK < N ? { u:street.verts[RK].u - 59.5, v:street.verts[RK].v + 71.5 } : null, rp = rq && isoPt(rq.u, rq.v);
+    if (rq && !onHouse(rp.x, rp.y)) { const c = document.createElement('canvas'); paintRadar(c); place(c, rq, 27, 62, 1.35, 'st-camp st-tank'); feet.push({ x:rp.x, y:rp.y, r:46 }); }
+    else for (const [k, a, b] of spots) { if (k < 1 || k > 3) continue; const q = yard(k, a, b), p = isoPt(q.u, q.v); if (p.x < 34 || p.x > 120 || !free(p.x, p.y, 46, 30)) continue;
       const c = document.createElement('canvas'); paintRadar(c); place(c, q, 27, 62, 1.35, 'st-camp st-tank'); feet.push({ x:p.x, y:p.y, r:46 }); break; }
 
     // fill the open sand: palms, Hesco, sandbags, crate stacks and rocks, spread across every yard
