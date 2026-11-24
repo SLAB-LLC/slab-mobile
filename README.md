@@ -1,10 +1,10 @@
-# SLAB Voice Mobile 🎙️
+# SLAB Mobile 🎙️
 
-React Native mobile app for SLAB Voice - AI-powered sales call transcription with PII redaction and sales training.
+React Native mobile app for SLAB - AI-powered sales call transcription with PII redaction and sales training.
 
 ## 🎯 Overview
 
-SLAB Voice Mobile enables sales teams to:
+SLAB Mobile enables sales teams to:
 - 🎙️ **Record sales calls** directly in the app with one tap
 - 📄 **View transcripts** with automatic PII redaction
 - 🎥 **Access training videos** from their company library

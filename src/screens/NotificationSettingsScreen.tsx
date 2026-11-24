@@ -108,7 +108,7 @@ export default function NotificationSettingsScreen() {
       } else {
         Alert.alert(
           'Notifications Disabled',
-          'Please enable notifications for SLAB Voice in your device settings.',
+          'Please enable notifications for SLAB in your device settings.',
           [{ text: 'OK' }]
         )
       }
@@ -229,8 +229,8 @@ export default function NotificationSettingsScreen() {
         {/* Info note */}
         <Text style={styles.note}>
           {Platform.OS === 'ios'
-            ? 'To fully disable notifications, go to Settings → SLAB Voice → Notifications.'
-            : 'To fully disable notifications, go to Settings → Apps → SLAB Voice → Notifications.'}
+            ? 'To fully disable notifications, go to Settings → SLAB → Notifications.'
+            : 'To fully disable notifications, go to Settings → Apps → SLAB → Notifications.'}
         </Text>
       </ScrollView>
     </LinearGradient>

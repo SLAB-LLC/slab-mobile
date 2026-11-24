@@ -10,12 +10,12 @@ export const TOS_SECTIONS: TosSection[] = [
   {
     title: '1. Acceptance of Terms',
     body:
-      'By downloading, installing, or using SLAB Voice ("the App"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree, do not use the App. These Terms constitute a legally binding agreement between you and SLAB Training.',
+      'By downloading, installing, or using SLAB ("the App"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree, do not use the App. These Terms constitute a legally binding agreement between you and SLAB Training.',
   },
   {
     title: '2. Description of Service',
     body:
-      'SLAB Voice is an AI-powered sales call transcription and analytics platform. The App enables authorized users to record sales conversations, generate transcripts with automatic PII redaction, access training videos, and collaborate with their team through leaderboards, messaging, and performance insights.',
+      'SLAB is an AI-powered sales call transcription and analytics platform. The App enables authorized users to record sales conversations, generate transcripts with automatic PII redaction, access training videos, and collaborate with their team through leaderboards, messaging, and performance insights.',
   },
   {
     title: '3. Eligibility & Account Access',

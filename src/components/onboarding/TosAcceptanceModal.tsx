@@ -59,7 +59,7 @@ export default function TosAcceptanceModal({ visible, onAccepted }: TosAcceptanc
   const handleDecline = () => {
     Alert.alert(
       'Decline Terms?',
-      'You must accept the Terms of Service to use SLAB Voice. Declining will sign you out.',
+      'You must accept the Terms of Service to use SLAB. Declining will sign you out.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -92,14 +92,14 @@ export default function TosAcceptanceModal({ visible, onAccepted }: TosAcceptanc
           <View style={styles.header}>
             <Text style={styles.headerIcon}>📋</Text>
             <Text style={styles.title}>Terms of Service</Text>
-            <Text style={styles.subtitle}>SLAB Voice</Text>
+            <Text style={styles.subtitle}>SLAB</Text>
             <Text style={styles.lastUpdated}>Updated: {TOS_LAST_UPDATED}</Text>
           </View>
 
           {/* Intro banner */}
           <View style={styles.introBanner}>
             <Text style={styles.introText}>
-              Please read and accept these Terms before using SLAB Voice.
+              Please read and accept these Terms before using SLAB.
               Scroll to the bottom to enable the Accept button.
             </Text>
           </View>
