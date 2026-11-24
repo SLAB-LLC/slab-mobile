@@ -4754,7 +4754,7 @@ if (SLAB_PACK) {
   GEAR.extra.splice(GEAR.extra.findIndex(x => x.id === 'shades'), 0, { id:'goggles', name:'Lab goggles', xp:450 });
 }
 const ALL_GEAR = Object.entries(GEAR).flatMap(([slot, list]) => list.filter(g => g.xp > 0).map(g => ({ ...g, slot }))).sort((a, b) => a.xp - b.xp);
-const gearXP = () => (APP && APP.me && APP.me.superAdmin) ? Infinity : currentXP;
+const gearXP = () => (APP && APP.me && (APP.me.superAdmin || APP.me.allGear)) ? Infinity : currentXP;
 const gearUnlocked = (g) => gearXP() >= g.xp;
 
 const DEFAULT_LOOK = { skin:2, eyes:0, hair:'short', hairColor:1, face:'none', top:'tee', hat:'none', pants:'black', shoes:'sneaker', extra:'none', ride:'none' };
@@ -10772,7 +10772,7 @@ Object.entries(SEASON_DEFS).forEach(([key, s]) => {
   GEAR.top.push({ id:s.top[0], name:s.top[1], xp:0, limited:key }); LIMITED[s.top[0]] = { season:key, slot:'top' };
 });
 const limitedOwned = (id) => !!(ME.look && Array.isArray(ME.look.limited) && ME.look.limited.includes(id));
-const limitedLocked = (id) => !!LIMITED[id] && !limitedOwned(id) && !(APP && APP.me && APP.me.superAdmin);
+const limitedLocked = (id) => !!LIMITED[id] && !limitedOwned(id) && !(APP && APP.me && (APP.me.superAdmin || APP.me.allGear));
 // in the locker: pieces you own, and the ones you can earn right now (super admins see them all)
 const gearVisible = (g) => !g.limited || !limitedLocked(g.id) || activeSeasons().some(s => s.key === g.limited);
 function limitedHint(id){
@@ -11620,8 +11620,8 @@ setInterval(() => {
   const n = APP.me.goldenDoors || 0, owned = new Set(ME.look.limited || []);
   let changed = false;
   if (n > 0 && !owned.has(GD_ARMOR)) { owned.add(GD_ARMOR); changed = true; }
-  if (n === 0 && owned.has(GD_ARMOR) && !APP.me.superAdmin) { owned.delete(GD_ARMOR); changed = true; }
-  if (n === 0 && ME.look.top === GD_ARMOR && !APP.me.superAdmin) { ME.look.top = DEFAULT_LOOK.top; changed = true; }
+  if (n === 0 && owned.has(GD_ARMOR) && !APP.me.superAdmin && !APP.me.allGear) { owned.delete(GD_ARMOR); changed = true; }
+  if (n === 0 && ME.look.top === GD_ARMOR && !APP.me.superAdmin && !APP.me.allGear) { ME.look.top = DEFAULT_LOOK.top; changed = true; }
   let first = false; try { first = n > 0 && !localStorage.getItem('slab.gdArmor.v1'); if (first) localStorage.setItem('slab.gdArmor.v1', '1'); } catch (e) {}
   if (first) { ME.look.top = GD_ARMOR; changed = true; }
   if (changed) { ME.look.limited = [...owned]; if (typeof saveMe === 'function') saveMe(); }

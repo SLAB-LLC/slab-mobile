@@ -169,7 +169,7 @@ def vault_lazy_lines(html):
 def admin_all_gear(html):
     """SLAB super admins get every piece of gear, whatever their XP (Duncan, 2026-11-05)"""
     html = rep(html, 'const gearUnlocked = (g) => currentXP >= g.xp;',
-               'const gearXP = () => (APP && APP.me && APP.me.superAdmin) ? Infinity : currentXP;\n'
+               'const gearXP = () => (APP && APP.me && (APP.me.superAdmin || APP.me.allGear)) ? Infinity : currentXP;\n'
                'const gearUnlocked = (g) => gearXP() >= g.xp;')
     html = rep(html, 'const nextUnlock = () => ALL_GEAR.find(g => g.xp > currentXP);',
                'const nextUnlock = () => ALL_GEAR.find(g => g.xp > gearXP());')

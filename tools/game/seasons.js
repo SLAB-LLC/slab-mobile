@@ -51,7 +51,7 @@ Object.entries(SEASON_DEFS).forEach(([key, s]) => {
   GEAR.top.push({ id:s.top[0], name:s.top[1], xp:0, limited:key }); LIMITED[s.top[0]] = { season:key, slot:'top' };
 });
 const limitedOwned = (id) => !!(ME.look && Array.isArray(ME.look.limited) && ME.look.limited.includes(id));
-const limitedLocked = (id) => !!LIMITED[id] && !limitedOwned(id) && !(APP && APP.me && APP.me.superAdmin);
+const limitedLocked = (id) => !!LIMITED[id] && !limitedOwned(id) && !(APP && APP.me && (APP.me.superAdmin || APP.me.allGear));
 // in the locker: pieces you own, and the ones you can earn right now (super admins see them all)
 const gearVisible = (g) => !g.limited || !limitedLocked(g.id) || activeSeasons().some(s => s.key === g.limited);
 function limitedHint(id){
