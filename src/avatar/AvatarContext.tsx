@@ -10,7 +10,9 @@ interface AvatarContextType {
   look: RepLook
   /** null while loading, then whether they've saved a look */
   hasLook: boolean | null
-  saveLook: (look: RepLook) => Promise<void>
+  /** The look exactly as saved on the account (game-page gear kept), or null */
+  savedLook: Partial<RepLook> | null
+  saveLook: (look: Partial<RepLook>) => Promise<void>
 }
 
 const AvatarContext = createContext<AvatarContextType | undefined>(undefined)
@@ -25,6 +27,33 @@ const EXTRA_RIDE_IDS = ['skateboard', 'goat']
 
 /** Gear a company can add (features.extraGear), drawn by the game page (tools/game/cade.js) */
 const EXTRA_GEAR_IDS = ['tux', 'pencap']
+
+const ID_RE = /^[a-z0-9_-]{1,40}$/i
+
+/**
+ * Tidies a look from the game page for saving. Unlike normalizeLook it keeps gear ids this native
+ * engine doesn't draw: the game page adds its own (Militia kit, Cade, holidays) and draws them, so
+ * dropping them here reset those outfits to the default rep on every save. The page itself falls back
+ * to default parts for any id it doesn't know.
+ */
+export function cleanLook(raw: Partial<RepLook> | null | undefined): Partial<RepLook> {
+  const out: Record<string, unknown> = {}
+  if (!raw || typeof raw !== 'object') return out
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (k === 'shout') {
+      if (typeof v === 'string') out.shout = v.trim().slice(0, 60)
+    } else if (k === 'limited') {
+      if (Array.isArray(v)) out.limited = v.filter((x) => typeof x === 'string' && ID_RE.test(x)).slice(0, 100)
+    } else if (k === 'gear' || k === 'goldenDoors') {
+      // Leaderboard extras put in by global_leaderboard, not part of the rep's own look
+    } else if (typeof v === 'number' && Number.isFinite(v)) {
+      out[k] = v
+    } else if (typeof v === 'string' && ID_RE.test(v)) {
+      out[k] = v
+    }
+  }
+  return out as Partial<RepLook>
+}
 
 /** Fills gaps and drops ids this engine doesn't know, so an old look always draws */
 export function normalizeLook(engine: SpriteEngine, saved: Partial<RepLook> | null | undefined): RepLook {
@@ -91,8 +120,9 @@ export function AvatarProvider({ children }: { children: React.ReactNode }) {
   }, [user?.id])
 
   const saveLook = useCallback(
-    async (look: RepLook) => {
+    async (next: Partial<RepLook>) => {
       if (!user?.id) return
+      const look = cleanLook(next)
       await avatarService.saveMyLook(user.id, profile?.company_id ?? null, look)
       setSaved(look)
       setHasLook(true)
@@ -103,7 +133,7 @@ export function AvatarProvider({ children }: { children: React.ReactNode }) {
 
   const look = useMemo(() => normalizeLook(engine, saved), [engine, saved])
 
-  return <AvatarContext.Provider value={{ look, hasLook, saveLook }}>{children}</AvatarContext.Provider>
+  return <AvatarContext.Provider value={{ look, savedLook: saved, hasLook, saveLook }}>{children}</AvatarContext.Provider>
 }
 
 export function useMyLook() {
