@@ -13333,7 +13333,7 @@ if (MIL && typeof renderStreet === 'function') appSafe('outpost round 3', () => 
       const c = document.createElement('canvas'); pushup(c, false); place(c, q, 15, 13, 1.7, 'st-camp st-keep'); feet.push({ x:p.x, y:p.y, r:34 }); pushers.push({ el:c, n:0, down:false, rest:0 }); break; }
 
     // one big radar dish out on the edge of the base, like the tank
-    for (const [k, a, b] of spots) { if (k > 2) continue; const q = yard(k, a, b), p = isoPt(q.u, q.v); if (p.x < WW - 120 || p.x > WW - 34 || !free(p.x, p.y, 46, 30)) continue;
+    for (const [k, a, b] of spots) { if (k < 1 || k > 3) continue; const q = yard(k, a, b), p = isoPt(q.u, q.v); if (p.x < 34 || p.x > 120 || !free(p.x, p.y, 46, 30)) continue;
       const c = document.createElement('canvas'); paintRadar(c); place(c, q, 27, 62, 1.35, 'st-camp st-tank'); feet.push({ x:p.x, y:p.y, r:46 }); break; }
 
     // fill the open sand: palms, Hesco, sandbags, crate stacks and rocks, spread across every yard
