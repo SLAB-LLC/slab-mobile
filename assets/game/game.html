@@ -13326,7 +13326,7 @@ if (MIL && typeof renderStreet === 'function') appSafe('outpost round 3', () => 
   // fire one: flash, a kick, a rocket that climbs away on a smoke trail; the tube reloads a moment later
   const fireLauncher = (el, wrap, S) => {
     const st = el._st || (el._st = { next:0, busy:0 }); if (st.busy >= 3) return; const n = st.next; st.next = (n + 1) % 6; st.busy++;
-    paintLauncher(el, n); try { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type:'haptic', style:'heavy' })); } catch (e) {}
+    paintLauncher(el, n); try { haptic('big'); } catch (e) {} [180, 380].forEach(ms => setTimeout(() => { try { haptic('hit'); } catch (e) {} }, ms));   // a hard kick, then the rumble of the motor
     const k = el._k, ox = parseFloat(el.style.left), oy = parseFloat(el.style.top), m = LAUNCHER.muzzle, dir = LAUNCHER.dir;
     const x0 = ox + m.x * k * S, y0 = oy + m.y * k * S, z = 9000;
     el.animate([{ transform:'translate(0,0)' }, { transform:`translate(${-dir.x * 3}px,${-dir.y * 3 + 1}px)` }, { transform:'translate(0,0)' }], { duration:180 });
@@ -13345,6 +13345,39 @@ if (MIL && typeof renderStreet === 'function') appSafe('outpost round 3', () => 
       if (now - t0 < dur && y > -60) requestAnimationFrame(step); else r.remove(); };
     requestAnimationFrame(step);
     setTimeout(() => { st.busy--; if (document.contains(el)) paintLauncher(el, st.busy ? (st.next + 5) % 6 : -1); }, 1500);
+  };
+  // the tank fires its main gun: a heavy buzz, muzzle blast, the hull rocks back, smoke rolls out, dust kicks up, a tracer streaks away
+  const puff = (wrap, x, y, sz, col, z, dur, dx = 0, dy = -6, grow = 2.4) => { const pf = document.createElement('div');
+    Object.assign(pf.style, { position:'absolute', left:(x - sz / 2) + 'px', top:(y - sz / 2) + 'px', width:sz + 'px', height:sz + 'px', borderRadius:'50%', background:col, zIndex:z, pointerEvents:'none' });
+    wrap.appendChild(pf); pf.animate([{ opacity:0.95, transform:'translate(0,0) scale(.5)' }, { opacity:0, transform:`translate(${dx}px,${dy}px) scale(${grow})` }], { duration:dur, easing:'ease-out' }).onfinish = () => pf.remove(); };
+  const fireTank = (el, wrap, S) => {
+    if (el._busy) return; el._busy = true; setTimeout(() => { el._busy = false; }, 900);
+    try { haptic('big'); } catch (e) {}
+    const k = el._k, ox = parseFloat(el.style.left), oy = parseFloat(el.style.top);
+    const co = Math.cos(-0.45), si = Math.sin(-0.45), u = 41 * co, v = 41 * si;              // muzzle: barrel tip in the tank's own pixels
+    const mx = ox + (u - v + 38) * k * S, my = oy + ((u + v) / 2 - 14 + 36) * k * S, dl = Math.hypot(co - si, (co + si) / 2), dir = { x:(co - si) / dl, y:(co + si) / 2 / dl };
+    const z = 9000, base = el.style.transform || '';
+    // recoil: the hull jolts back along the barrel and settles
+    el.animate([{ transform:'translate(0,0) rotate(0)' }, { transform:`translate(${-dir.x * 5 * S}px,${-dir.y * 5 * S}px) rotate(-1.2deg)` }, { transform:`translate(${dir.x * 1.2 * S}px,0) rotate(.4deg)` }, { transform:'translate(0,0) rotate(0)' }], { duration:420, easing:'ease-out' });
+    // a small camera shake
+    wrap.animate([{ transform:'translate(0,0)' }, { transform:'translate(-2px,1px)' }, { transform:'translate(2px,-1px)' }, { transform:'translate(-1px,0)' }, { transform:'translate(0,0)' }], { duration:260 });
+    // muzzle blast
+    const flash = document.createElement('div'), fs = 34 * S;
+    Object.assign(flash.style, { position:'absolute', left:(mx - fs / 2) + 'px', top:(my - fs / 2) + 'px', width:fs + 'px', height:fs + 'px', borderRadius:'50%', background:'radial-gradient(#fffbe0,#ffc24a 35%,#ff6a1a 55%,rgba(255,80,20,0) 72%)', zIndex:z + 2, pointerEvents:'none' });
+    wrap.appendChild(flash); flash.animate([{ opacity:1, transform:'scale(.5)' }, { opacity:1, transform:'scale(1.15)', offset:0.3 }, { opacity:0, transform:'scale(1.5)' }], { duration:240 }).onfinish = () => flash.remove();
+    // smoke rolling out of the barrel and drifting up
+    for (let i = 0; i < 9; i++) { const d = (4 + i * 3.2) * S, spread = (Math.random() - 0.5) * 8 * S;
+      setTimeout(() => puff(wrap, mx + dir.x * d - dir.y * spread, my + dir.y * d + dir.x * spread, (9 + Math.random() * 7) * S, i < 2 ? '#c9b48a' : '#bdb7aa', z + 1, 1500 + Math.random() * 500, dir.x * 10 * S, -10 * S, 2.8), i * 25); }
+    // dust kicked up from under the tracks by the blast
+    const fx = ox + 38 * k * S, fy = oy + 44 * k * S;
+    for (let i = 0; i < 8; i++) puff(wrap, fx + (Math.random() - 0.3) * 60 * S, fy + (Math.random() - 0.5) * 14 * S, (7 + Math.random() * 6) * S, '#c8ad7e', z - 1, 900 + Math.random() * 400, (Math.random() - 0.5) * 16 * S, -6 * S, 2.2);
+    // the round: a bright tracer streaking away down the barrel line
+    const tr = document.createElement('div'), tl = 16 * S;
+    Object.assign(tr.style, { position:'absolute', left:mx + 'px', top:(my - 1.5 * S) + 'px', width:tl + 'px', height:(3 * S) + 'px', borderRadius:'2px', background:'linear-gradient(90deg,rgba(255,170,60,0),#ffd36a 60%,#fffbe0)', zIndex:z + 3, pointerEvents:'none', transformOrigin:'0 50%', transform:`rotate(${Math.atan2(dir.y, dir.x)}rad)` });
+    wrap.appendChild(tr); const far = 420 * S;
+    tr.animate([{ transform:`translate(0,0) rotate(${Math.atan2(dir.y, dir.x)}rad)`, opacity:1 }, { transform:`translate(${dir.x * far}px,${dir.y * far}px) rotate(${Math.atan2(dir.y, dir.x)}rad)`, opacity:0.9 }], { duration:380, easing:'linear' }).onfinish = () => tr.remove();
+    // a distant thud a beat later
+    setTimeout(() => { try { haptic('hit'); } catch (e) {} }, 420);
   };
   let pushers = [];
   const baseRender = renderStreet;
@@ -13389,6 +13422,11 @@ if (MIL && typeof renderStreet === 'function') appSafe('outpost round 3', () => 
       const c = document.createElement('canvas'); pushup(c, false); place(c, q, 15, 13, 1.7, 'st-camp st-keep'); feet.push({ x:p.x, y:p.y, r:34 }); pushers.push({ el:c, n:0, down:false, rest:0 }); break; }
 
     // one big radar dish out on the edge of the base, like the tank
+    // the tank fires when tapped
+    wrap.querySelectorAll('canvas.st-tank').forEach(t => { if (t.width !== 106 || t.height !== 58) return; t._k = 1.45;
+      Object.assign(t.style, { pointerEvents:'auto', cursor:'pointer' }); t.setAttribute('role', 'button'); t.setAttribute('aria-label', 'Fire the tank'); t.removeAttribute('aria-hidden');
+      t.addEventListener('click', e => { e.stopPropagation(); fireTank(t, wrap, S); }); });
+
     // the rocket launcher fills the empty bottom-right corner past the last walk; tap it to fire
     if (N >= 3) { const vq = street.verts[N - 2], lq = { u:vq.u + 80, v:vq.v + 112 }, lp = isoPt(lq.u, lq.v), LK = 1.75;
       wrap.querySelectorAll('.st-camp, .st-tree').forEach(t => { const bx = (parseFloat(t.style.left) + parseFloat(t.style.width) / 2) / S, by = (parseFloat(t.style.top) + parseFloat(t.style.height)) / S;
