@@ -342,14 +342,14 @@ const SLOT = { state:null, busy:false, ready:false, rollTimer:0, demo:!APP };
         <div class="sl-tension" id="sl-tension">ONE MORE...</div>
         <div class="sl-result" id="sl-result" aria-live="polite"><div class="tier" style="color:#9b968a">READY</div><div class="prize">Pull for a prize</div><div class="note">&nbsp;</div></div>
         <button class="sl-btn spin" id="sl-spin" type="button">SPIN</button>
-        <button class="sl-btn ghost" id="sl-trade" type="button">TRADE 250 XP FOR A SPIN</button>
+        <button class="sl-btn ghost" id="sl-trade" type="button">TRADE 100 XP FOR A SPIN</button>
       </div>
       <div class="sl-sec" id="sl-orders-sec" hidden><h3>Your prizes on the way</h3><ul class="sl-list" id="sl-orders"></ul></div>
       <div class="sl-sec"><h3>How to earn spins</h3><ul class="sl-list">
         <li><span>Free Spin Saturday</span><em>1 every Saturday</em></li>
         <li><span>Streak milestones</span><em>5, 15 and 30 days</em></li>
         <li><span>Beat a boss</span><em>first win on each boss</em></li>
-        <li><span>Trade XP</span><em id="sl-trade-note">250 XP, 2 a week</em></li>
+        <li><span>Trade XP</span><em id="sl-trade-note">100 XP, 2 a week</em></li>
       </ul></div>
       <div class="sl-sec"><h3>What you can win</h3><ul class="sl-list" id="sl-odds"></ul></div>
       <div class="sl-sec" id="sl-feed-sec" hidden><h3>Big wins on your team</h3><ul class="sl-list" id="sl-feed"></ul></div>
@@ -397,14 +397,14 @@ const SLOT_DEMO = { spins:2, total:null, trades:0, owned:[], boostEndsAt:null, c
 function slotDemo(op, extra){
   if (SLOT_DEMO.total == null) SLOT_DEMO.total = currentXP;
   const pick = (w) => { let r = Math.random() * Object.values(w).reduce((a, b) => a + b, 0); for (const [k, v] of Object.entries(w)) { r -= v; if (r < 0) return k; } return Object.keys(w)[0]; };
-  const state = () => ({ enabled:true, spins:SLOT_DEMO.spins, total:SLOT_DEMO.total, tradeCost:250, tradesLeft:2 - SLOT_DEMO.trades, tradesPerWeek:2, odds:SLOT_ODDS_DEFAULT,
+  const state = () => ({ enabled:true, spins:SLOT_DEMO.spins, total:SLOT_DEMO.total, tradeCost:100, tradesLeft:2 - SLOT_DEMO.trades, tradesPerWeek:2, odds:SLOT_ODDS_DEFAULT,
     boostEndsAt:SLOT_DEMO.boostEndsAt, charm:SLOT_DEMO.charm, shield:SLOT_DEMO.shield, owned:SLOT_DEMO.owned, saturday:new Date().getDay() === 6, granted:[],
     feed:[{ name:'Rylan', outcome:'outfit', prize:'Jackpot Hawaiian Shirt' }, { name:'Ronin', outcome:'video', prize:'Zach Kornfeld full pitch' }], orders:SLOT_DEMO.orders });
   if (op === 'state') return Promise.resolve(state());
   if (op === 'trade') {
     if (SLOT_DEMO.trades >= 2) return Promise.reject(new Error('You’ve used your 2 XP trades this week'));
-    if (SLOT_DEMO.total < 250) return Promise.reject(new Error('You need 250 XP to trade for a spin'));
-    SLOT_DEMO.trades++; SLOT_DEMO.spins++; SLOT_DEMO.total -= 250; return Promise.resolve(state());
+    if (SLOT_DEMO.total < 100) return Promise.reject(new Error('You need 100 XP to trade for a spin'));
+    SLOT_DEMO.trades++; SLOT_DEMO.spins++; SLOT_DEMO.total -= 100; return Promise.resolve(state());
   }
   if (op === 'claim') { const o = SLOT_DEMO.orders.find(x => x.id === extra.spinId); if (o) o.claimed = true; return Promise.resolve({ ok:true }); }
   if (op === 'spin') {
