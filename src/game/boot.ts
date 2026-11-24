@@ -68,6 +68,8 @@ export interface GameBoot {
     solo: boolean
     /** SLAB admin: may switch which company the app shows (admin_switch_company) */
     superAdmin: boolean
+    /** Every outfit, ride and limited item unlocked: super admins and merch managers */
+    allGear: boolean
     /** Owners: the company's Billing page on the website (opens in the browser), else null */
     billingUrl: string | null
     look: Partial<RepLook> | null
@@ -326,6 +328,12 @@ async function loadMarshallVideos(): Promise<{ groups: GameBoot['vaultVideos']; 
 }
 
 /** Every lesson the rep has been paid XP for; the standard levels are granted under their titles */
+/** Merch managers (slabtech sql/merch-managers.sql) get every outfit and ride like a SLAB super admin */
+async function loadMerchManager(): Promise<boolean> {
+  const { data, error } = await supabase.rpc('can_manage_merch')
+  return !error && data === true
+}
+
 async function loadDoneLessons(userId: string): Promise<string[]> {
   const { data } = await supabase.from('xp_events').select('source_id').eq('user_id', userId).eq('reason', 'lesson_complete')
   return ((data ?? []) as any[]).map((r) => r.source_id).filter(Boolean)
@@ -410,7 +418,7 @@ export async function buildGameBoot(args: {
   const meRow: GameLeader = { name, streak: args.streakDays, xp: args.totalXp, you: true }
 
   const guestList = !ace && Array.isArray(theme.vaultGuests) ? theme.vaultGuests.filter((g) => g && typeof g.name === 'string' && typeof g.spriteUrl === 'string') : []
-  const [lessons, leaders, doneLessons, notif, vault, globalLeaders, soloVideos, myDoors, coachSprite, guestSprites] = await Promise.all([
+  const [lessons, leaders, doneLessons, notif, vault, globalLeaders, soloVideos, myDoors, coachSprite, guestSprites, merchManager] = await Promise.all([
     // Ace's training videos are Marshall's: they play from his page in the Vault even while the street runs the standard levels
     company && (features.companyLessons || ace) ? loadLessons(company.id, userId).catch(() => ({ units: [], videos: {} })) : Promise.resolve({ units: [], videos: {} }),
     company
@@ -427,6 +435,7 @@ export async function buildGameBoot(args: {
       return null
     }),
     Promise.all(guestList.map((g) => loadCoachSprite(g.spriteUrl).catch(() => null))),
+    profile?.role === 'super_admin' ? Promise.resolve(false) : loadMerchManager().catch(() => false),
   ])
   const vaultGuests = guestList
     .map((g, i) => ({ name: g.name, tag: g.tag ?? null, sprite: guestSprites[i] }))
@@ -453,6 +462,7 @@ export async function buildGameBoot(args: {
         companyName: company?.name ?? null,
         solo,
         superAdmin: profile?.role === 'super_admin',
+        allGear: profile?.role === 'super_admin' || merchManager,
         billingUrl:
           !solo && company?.slug && (profile?.role === 'company_admin' || profile?.role === 'super_admin')
             ? `${SITE_URL}/c/${company.slug}/billing`

@@ -211,8 +211,8 @@ setInterval(() => {
   const n = APP.me.goldenDoors || 0, owned = new Set(ME.look.limited || []);
   let changed = false;
   if (n > 0 && !owned.has(GD_ARMOR)) { owned.add(GD_ARMOR); changed = true; }
-  if (n === 0 && owned.has(GD_ARMOR) && !APP.me.superAdmin) { owned.delete(GD_ARMOR); changed = true; }
-  if (n === 0 && ME.look.top === GD_ARMOR && !APP.me.superAdmin) { ME.look.top = DEFAULT_LOOK.top; changed = true; }
+  if (n === 0 && owned.has(GD_ARMOR) && !APP.me.superAdmin && !APP.me.allGear) { owned.delete(GD_ARMOR); changed = true; }
+  if (n === 0 && ME.look.top === GD_ARMOR && !APP.me.superAdmin && !APP.me.allGear) { ME.look.top = DEFAULT_LOOK.top; changed = true; }
   let first = false; try { first = n > 0 && !localStorage.getItem('slab.gdArmor.v1'); if (first) localStorage.setItem('slab.gdArmor.v1', '1'); } catch (e) {}
   if (first) { ME.look.top = GD_ARMOR; changed = true; }
   if (changed) { ME.look.limited = [...owned]; if (typeof saveMe === 'function') saveMe(); }
