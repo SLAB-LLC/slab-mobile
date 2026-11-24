@@ -134,7 +134,7 @@ export interface GameBoot {
   /** The owner's Training tab settings, or null for the defaults */
   training: Record<string, unknown> | null
   /** The profile's notification switches: push is on when this phone has permission */
-  notif: { push: boolean; company: boolean; platform: boolean; chat: boolean; streak: boolean }
+  notif: { push: boolean; company: boolean; platform: boolean; chat: boolean; streak: boolean; rank: boolean }
 }
 
 /** Lesson id -> where its video lives, kept natively so signed URLs are made on demand */
@@ -348,7 +348,7 @@ async function loadGoldenDoors(ids: string[]): Promise<Map<string, number>> {
 }
 
 /** Company reps ranked by total XP, with their saved looks */
-async function loadLeaders(companyId: string, me: { id: string; name: string; xp: number; streak: number }): Promise<GameLeader[]> {
+export async function loadLeaders(companyId: string, me: { id: string; name: string; xp: number; streak: number }): Promise<GameLeader[]> {
   const [board, xpRes] = await Promise.all([
     getCompanyLeaderboard(companyId),
     supabase.from('user_xp_totals').select('user_id, total_xp').eq('company_id', companyId),
@@ -389,6 +389,7 @@ async function loadNotif(userId: string): Promise<GameBoot['notif']> {
     platform: prefs?.updates ?? true,
     chat: prefs?.chats ?? true,
     streak: prefs?.streak_reminders ?? false,
+    rank: prefs?.rank_alerts ?? true,
   }
 }
 

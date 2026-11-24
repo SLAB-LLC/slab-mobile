@@ -1,4 +1,5 @@
 import { supabase } from '../utils/supabase'
+import { sendRankAlertPushes } from './rankAlerts.service'
 
 /**
  * XP service. The database owns XP: the app asks grant_xp() for a grant and
@@ -47,6 +48,8 @@ export async function grantXp(reason: XpReason, sourceId?: string | null): Promi
     p_tz: deviceTimeZone(),
   })
   if (error) throw error
+  // Passing someone on the leaderboard is what tells them (rank-drop pushes)
+  if ((data as XpGrant)?.granted) sendRankAlertPushes()
   return data as XpGrant
 }
 

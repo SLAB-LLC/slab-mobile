@@ -9,16 +9,29 @@ export interface NotificationPreferences {
   big_days: boolean
   chats: boolean
   streak_reminders: boolean
+  /** Someone knocked you down in your company's top 3 (slabtech sql/rank-drop-alerts-migration.sql) */
+  rank_alerts: boolean
+}
+
+/** Push types the open screen shows its own way, so the system banner stays quiet (the game's rank-drop banner) */
+const inAppTypes = new Set<string>()
+export function showInApp(type: string, on: boolean): void {
+  if (on) inAppTypes.add(type)
+  else inAppTypes.delete(type)
 }
 
 // Configure how notifications appear when app is in foreground
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
+  handleNotification: async (n) => {
+    const type = (n.request.content.data as Record<string, unknown> | undefined)?.type
+    const inApp = typeof type === 'string' && inAppTypes.has(type)
+    return {
+      shouldShowBanner: !inApp,
+      shouldShowList: true,
+      shouldPlaySound: !inApp,
+      shouldSetBadge: true,
+    }
+  },
 })
 
 /**
@@ -143,6 +156,7 @@ export async function getNotificationPreferences(
     big_days: data?.big_days ?? true,
     chats: data?.chats ?? true,
     streak_reminders: data?.streak_reminders ?? false,
+    rank_alerts: data?.rank_alerts ?? true,
   }
 }
 

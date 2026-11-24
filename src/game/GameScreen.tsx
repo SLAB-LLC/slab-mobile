@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { View, Text, StyleSheet, Linking, TouchableOpacity } from 'react-native'
+import { View, Text, StyleSheet, Linking, TouchableOpacity, AppState } from 'react-native'
+import * as Notifications from 'expo-notifications'
 import { WebView, WebViewMessageEvent } from 'react-native-webview'
 import type { ShouldStartLoadRequest } from 'react-native-webview/lib/WebViewTypes'
 import * as Haptics from 'expo-haptics'
@@ -17,7 +18,8 @@ import { markVideoComplete } from '../services/training.service'
 import { askCoachWithClips, isCoachConnected } from '../services/coach.service'
 import { loadVaultDay, loadVaultLines } from './vault'
 import { startListening, stopListening } from './voice'
-import { buildGameBoot, isAceCompany, VideoIndex, youtubeEmbedUrl } from './boot'
+import { buildGameBoot, isAceCompany, loadLeaders, VideoIndex, youtubeEmbedUrl } from './boot'
+import { sendRankAlertPushes, takeUnseenRankAlerts } from '../services/rankAlerts.service'
 import { prepareGameFiles } from './files'
 import * as owner from './owner'
 import * as notifs from '../services/notifications.service'
@@ -45,7 +47,11 @@ const NOTIF_COLUMNS: Record<string, keyof notifs.NotificationPreferences> = {
   platform: 'updates',
   chat: 'chats',
   streak: 'streak_reminders',
+  rank: 'rank_alerts',
 }
+
+/** Rank-drop pushes the rep tapped that have already opened the leaderboard */
+const openedRankPushes = new Set<string>()
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -119,6 +125,7 @@ export default function GameScreen() {
   // tools/game/bridge.js skips the page's own opening when APP.nativeCurtain is set.
   const readyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
+    if (!bootScript) setPageLive(false)
     if (bootScript || failed) return
     if (readyTimer.current) clearTimeout(readyTimer.current)
     readyTimer.current = null
@@ -128,9 +135,11 @@ export default function GameScreen() {
     if (failed) curtain.release()
   }, [failed])
   useEffect(() => () => { if (readyTimer.current) clearTimeout(readyTimer.current) }, [])
+  const [pageLive, setPageLive] = useState(false)
   const pageReady = useCallback(() => {
     if (readyTimer.current) clearTimeout(readyTimer.current)
     readyTimer.current = null
+    setPageLive(true)
     // Once the curtain starts parting the page carries on (the owner's "Where to?", onboarding)
     curtain.release(() => webRef.current?.injectJavaScript('window.__appCurtainOpen && window.__appCurtainOpen(); true;'))
   }, [curtain])
@@ -151,6 +160,43 @@ export default function GameScreen() {
     }, 4000)
     return () => clearInterval(t)
   }, [bootScript])
+
+  const sendEvent = useCallback((type: string, data: unknown) => {
+    webRef.current?.injectJavaScript(`window.__appEvent && window.__appEvent(${JSON.stringify(type)}, ${JSON.stringify(data ?? null).replace(/</g, '\\u003c')}); true;`)
+  }, [])
+
+  // Leaderboard rank drops (slabtech sql/rank-drop-alerts-migration.sql): the ones the rep hasn't seen
+  // slide down as a banner when the page is up, when they come back to the app, and when a rank-drop push
+  // lands while the app is open (its system banner stays quiet, the page shows it instead)
+  useEffect(() => {
+    if (!pageLive || !user?.id) return
+    const check = () => {
+      takeUnseenRankAlerts().then((alerts) => { if (alerts.length) sendEvent('rankDrop', alerts) }).catch(() => {})
+    }
+    const openBoard = (r: Notifications.NotificationResponse | null) => {
+      if (!r) return
+      const id = r.notification.request.identifier
+      const data = r.notification.request.content.data as Record<string, unknown> | undefined
+      // (the launch tap can be remembered across launches; only a fresh one opens the board)
+      if (data?.type !== 'rank_alerts' || openedRankPushes.has(id) || Date.now() - r.notification.date > 10 * 60000) return
+      openedRankPushes.add(id)
+      sendEvent('tab', 'leaderboard')
+    }
+    notifs.showInApp('rank_alerts', true)
+    check()
+    Notifications.getLastNotificationResponseAsync().then(openBoard).catch(() => {})
+    const received = Notifications.addNotificationReceivedListener((n) => {
+      if ((n.request.content.data as Record<string, unknown> | undefined)?.type === 'rank_alerts') check()
+    })
+    const tapped = Notifications.addNotificationResponseReceivedListener(openBoard)
+    const app = AppState.addEventListener('change', (st) => { if (st === 'active') check() })
+    return () => {
+      notifs.showInApp('rank_alerts', false)
+      received.remove()
+      tapped.remove()
+      app.remove()
+    }
+  }, [pageLive, user?.id, sendEvent])
 
   const reply = useCallback((id: number, ok: boolean, result: unknown) => {
     const payload = JSON.stringify(result ?? null).replace(/</g, '\\u003c')
@@ -222,7 +268,15 @@ export default function GameScreen() {
           else throw new Error('Unknown slots call')
           if (res.error) throw new Error(res.error.message)
           if (op === 'spin' || op === 'trade') refreshXp().catch(() => {})
+          // A spin can pay XP, and XP can pass someone on the leaderboard
+          if (op === 'spin') sendRankAlertPushes()
           return res.data
+        }
+        case 'leaders': {
+          // The company board as it stands now, after a rank drop (tools/game/rank.js)
+          if (!company?.id || !user?.id) return []
+          const name = profile?.display_name || (user.email ? user.email.split('@')[0] : 'Rep')
+          return loadLeaders(company.id, { id: user.id, name, xp: totalXp, streak: streakDays })
         }
         case 'saveLook':
           await saveLook(payload?.look as Partial<RepLook>)
@@ -300,7 +354,7 @@ export default function GameScreen() {
           throw new Error(`Unknown request: ${type}`)
       }
     },
-    [user?.id, profile, company, theme, saveLook, signOut, navigation, refreshXp, refreshProfile, pageReady]
+    [user?.id, profile, company, theme, saveLook, signOut, navigation, refreshXp, refreshProfile, pageReady, totalXp, streakDays]
   )
 
   const onMessage = useCallback(

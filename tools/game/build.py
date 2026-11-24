@@ -690,7 +690,8 @@ appSafe('rep', initRep);
     reels_bg = open(os.path.join(HERE, 'reels_bg.js'), encoding='utf-8').read()
     militia = open(os.path.join(HERE, 'militia.js'), encoding='utf-8').read()
     slots = open(os.path.join(HERE, 'slots.js'), encoding='utf-8').read()
-    html = rep(html, '// ============ INIT ============', bridge + '\n\n' + seasons + '\n\n' + dropoff + '\n\n' + golden + '\n\n' + cade + '\n\n' + reels_bg + '\n\n' + militia + '\n\n' + slots + '\n\n// ============ INIT ============')
+    rank = open(os.path.join(HERE, 'rank.js'), encoding='utf-8').read()
+    html = rep(html, '// ============ INIT ============', bridge + '\n\n' + seasons + '\n\n' + dropoff + '\n\n' + golden + '\n\n' + cade + '\n\n' + reels_bg + '\n\n' + militia + '\n\n' + slots + '\n\n' + rank + '\n\n// ============ INIT ============')
 
     # ---- styles for the real lesson player ----
     css = """
