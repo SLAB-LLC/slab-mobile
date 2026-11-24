@@ -204,6 +204,14 @@ def reels_no_fake(html):
     return html[:i] + 'const VX_FAKE_CM = [];' + html[j:]
 
 
+def marshall_titles(html):
+    """Marshall's Vault tag and the Vault lock list (Marshall's feedback via Duncan, 2026-11-24): he still holds
+    several pest records, so no "previous record holder", and Cade isn't billed as the record holder over him."""
+    html = rep(html, "m:'Previous Pest Record Holder'", "m:'Pest Industry Record Holder'")
+    html = rep(html, 'incl. current record holder Cade Sunderland', 'incl. Cade Sunderland')
+    return html
+
+
 def road_room(html):
     """Room above the first house for the road and the manager's drop-off (tools/game/dropoff.js)."""
     return rep(html, 'street.Y0 = Math.ceil(44 - Math.min(...tops));', 'street.Y0 = Math.ceil(44 - Math.min(...tops)) + ROAD_ROOM;')
@@ -679,6 +687,7 @@ appSafe('rep', initRep);
     html = road_room(html)
     html = lighter_lab(html)
     html = reels_no_fake(html)
+    html = marshall_titles(html)
     html = reels_gameplay(html)
     html = support_icons(html)
 
