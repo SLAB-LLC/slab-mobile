@@ -230,6 +230,26 @@ def marshall_titles(html):
     return html
 
 
+def door_key(html):
+    """Color key for the full-day door strips, every company (Duncan, 2026-11-24): the rep page explains each
+    color, the day player shows a one-line key under its strip."""
+    html = rep(html, "const vxLegend = () => `<div class=\"vx-leg\">${Object.values(VX_KIND).map(([l, c]) => `<span style=\"--c:${c}\">${l}</span>`).join('')}</div>`;",
+               "const VX_KIND_HOW = { sale:'Closed the deal', callback:'Set a time to come back', pitch:'Full pitch, no close', interaction:'Short talk, no pitch' };\n"
+               "const vxLegend = (full = true) => full\n"
+               "  ? `<div class=\"vx-h\"><span>COLOR KEY</span><span></span></div><div class=\"vx-box vx-key\">${Object.entries(VX_KIND).map(([k, [l, c]]) => `<span style=\"--c:${c}\"><b>${l}</b><small>${VX_KIND_HOW[k]}</small></span>`).join('')}</div>`\n"
+               "  : `<div class=\"vx-leg\">${Object.values(VX_KIND).map(([l, c]) => `<span style=\"--c:${c}\">${l}</span>`).join('')}</div>`;")
+    html = rep(html, '<div class="vx-chunks" id="vx-pl-ch"></div>',
+               '<div class="vx-chunks" id="vx-pl-ch"></div><div class="vx-pl-leg">${vxLegend(false)}</div>')
+    html = rep(html, '  .vx-leg span::before{',
+               '  .vx-pl-leg .vx-leg{ margin:8px 16px 0; justify-content:center; }\n'
+               '  .vx-key{ display:grid; grid-template-columns:1fr 1fr; gap:12px 14px; padding:12px 14px; }\n'
+               '  .vx-key span{ display:grid; grid-template-columns:12px minmax(0,1fr); column-gap:8px; align-items:center; }\n'
+               '  .vx-key span::before{ content:""; width:12px; height:12px; background:var(--c); grid-row:1 / span 2; align-self:start; margin-top:2px; }\n'
+               '  .vx-key b{ font:700 13px/1.2 \'Barlow\', sans-serif; color:#e9e2d3; } .vx-key small{ font:500 11.5px/1.3 \'Barlow\', sans-serif; color:#9a9284; }\n'
+               '  .vx-leg span::before{')
+    return html
+
+
 def road_room(html):
     """Room above the first house for the road and the manager's drop-off (tools/game/dropoff.js)."""
     return rep(html, 'street.Y0 = Math.ceil(44 - Math.min(...tops));', 'street.Y0 = Math.ceil(44 - Math.min(...tops)) + ROAD_ROOM;')
@@ -706,6 +726,7 @@ appSafe('rep', initRep);
     html = lighter_lab(html)
     html = reels_no_fake(html)
     html = marshall_titles(html)
+    html = door_key(html)
     html = reels_gameplay(html)
     html = support_icons(html)
 
