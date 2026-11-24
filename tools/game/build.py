@@ -204,6 +204,32 @@ def reels_no_fake(html):
     return html[:i] + 'const VX_FAKE_CM = [];' + html[j:]
 
 
+def marshall_titles(html):
+    """Marshall's feedback via Duncan (2026-11-24): he still holds several pest records, so his Vault tag isn't
+    "Previous", his rep page lists his records, and Ace's locked Vault drops the Cade record-holder line
+    (other companies keep it)."""
+    html = rep(html, "m:'Previous Pest Record Holder'", "m:'Pest Industry Record Holder'")
+    html = rep(html, '<li>Media from other top industry reps, incl. current record holder Cade Sunderland</li>',
+               '<li class="vx-cade">Media from other top industry reps, incl. current record holder Cade Sunderland</li>')
+    html = rep(html, 'VX.people = VX.people || VX.reps;\n',
+               'VX.people = VX.people || VX.reps;\n'
+               "if (!APP || (APP.brand && APP.brand.isAce)) document.querySelectorAll('.vx-cade').forEach(e => e.remove());\n")
+    html = rep(html, "const VX_AVK = {",
+               "const VX_REC = { m:['Most personal commission earnings in a single season', "
+               "'Most retained commissionable revenue in a single season', "
+               "'Highest retention on $1.5M+ in serviced revenue', "
+               "'2,100+ serviced subscriptions across 1,730 households'] };\n"
+               "const VX_AVK = {")
+    html = rep(html, "sales on tape · redacted</small></span></div>\n",
+               "sales on tape · redacted</small></span></div>\n"
+               "    ${VX_REC[rid] ? `<div class=\"vx-h\"><span>RECORDS</span><span></span></div><div class=\"vx-box vx-rec\">${VX_REC[rid].map(t => `<div><i class=\"ph-fill ph-trophy\" aria-hidden=\"true\"></i><span>${t}</span></div>`).join('')}</div>` : ''}\n")
+    html = rep(html, '  .vx-box{ background:#17140f; box-shadow:0 0 0 2px var(--pxb), var(--pxs); }\n',
+               '  .vx-box{ background:#17140f; box-shadow:0 0 0 2px var(--pxb), var(--pxs); }\n'
+               '  .vx-rec{ padding:4px 12px; } .vx-rec > div{ display:flex; gap:10px; align-items:center; padding:8px 0; font:600 13px/1.3 \'Barlow\', sans-serif; color:#e9e2d3; }\n'
+               '  .vx-rec > div + div{ border-top:2px solid #221e18; } .vx-rec i{ color:var(--g); font-size:16px; flex:none; }\n')
+    return html
+
+
 def road_room(html):
     """Room above the first house for the road and the manager's drop-off (tools/game/dropoff.js)."""
     return rep(html, 'street.Y0 = Math.ceil(44 - Math.min(...tops));', 'street.Y0 = Math.ceil(44 - Math.min(...tops)) + ROAD_ROOM;')
@@ -679,6 +705,7 @@ appSafe('rep', initRep);
     html = road_room(html)
     html = lighter_lab(html)
     html = reels_no_fake(html)
+    html = marshall_titles(html)
     html = reels_gameplay(html)
     html = support_icons(html)
 
