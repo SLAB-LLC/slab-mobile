@@ -712,12 +712,12 @@ if (MIL && typeof renderStreet === 'function' && typeof playDropoff === 'functio
     add.forEach(([x, y]) => R(g, x, y, 1, 1, col || '#0b0b0e')); };
   // rocks in a few sizes and shapes: blobs lit from the top left, with a crack or two and a shadow
   const ROCKS = [
-    { W:30, H:20, b:[[11, 12, 9, 7], [20, 14, 7, 5]] },                                   // a pair of boulders
+    { W:30, H:20, b:[[14, 13, 12, 6], [17, 9, 7, 5]] },                                   // a lumpy boulder (one rock, not two)
     { W:46, H:28, b:[[22, 15, 18, 11], [34, 19, 9, 7], [10, 20, 7, 5]], crack:true },     // a big outcrop
     { W:20, H:30, b:[[10, 17, 6, 11], [10, 9, 4, 7]] },                                    // a standing spire
     { W:42, H:14, b:[[21, 8, 19, 5]] },                                                    // a flat slab
     { W:24, H:12, b:[[5, 7, 4, 3], [12, 8, 4, 3], [19, 6, 3, 2.5], [15, 4, 2.5, 2]] },   // pebbles
-    { W:34, H:22, b:[[10, 13, 8, 8], [23, 12, 9, 9]], crack:true },                      // a split rock
+    { W:36, H:20, b:[[18, 13, 16, 6], [13, 9, 8, 5], [24, 10, 5, 3]], crack:true },      // a wide cracked boulder with a ridge
   ];
   const rock = (c, n) => { const R0 = ROCKS[n % ROCKS.length], { W, H } = R0; c.width = W; c.height = H; const g = c.getContext('2d');
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const inb = R0.b.find(([cx, cy, rx, ry]) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1); if (!inb) continue;
