@@ -18,7 +18,9 @@ const AvatarContext = createContext<AvatarContextType | undefined>(undefined)
 const cacheKey = (userId: string) => `slab.repLook.${userId}`
 
 /** Limited holiday hats and outfits (drawn by the game page, tools/game/seasons.js) */
-const LIMITED_IDS = ['pilgrim', 'fallflannel', 'hanukkahbeanie', 'israel', 'santa', 'ugly', 'boppers', 'heart', 'leprechaun', 'shamrock', 'bunny', 'spring', 'unclesam', 'starsstripes', 'witch', 'skeleton']
+const LIMITED_IDS = ['pilgrim', 'fallflannel', 'hanukkahbeanie', 'israel', 'santa', 'ugly', 'boppers', 'heart', 'leprechaun', 'shamrock', 'bunny', 'spring', 'unclesam', 'starsstripes', 'witch', 'skeleton',
+  // SLAB Slots outfits (tools/game/slots.js)
+  'sl_hawaiian', 'sl_suit', 'sl_labcoat', 'sl_hazmat', 'sl_hood', 'sl_trout', 'sl_visor', 'sl_goggles', 'sl_neon']
 
 /** Rides a company can add (features.extraRides), drawn by the game page; the native sprite shows them on foot */
 const EXTRA_RIDE_IDS = ['skateboard', 'goat']

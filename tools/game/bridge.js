@@ -60,7 +60,7 @@ function xpEvent(reason, sourceId, amount, label){
   appCall('grant', { reason, sourceId: sourceId == null ? null : String(sourceId) }).then(g => {
     if (!g || !g.granted || !g.amount) return;
     const prev = currentXP;
-    const boosts = [g.multiplier > 1 ? g.multiplier + 'x streak' : '', g.powerHour ? '2x power hour' : ''].filter(Boolean);
+    const boosts = [g.multiplier > 1 ? g.multiplier + 'x streak' : '', g.powerHour ? '2x power hour' : '', g.slotBoost ? '+1x slot boost' : ''].filter(Boolean);
     if (g.powerHour) flexPower = true;
     baseAwardXP(g.amount, boosts.length ? label + ' (' + boosts.join(', ') + ')' : label);
     currentXP = g.total; updateXPBadge(); applyLockStates();
