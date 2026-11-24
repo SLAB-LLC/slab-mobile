@@ -1089,7 +1089,9 @@ if (MIL && typeof renderStreet === 'function') appSafe('outpost round 3', () => 
 
     // two humvees parked up the old road from the helipad
     const rv = roadV();
-    [[-50, rv + 6, -0.35], [-112, rv - 2, -0.2]].forEach(([u, v, th]) => { const c = document.createElement('canvas'); paintHumvee(th)(c); place(c, { u, v }, HUMVEE.OX, HUMVEE.OY, 1.3, 'st-camp st-tank'); });
+    // parked side by side, door to door, the same way round; offset across their width (local y), drawn 1.3x
+    const HTH = -0.3, gap = 19 * 1.3, hu = -78, hv = rv + 4;
+    [[hu + gap * Math.sin(-HTH), hv - gap * Math.cos(HTH), HTH], [hu - gap * Math.sin(-HTH), hv + gap * Math.cos(HTH), HTH]].forEach(([u, v, th]) => { const c = document.createElement('canvas'); paintHumvee(th)(c); place(c, { u, v }, HUMVEE.OX, HUMVEE.OY, 1.3, 'st-camp st-tank'); });
 
     // where things can go: open sand, off the walks, off the houses, on screen, and not on top of another prop
     const route = [];
