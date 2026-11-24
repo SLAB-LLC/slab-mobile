@@ -34,6 +34,9 @@ const HAPTICS: Record<string, () => Promise<void>> = {
   success: () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success),
   hit: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium),
   big: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy),
+  // SLAB Slots: a light tick while the reels spin, a hard thunk as each one stops
+  tick: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
+  thunk: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid),
 }
 
 /** The page's notification switches -> notification_preferences columns */
@@ -206,6 +209,20 @@ export default function GameScreen() {
             .eq('user_id', user?.id ?? '').gte('local_date', since).limit(5000)
           if (error) throw error
           return (data ?? []).map((r: any) => ({ d: r.local_date, xp: r.amount }))
+        }
+        case 'slots': {
+          // SLAB Slots (tools/game/slots.js); spins are decided on the server (sql/slot-machine-migration.sql)
+          const tz = typeof payload?.tz === 'string' ? payload.tz : Intl.DateTimeFormat().resolvedOptions().timeZone
+          const op = String(payload?.op ?? 'state')
+          let res
+          if (op === 'state') res = await supabase.rpc('slot_state', { p_tz: tz })
+          else if (op === 'spin') res = await supabase.rpc('slot_spin', { p_tz: tz })
+          else if (op === 'trade') res = await supabase.rpc('slot_trade', { p_tz: tz })
+          else if (op === 'claim') res = await supabase.rpc('slot_claim', { p_spin_id: String(payload?.spinId ?? ''), p_claim: payload?.claim ?? {} })
+          else throw new Error('Unknown slots call')
+          if (res.error) throw new Error(res.error.message)
+          if (op === 'spin' || op === 'trade') refreshXp().catch(() => {})
+          return res.data
         }
         case 'saveLook':
           await saveLook(payload?.look as Partial<RepLook>)
