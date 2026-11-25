@@ -60,6 +60,12 @@ const TOGGLES: ToggleItem[] = [
     description: "Daily nudge to keep your streak alive if you haven't listened yet.",
     icon: '\u{23F0}',
   },
+  {
+    key: 'rank_alerts',
+    label: 'Leaderboard Alerts',
+    description: 'When someone knocks you down in your top 3 (at most one every 2 hours).',
+    icon: '\u{1F3C6}',
+  },
 ]
 
 export default function NotificationSettingsScreen() {
@@ -74,6 +80,7 @@ export default function NotificationSettingsScreen() {
     big_days: true,
     chats: true,
     streak_reminders: false,
+    rank_alerts: true,
   })
 
   useEffect(() => {
