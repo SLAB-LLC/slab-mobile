@@ -929,9 +929,14 @@
   .rb-on .vx-card.bg .vx-bgv{ opacity:1; }
   .rb-on .vx-card.bg .logo{ display:none; }
   .rb-on .vx-card.bg::after{ content:""; position:absolute; inset:0; z-index:1; pointer-events:none; background:linear-gradient(to bottom, rgba(0,0,0,.5), rgba(0,0,0,0) 24%, rgba(0,0,0,0) 60%, rgba(0,0,0,.66)); }
+  /* over the footage the reel's own text and buttons stay white, whatever the theme (light themes turn them ink) */
+  .rb-on .vx-card.bg .vx-rail button{ color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.85); }
+  .rb-on .vx-card.bg .vx-cb .t{ color:#fff; text-shadow:0 1px 4px rgba(0,0,0,.85); }
+  .rb-on .vx-card.bg .vx-cb .m{ color:rgba(255,255,255,.86); text-shadow:0 1px 3px rgba(0,0,0,.85); }
+  .rb-on .vx-card.bg .vx-cprog{ background:rgba(255,255,255,.3); } .rb-on .vx-card.bg .vx-cprog i{ background:#fff; }
   .rb-on .vx-card .vx-cap{ top:50%; transform:translateY(-50%); left:16px; right:16px; font:400 50px/1.05 'Anton', 'Barlow', sans-serif; letter-spacing:.01em; text-transform:uppercase; color:#fff; text-shadow:none; }
-  .rb-on .vx-cap .w1{ display:inline-block; max-width:100%; overflow-wrap:anywhere; -webkit-text-stroke:9px #000; paint-order:stroke fill; filter:drop-shadow(0 5px 0 #000) drop-shadow(0 8px 14px rgba(0,0,0,.45)); animation:rb-pop .17s cubic-bezier(.3,1.7,.5,1); }
-  .rb-on .vx-cap .w1.ho{ color:#ffe14d; } .rb-on .vx-cap .w1.bl{ color:#ff5a4f; }
+  .rb-on .vx-cap .w1{ color:#ffe14d; display:inline-block; max-width:100%; overflow-wrap:anywhere; -webkit-text-stroke:9px #000; paint-order:stroke fill; filter:drop-shadow(0 5px 0 #000) drop-shadow(0 8px 14px rgba(0,0,0,.45)); animation:rb-pop .17s cubic-bezier(.3,1.7,.5,1); }
+  .rb-on .vx-cap .w1.bl{ color:#ff5a4f; }
   @keyframes rb-pop{ from{ transform:scale(.7); opacity:.35; } 65%{ transform:scale(1.08); } }
   .rb-on .vx-tc{ position:absolute; left:7%; right:7%; top:25%; z-index:3; background:#fff; color:#141414; border-radius:14px; padding:12px 14px 10px; box-shadow:0 12px 34px rgba(0,0,0,.5); pointer-events:none; opacity:0; transform:translateY(-10px) scale(.96); transition:opacity .22s, transform .3s cubic-bezier(.3,1.5,.5,1); }
   .rb-on .vx-card.tc .vx-tc{ opacity:1; transform:none; }
@@ -8910,12 +8915,14 @@ function vxOpenTune(){
     <button class="vx-tg" data-sales="1"><span>Sales only</span><span class="vx-sw${T.sales ? ' on' : ''}"></span></button>
     <button class="vx-tg" data-cb="1"><span>Include callbacks</span><span class="vx-sw${T.callbacks ? ' on' : ''}"></span></button>
     ${T.hide.length ? `<button class="vx-tg" data-unhide="1"><span>Showing less: ${T.hide.map(o => VX_OBJ[o]).join(', ')}</span><span style="color:var(--g);font-weight:700">Reset</span></button>` : ''}
+    ${rbTuneHTML()}
     <button class="vx-done" id="vx-done">Done · ${VX.clips.filter(vxPass).length} clips</button>`;
   vxBindChips(sh);
   sh.querySelectorAll('[data-rp]').forEach(b => b.onclick = () => { vxToggle(T.reps, b.dataset.rp); if (!T.reps.length) T.reps.push(b.dataset.rp); vxRetune(); });
   sh.querySelector('[data-cb]').onclick = () => { T.callbacks = !T.callbacks; vxRetune(); };
   const uh = sh.querySelector('[data-unhide]'); if (uh) uh.onclick = () => { T.hide = []; vxRetune(); };
   $('vx-done').onclick = vxCloseSheet;
+  rbTuneBind(sh);
   $('vx-scrim').classList.add('on');
 }
 function vxCloseSheet(){ $('vx-sheet').className = 'vx-sheet'; $('vx-scrim').classList.remove('on'); }
@@ -10245,7 +10252,7 @@ if (APP && APP.brand && APP.brand.light) appSafe('light theme', () => {
   // (accent, gold, green, red) keep their color, dark shadows stay dark. Scenes (the street, boss fights,
   // the Vault door, the video player) aren't touched.
   const SCREENS = /\.(vx-|vault|mt-|mt\b|ow-|ow\b|bb-|bb\b|lb-|lb\b|pd-|me-|prize|lv-|q-opt|lib-|ace-|shelf|ob-|sheet|toast|bubble|example|chat-|seg\b|seg-|mascot|lock-|stats|leader|podium|lesson-view|cr-|onboard|pn-|push-note|ss-backdrop|avatar-frame|deck-dots|fx-badge|fx-props|vet-chip|pw-live|bv-check|btn-primary|unit-seg)/;
-  const SCENES = /\.(vx-door|app-vid|st-|fv-|bt-)/;
+  const SCENES = /\.(vx-door|app-vid|st-|fv-|bt-|rb-on)/;   // rb-on: the Reels footage, captions and title card (reels_bg.js) keep their colors
   const parse = (c) => {
     let m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(c);
     if (m) { const x = m[1].length === 3 ? m[1].replace(/./g, '$&$&') : m[1]; const n = parseInt(x, 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255, 1]; }
@@ -12106,56 +12113,88 @@ if (APP && APP.features && APP.features.aceLibrary && APP.brand && !APP.brand.is
 // Reels play like the story-time videos: muted gameplay fills the screen, a title card shows the hook
 // for the first few seconds, and the rep's real recording drives captions one word at a time.
 // Backgrounds come from the reel-backgrounds bucket's manifest.json (slab-pipeline backgrounds.py, fed
-// by the team's Google Sheet). Each reel gets a random one from a random point, never the same one twice
-// in a row. With no manifest a reel keeps its dark card, with the same title card and captions.
-// Word timings are each clip's `w` (slab-pipeline reel_words.py); clips without them spread each
-// line's words across the line, as the old captions did.
+// by the team's Google Sheet). Picking one (Alston, 2026-11-24):
+//   * the kind of footage rotates: a reel never gets the same kind (runner, parkour, driving, ...) as the
+//     two before it, when there are enough kinds, so it doesn't feel like one video on repeat
+//   * within a kind, not the video the last reel of that kind used, when there's another
+//   * the start point is spread out: of a dozen random points, the one furthest from where this video
+//     last started (remembered on the phone), so the same stretch of footage doesn't keep coming back
+// Reps can switch the footage off under Tune (vxS.tune.bgOff); the title card and captions stay.
+// With no manifest a reel keeps its dark card, with the same title card and captions.
+// Captions are one colour whoever speaks (yellow): white turned the light theme's ink colour, which
+// disappeared on the footage. Word timings are each clip's `w` (slab-pipeline reel_words.py); clips
+// without them spread each line's words across the line, as the old captions did.
 // Only where it's switched on: the company's features.reelsGameplay (Cade's company for now). Elsewhere
 // APP.reelBackgrounds is null and Reels stay exactly as they were. The demo outside the app always has it.
 const RB_CARD_MS = 3200;
 const RB_ON = !APP || !!APP.reelBackgrounds;
 if (RB_ON) document.documentElement.classList.add('rb-on');
-let rbList = null, rbLast = null, rbCardTimer = 0;
+let rbList = null, rbCardTimer = 0;
+let rbKinds = [];          // kinds of the last few backgrounds picked, newest last
+const rbLastOf = {};       // kind -> the video that kind last used
+const RB_SEEN_KEY = 'slab-reel-bg-starts';
+let rbSeen = {};           // video id -> its last few start points (seconds)
+try { rbSeen = JSON.parse(localStorage.getItem(RB_SEEN_KEY) || '{}') || {}; } catch (e) { rbSeen = {}; }
 const rbVid = [0, 1].map(() => { const v = document.createElement('video'); v.className = 'vx-bgv'; v.muted = true; v.defaultMuted = true; v.loop = true; v.playsInline = true; v.preload = 'auto'; v.setAttribute('muted', ''); v.setAttribute('playsinline', ''); v.setAttribute('aria-hidden', 'true'); return v; });
 let rbNext = null; // { q, v, pick } the following card's background, already loading
+const rbBgOn = () => !(vxS.tune && vxS.tune.bgOff);
 
 function rbLoadList(){
   if (rbList) return rbList;
   const url = APP ? APP.reelBackgrounds : 'bg/manifest.json';
   rbList = !url ? Promise.resolve([]) : fetch(url, { cache:'no-cache' }).then(r => r.ok ? r.json() : { clips:[] })
-    .then(m => (m.clips || []).filter(c => c && c.src && c.dur > 5).map(c => ({ ...c, url:new URL(c.src, new URL(url, location.href)).href })))
+    .then(m => (m.clips || []).filter(c => c && c.src && c.dur > 5).map(c => ({ ...c, kind:String(c.cat || c.id), url:new URL(c.src, new URL(url, location.href)).href })))
     .catch(() => []);
   return rbList;
 }
+function rbStart(b, len){
+  // start anywhere that leaves the whole clip's worth of footage before the loop point (footage shorter
+  // than the clip loops anyway, so it can start anywhere), as far as possible from this video's last starts
+  const room = Math.max(0, b.dur > len + 1 ? b.dur - len - 0.5 : b.dur - 1), seen = rbSeen[b.id] || [];
+  let best = Math.random() * room, far = -1;
+  for (let k = 0; k < 12 && seen.length; k++) {
+    const at = Math.random() * room, d = Math.min(...seen.map(s => Math.abs(s - at)));
+    if (d > far) { far = d; best = at; }
+  }
+  rbSeen[b.id] = seen.concat(Math.round(best)).slice(-8);
+  try { localStorage.setItem(RB_SEEN_KEY, JSON.stringify(rbSeen)); } catch (e) {}
+  return best;
+}
 function rbPick(list, len){
-  const pool = list.length > 1 ? list.filter(b => b.id !== rbLast) : list;
-  const b = pool[Math.floor(Math.random() * pool.length)];
-  // start anywhere that leaves the whole clip's worth of footage before the loop point; footage shorter
-  // than the clip loops anyway, so it can start anywhere
-  const room = b.dur > len + 1 ? b.dur - len - 0.5 : b.dur - 1;
-  return { b, at:Math.random() * room };
+  const kinds = [...new Set(list.map(b => b.kind))];
+  // skip the kinds of the last two reels (or as many as leaves at least one kind to choose from)
+  const skip = rbKinds.slice(-Math.min(2, kinds.length - 1));
+  const open = kinds.filter(k => !skip.includes(k));
+  const kind = open[Math.floor(Math.random() * open.length)];
+  const of = list.filter(b => b.kind === kind), fresh = of.length > 1 ? of.filter(b => b.id !== rbLastOf[kind]) : of;
+  const b = fresh[Math.floor(Math.random() * fresh.length)];
+  rbKinds = rbKinds.concat(kind).slice(-4);
+  rbLastOf[kind] = b.id;
+  return { b, at:rbStart(b, len) };
 }
 function rbCue(v, pick, play){
   const go = () => { try { v.currentTime = pick.at; } catch (e) {} if (play) v.play().catch(() => {}); };
   if (v.dataset.src !== pick.b.url) { v.dataset.src = pick.b.url; v.src = pick.b.url; v.addEventListener('loadedmetadata', go, { once:true }); v.load(); }
   else go();
 }
-function rbPlay(i){
+function rbPlay(i, keepCard){
   if (!RB_ON) return;
   const c = vxQueue[i], card = document.querySelector(`#vx-feed .vx-card[data-q="${i}"]`);
   if (!c || !card) return;
-  // the title card, once each time a reel comes on screen
-  document.querySelectorAll('#vx-feed .vx-card.tc').forEach(el => el.classList.remove('tc'));
-  clearTimeout(rbCardTimer);
-  card.classList.add('tc');
-  rbCardTimer = setTimeout(() => card.classList.remove('tc'), RB_CARD_MS);
+  if (!keepCard) {
+    // the title card, once each time a reel comes on screen
+    document.querySelectorAll('#vx-feed .vx-card.tc').forEach(el => el.classList.remove('tc'));
+    clearTimeout(rbCardTimer);
+    card.classList.add('tc');
+    rbCardTimer = setTimeout(() => card.classList.remove('tc'), RB_CARD_MS);
+  }
+  if (!rbBgOn()) return;
   rbLoadList().then(list => {
-    if (vxActive !== i || !list.length) return;
+    if (vxActive !== i || !list.length || !rbBgOn()) return;
     let v, pick;
     if (rbNext && rbNext.q === i) ({ v, pick } = rbNext);
     else { v = rbVid[0] === (rbNext && rbNext.v) ? rbVid[1] : rbVid[0]; pick = rbPick(list, c.en - c.st); rbCue(v, pick, false); }
     rbVid.forEach(x => { if (x !== v) x.pause(); });
-    rbLast = pick.b.id;
     card.querySelector('.vx-bgw').appendChild(v);
     card.classList.add('bg');
     if (v.readyState >= 1) { try { v.currentTime = pick.at; } catch (e) {} }
@@ -12168,7 +12207,26 @@ function rbPlay(i){
 }
 // the footage follows the recording: tap to pause, leaving Reels, opening the full door
 vxAu.addEventListener('pause', () => rbVid.forEach(v => v.pause()));
-vxAu.addEventListener('play', () => { if (vxMode !== 'reel') return; const card = document.querySelector(`#vx-feed .vx-card[data-q="${vxActive}"]`), v = card && card.querySelector('.vx-bgv'); if (v) v.play().catch(() => {}); });
+vxAu.addEventListener('play', () => { if (vxMode !== 'reel' || !rbBgOn()) return; const card = document.querySelector(`#vx-feed .vx-card[data-q="${vxActive}"]`), v = card && card.querySelector('.vx-bgv'); if (v) v.play().catch(() => {}); });
+
+// Tune: the footage on or off, straight away on the reel that's playing (the feed itself doesn't change)
+function rbTuneHTML(){
+  if (!RB_ON) return '';
+  return `<div class="lab">LOOK</div><button class="vx-tg" data-rbbg="1"><span>Gameplay backgrounds</span><span class="vx-sw${rbBgOn() ? ' on' : ''}"></span></button>`;
+}
+function rbTuneBind(sh){
+  const b = sh.querySelector('[data-rbbg]'); if (!b) return;
+  b.onclick = () => {
+    vxS.tune.bgOff = rbBgOn();
+    vxSave(); haptic('tap');
+    b.querySelector('.vx-sw').classList.toggle('on', rbBgOn());
+    if (!rbBgOn()) {
+      rbVid.forEach(v => { v.pause(); v.remove(); });
+      document.querySelectorAll('#vx-feed .vx-card.bg').forEach(el => el.classList.remove('bg'));
+      rbNext = null;
+    } else if (vxActive >= 0) rbPlay(vxActive, true);
+  };
+}
 
 // [door seconds, who, word] for the clip: its own timings, or each line's words spread across the line
 function rbWords(c){
@@ -12191,7 +12249,7 @@ function rbTick(c, card){
   const on = i >= 0 && t - W[i][0] < 1.4 ? W[i] : null, key = on ? String(i) : '';
   if (cap.dataset.k !== key) {
     cap.dataset.k = key;
-    cap.innerHTML = on ? `<span class="w1 ${on[1]}${on[2].includes('[REDACTED]') ? ' bl' : ''}">${vxEsc(rbShow(on[2]))}</span>` : '';
+    cap.innerHTML = on ? `<span class="w1${on[2].includes('[REDACTED]') ? ' bl' : ''}">${vxEsc(rbShow(on[2]))}</span>` : '';
   }
   card.querySelector('.vx-cprog i').style.width = Math.max(0, Math.min(1, (t - c.st) / (c.en - c.st))) * 100 + '%';
   return true;

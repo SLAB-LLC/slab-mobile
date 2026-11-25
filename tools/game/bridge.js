@@ -1135,7 +1135,7 @@ if (APP && APP.brand && APP.brand.light) appSafe('light theme', () => {
   // (accent, gold, green, red) keep their color, dark shadows stay dark. Scenes (the street, boss fights,
   // the Vault door, the video player) aren't touched.
   const SCREENS = /\.(vx-|vault|mt-|mt\b|ow-|ow\b|bb-|bb\b|lb-|lb\b|pd-|me-|prize|lv-|q-opt|lib-|ace-|shelf|ob-|sheet|toast|bubble|example|chat-|seg\b|seg-|mascot|lock-|stats|leader|podium|lesson-view|cr-|onboard|pn-|push-note|ss-backdrop|avatar-frame|deck-dots|fx-badge|fx-props|vet-chip|pw-live|bv-check|btn-primary|unit-seg)/;
-  const SCENES = /\.(vx-door|app-vid|st-|fv-|bt-)/;
+  const SCENES = /\.(vx-door|app-vid|st-|fv-|bt-|rb-on)/;   // rb-on: the Reels footage, captions and title card (reels_bg.js) keep their colors
   const parse = (c) => {
     let m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(c);
     if (m) { const x = m[1].length === 3 ? m[1].replace(/./g, '$&$&') : m[1]; const n = parseInt(x, 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255, 1]; }
