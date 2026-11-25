@@ -12650,7 +12650,9 @@ if (MIL) appSafe('military skin', () => {
 // Duncan 2026-11-23: the Vault goes dark metal, the way Cade's and Ronin's went concrete. The wall around the
 // door becomes riveted gunmetal plates (scuffed and brushed), and the door's brass turns to steel. The hole in
 // the wall grows the same way when the door rolls away.
-if (MIL && typeof vxDoorEl === 'function') appSafe('military vault', () => {
+// Duncan 2026-11-25: every company's Vault gets the riveted metal wall (not just Militia); only Militia's door
+// turns steel, everyone else keeps their brass/gold door. Concrete (light) brands keep their concrete wall.
+if ((MIL || !(APP && APP.brand && APP.brand.light)) && typeof vxDoorEl === 'function') appSafe('metal vault', () => {
   const tex = (() => {
     const N = 96, c = document.createElement('canvas'); c.width = c.height = N;
     const g = c.getContext('2d'); let seed = 11;
@@ -12685,8 +12687,8 @@ if (MIL && typeof vxDoorEl === 'function') appSafe('military vault', () => {
       -webkit-mask:radial-gradient(circle at 50% 46%, transparent var(--r), #000 calc(var(--r) + 1px));
               mask:radial-gradient(circle at 50% 46%, transparent var(--r), #000 calc(var(--r) + 1px)); }
     .vx-door .vx-mil::after{ content:""; position:absolute; inset:0; background:radial-gradient(circle at 50% 46%, transparent 170px, rgba(0,0,0,.45) 520px); }
-    .skin-military .vx-door .hole{ box-shadow:0 0 0 8px #3b3f46, 0 0 0 12px #0c0d0f, 0 0 34px 18px rgba(0,0,0,.7); }
-    .skin-military .vx-door.reveal .hole{ box-shadow:none; }
+    .vx-door .hole{ box-shadow:0 0 0 8px #3b3f46, 0 0 0 12px #0c0d0f, 0 0 34px 18px rgba(0,0,0,.7); }
+    .vx-door.reveal .hole{ box-shadow:none; }
     .skin-military .vx-door .hint{ color:#B4BBC3; text-shadow:2px 2px 0 #000; }
     .vx-door.reveal .vx-mil{ --r:860px; transition:--r .8s cubic-bezier(.65,0,.35,1); }
   </style>`);
@@ -12708,12 +12710,14 @@ if (MIL && typeof vxDoorEl === 'function') appSafe('military vault', () => {
     }
     g.putImageData(im, 0, 0);
   };
-  const doorBase = paintVaultDoor, wheelBase = paintVaultWheel;
-  paintVaultDoor = function(c){ doorBase(c); steel(c); };
-  paintVaultWheel = function(c){ wheelBase(c); steel(c); };
+  if (MIL) {
+    const doorBase = paintVaultDoor, wheelBase = paintVaultWheel;
+    paintVaultDoor = function(c){ doorBase(c); steel(c); };
+    paintVaultWheel = function(c){ wheelBase(c); steel(c); };
+  }
   const dd = $('vx-door');
   if (dd && !dd.querySelector('.vx-mil')) { const m = document.createElement('div'); m.className = 'vx-mil'; dd.insertBefore(m, dd.firstChild); }
-  if (dd) { paintVaultDoor(dd.querySelector('.d')); paintVaultWheel(dd.querySelector('.w')); }
+  if (dd && MIL) { paintVaultDoor(dd.querySelector('.d')); paintVaultWheel(dd.querySelector('.w')); }
 });
 
 
