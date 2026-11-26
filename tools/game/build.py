@@ -208,6 +208,7 @@ def marshall_titles(html):
     """Marshall's feedback via Duncan (2026-11-24): he still holds several pest records, so his Vault tag isn't
     "Previous", his rep page lists his records, and Ace's locked Vault drops the Cade record-holder line
     (other companies keep it)."""
+    html = html.replace('Marshall Hawks', 'Marshall Hawkes')   # his name is spelled Hawkes (contract, 2026-11-25)
     html = rep(html, "m:'Previous Pest Record Holder'", "m:'Pest Industry Record Holder'")
     html = rep(html, '<li>Media from other top industry reps, incl. current record holder Cade Sunderland</li>',
                '<li class="vx-cade">Media from other top industry reps, incl. current record holder Cade Sunderland</li>')
