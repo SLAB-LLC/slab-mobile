@@ -29,7 +29,7 @@ export interface VaultData {
 
 /** The pack's reps keep the ids the page's faces and tags are keyed by */
 const KNOWN: Record<string, VaultPerson> = {
-  Marshall: { id: 'm', name: 'Marshall Hawks', ini: 'MH', color: '#daae5d' },
+  Marshall: { id: 'm', name: 'Marshall Hawkes', ini: 'MH', color: '#daae5d' },
   Rylan: { id: 'r', name: 'Rylan', ini: 'RY', color: '#7fd1c7' },
 }
 /** Ace's Vault is Marshall only (Duncan, 2026-11-03: Marshall said a second style would confuse Ace's reps).
