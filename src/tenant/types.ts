@@ -114,7 +114,8 @@ export interface TenantFeatures {
   /** Marshall's training videos on his page in the Vault (always on for reps with no company; Ace has them as its own) */
   marshallVideos?: boolean
   /** Reels play over muted gameplay with a title card and one-word captions (tools/game/reels_bg.js).
-   *  Off by default while it's tried out; on for Cade's company (2026-11-16) */
+   *  On for every company (2026-11-28, after Cade's company tried it); a company can switch it off
+   *  with features.reelsGameplay = false, and each rep can hide the footage under Tune */
   reelsGameplay?: boolean
   /** What the owner set in the Owner view's Training tab (required units and books, pass scores) */
   training?: Record<string, unknown> | null
