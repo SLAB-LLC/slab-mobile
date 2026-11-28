@@ -384,15 +384,21 @@ IG_LOGO = ('<svg class="ig-logo" viewBox="0 0 32 32" aria-hidden="true">'
 def reels_gameplay(html):
     """Reels look like the story-time videos (Alston, 2026-11-16): muted gameplay fills the screen, a title
     card shows the hook for the first few seconds, and the rep's real recording drives big one-word
-    captions. The behaviour is tools/game/reels_bg.js; the backgrounds come from slab-pipeline backgrounds.py."""
+    captions, with a Tune switch for the footage. The behaviour is tools/game/reels_bg.js; the backgrounds come
+    from slab-pipeline backgrounds.py. bridge.js's light theme leaves anything under .rb-on its own colors."""
     css = """  .rb-on .vx-bgw{ position:absolute; inset:0; z-index:0; pointer-events:none; }
   .rb-on .vx-bgv{ display:block; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity .35s; }
   .rb-on .vx-card.bg .vx-bgv{ opacity:1; }
   .rb-on .vx-card.bg .logo{ display:none; }
   .rb-on .vx-card.bg::after{ content:""; position:absolute; inset:0; z-index:1; pointer-events:none; background:linear-gradient(to bottom, rgba(0,0,0,.5), rgba(0,0,0,0) 24%, rgba(0,0,0,0) 60%, rgba(0,0,0,.66)); }
+  /* over the footage the reel's own text and buttons stay white, whatever the theme (light themes turn them ink) */
+  .rb-on .vx-card.bg .vx-rail button{ color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.85); }
+  .rb-on .vx-card.bg .vx-cb .t{ color:#fff; text-shadow:0 1px 4px rgba(0,0,0,.85); }
+  .rb-on .vx-card.bg .vx-cb .m{ color:rgba(255,255,255,.86); text-shadow:0 1px 3px rgba(0,0,0,.85); }
+  .rb-on .vx-card.bg .vx-cprog{ background:rgba(255,255,255,.3); } .rb-on .vx-card.bg .vx-cprog i{ background:#fff; }
   .rb-on .vx-card .vx-cap{ top:50%; transform:translateY(-50%); left:16px; right:16px; font:400 50px/1.05 'Anton', 'Barlow', sans-serif; letter-spacing:.01em; text-transform:uppercase; color:#fff; text-shadow:none; }
-  .rb-on .vx-cap .w1{ display:inline-block; max-width:100%; overflow-wrap:anywhere; -webkit-text-stroke:9px #000; paint-order:stroke fill; filter:drop-shadow(0 5px 0 #000) drop-shadow(0 8px 14px rgba(0,0,0,.45)); animation:rb-pop .17s cubic-bezier(.3,1.7,.5,1); }
-  .rb-on .vx-cap .w1.ho{ color:#ffe14d; } .rb-on .vx-cap .w1.bl{ color:#ff5a4f; }
+  .rb-on .vx-cap .w1{ color:#ffe14d; display:inline-block; max-width:100%; overflow-wrap:anywhere; -webkit-text-stroke:9px #000; paint-order:stroke fill; filter:drop-shadow(0 5px 0 #000) drop-shadow(0 8px 14px rgba(0,0,0,.45)); animation:rb-pop .17s cubic-bezier(.3,1.7,.5,1); }
+  .rb-on .vx-cap .w1.bl{ color:#ff5a4f; }
   @keyframes rb-pop{ from{ transform:scale(.7); opacity:.35; } 65%{ transform:scale(1.08); } }
   .rb-on .vx-tc{ position:absolute; left:7%; right:7%; top:25%; z-index:3; background:#fff; color:#141414; border-radius:14px; padding:12px 14px 10px; box-shadow:0 12px 34px rgba(0,0,0,.5); pointer-events:none; opacity:0; transform:translateY(-10px) scale(.96); transition:opacity .22s, transform .3s cubic-bezier(.3,1.5,.5,1); }
   .rb-on .vx-card.tc .vx-tc{ opacity:1; transform:none; }
@@ -411,6 +417,11 @@ def reels_gameplay(html):
     html = rep(html, '    const t = vxAu.currentTime, L = c.d.lines || []; let i = 0;',
                '    if (rbTick(c, card)) { vxReelRaf = requestAnimationFrame(vxReelTick); return; }\n'
                '    const t = vxAu.currentTime, L = c.d.lines || []; let i = 0;')
+    # Tune: the gameplay backgrounds on or off
+    html = rep(html, '    <button class="vx-done" id="vx-done">Done · ${VX.clips.filter(vxPass).length} clips</button>`;',
+               '    ${rbTuneHTML()}\n    <button class="vx-done" id="vx-done">Done · ${VX.clips.filter(vxPass).length} clips</button>`;')
+    html = rep(html, "  $('vx-done').onclick = vxCloseSheet;\n  $('vx-scrim').classList.add('on');\n}\nfunction vxCloseSheet(){",
+               "  $('vx-done').onclick = vxCloseSheet;\n  rbTuneBind(sh);\n  $('vx-scrim').classList.add('on');\n}\nfunction vxCloseSheet(){")
     return html
 
 
