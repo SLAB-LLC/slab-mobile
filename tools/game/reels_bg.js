@@ -51,9 +51,10 @@ function rbStart(b, len){
 }
 function rbPick(list, len){
   const kinds = [...new Set(list.map(b => b.kind))];
-  // skip the kinds of the last two reels (or as many as leaves at least one kind to choose from)
-  const skip = rbKinds.slice(-Math.min(2, kinds.length - 1));
-  const open = kinds.filter(k => !skip.includes(k));
+  // skip the kinds of the last two reels (or as many as leaves at least one kind to choose from; with a
+  // single kind, none: slice(-0) would be every recent kind and leave nothing to pick)
+  const n = Math.min(2, kinds.length - 1), skip = n > 0 ? rbKinds.slice(-n) : [];
+  const open = kinds.filter(k => !skip.includes(k)).length ? kinds.filter(k => !skip.includes(k)) : kinds;
   const kind = open[Math.floor(Math.random() * open.length)];
   const of = list.filter(b => b.kind === kind), fresh = of.length > 1 ? of.filter(b => b.id !== rbLastOf[kind]) : of;
   const b = fresh[Math.floor(Math.random() * fresh.length)];
